@@ -106,7 +106,10 @@ list_products() {
     if [ -z "$response" ]; then
         echo -e "${RED}Error: Could not connect to API${NC}"
     else
-        echo "$response" | jq -r '.[] | "\(.id)\t\(.code)\t\(.name)\t$\(.price)\tStock: \(.stock)"' 2>/dev/null || echo "$response"
+        echo "$response" | jq -r '.[] | "\(.id)\t\(.code)\t\(.name)\t$\(.price)\tStock: \(.stock)"' 2>/dev/null || {
+            echo -e "${RED}Error: Invalid response from API${NC}"
+            echo "Please check the API connection and try again."
+        }
     fi
     
     echo
@@ -145,7 +148,12 @@ add_product() {
         echo -e "${GREEN}Product added successfully!${NC}"
     else
         echo -e "${RED}Error adding product:${NC}"
-        echo "$response" | jq '.'
+        if echo "$response" | jq -e '.message' > /dev/null 2>&1; then
+            echo "$response" | jq -r '.message'
+            echo "$response" | jq -r '.errors // empty | to_entries[] | "  - \(.key): \(.value[])"'
+        else
+            echo "Failed to add product. Please check your input and try again."
+        fi
     fi
     
     echo
@@ -210,7 +218,10 @@ list_customers() {
     if [ -z "$response" ]; then
         echo -e "${RED}Error: Could not connect to API${NC}"
     else
-        echo "$response" | jq -r '.[] | "\(.id)\t\(.code)\t\(.name)\t\(.email // "N/A")"' 2>/dev/null || echo "$response"
+        echo "$response" | jq -r '.[] | "\(.id)\t\(.code)\t\(.name)\t\(.email // "N/A")"' 2>/dev/null || {
+            echo -e "${RED}Error: Invalid response from API${NC}"
+            echo "Please check the API connection and try again."
+        }
     fi
     
     echo
@@ -249,7 +260,12 @@ add_customer() {
         echo -e "${GREEN}Customer added successfully!${NC}"
     else
         echo -e "${RED}Error adding customer:${NC}"
-        echo "$response" | jq '.'
+        if echo "$response" | jq -e '.message' > /dev/null 2>&1; then
+            echo "$response" | jq -r '.message'
+            echo "$response" | jq -r '.errors // empty | to_entries[] | "  - \(.key): \(.value[])"'
+        else
+            echo "Failed to add customer. Please check your input and try again."
+        fi
     fi
     
     echo
@@ -303,7 +319,14 @@ sales_checkout() {
         echo -e "${BOLD}Total: $$(echo "$response" | jq -r '.total')${NC}"
     else
         echo -e "${RED}Error processing sale:${NC}"
-        echo "$response" | jq '.'
+        if echo "$response" | jq -e '.error' > /dev/null 2>&1; then
+            echo "$response" | jq -r '.error'
+        elif echo "$response" | jq -e '.message' > /dev/null 2>&1; then
+            echo "$response" | jq -r '.message'
+            echo "$response" | jq -r '.errors // empty | to_entries[] | "  - \(.key): \(.value[])"'
+        else
+            echo "Failed to process sale. Please check your input and try again."
+        fi
     fi
     
     echo
@@ -322,7 +345,10 @@ view_sales() {
     if [ -z "$response" ]; then
         echo -e "${RED}Error: Could not connect to API${NC}"
     else
-        echo "$response" | jq -r '.[] | "ID: \(.id) | Product: \(.product.name) | Qty: \(.quantity) | Total: $\(.total) | Date: \(.created_at)"' 2>/dev/null || echo "$response"
+        echo "$response" | jq -r '.[] | "ID: \(.id) | Product: \(.product.name) | Qty: \(.quantity) | Total: $\(.total) | Date: \(.created_at)"' 2>/dev/null || {
+            echo -e "${RED}Error: Invalid response from API${NC}"
+            echo "Please check the API connection and try again."
+        }
     fi
     
     echo
