@@ -1,0 +1,29 @@
+# Backend Laravel
+/backend/vendor/
+/backend/node_modules/
+/backend/.env
+/backend/public/hot
+/backend/public/storage
+/backend/storage/*.key
+/backend/bootstrap/cache/*.php
+/backend/.phpunit.result.cache
+
+# TUI Client
+/tui-client/.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
