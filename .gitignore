@@ -7,6 +7,7 @@
 /backend/storage/*.key
 /backend/bootstrap/cache/*.php
 /backend/.phpunit.result.cache
+/backend/database/database.sqlite
 
 # TUI Client
 /tui-client/.env
@@ -27,3 +28,7 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Test files
+test-tui.sh
+tui-demo.txt
