@@ -141,9 +141,46 @@ class ErpController extends Controller
             'tercero_id' => 'sometimes|exists:terceros,id',
             'fecha' => 'sometimes|date',
             'estado' => 'sometimes|in:borrador,confirmado,parcial,completado,anulado',
+            'lineas' => 'sometimes|array',
+            'lineas.*.product_id' => 'required_with:lineas|integer',
+            'lineas.*.cantidad' => 'required_with:lineas|numeric|min:0',
+            'lineas.*.precio_unitario' => 'sometimes|numeric|min:0',
+            'lineas.*.descuento' => 'sometimes|numeric|min:0|max:100',
+            'lineas.*.iva' => 'sometimes|numeric|min:0|max:100',
         ]);
 
-        $documento->update($validated);
+        // Actualizar campos básicos del documento
+        $documento->update(collect($validated)->except('lineas')->toArray());
+        
+        // Si se envían líneas, actualizar completamente
+        if (isset($validated['lineas'])) {
+            // Eliminar todas las líneas existentes
+            $documento->lineas()->delete();
+            
+            // Crear las nuevas líneas
+            foreach ($validated['lineas'] as $lineaData) {
+                $descripcion = $lineaData['descripcion'] ?? '';
+                
+                // Si la descripción está vacía, intentamos recuperarla del producto
+                if (empty($descripcion)) {
+                    $producto = \App\Models\Product::find($lineaData['product_id']);
+                    if ($producto) {
+                        $descripcion = $producto->name; // O el campo que use tu modelo Product
+                    }
+                }
+
+                $documento->lineas()->create([
+                    'product_id' => $lineaData['product_id'],
+                    'codigo' => $lineaData['codigo'] ?? '',
+                    'descripcion' => $descripcion,
+                    'cantidad' => $lineaData['cantidad'],
+                    'precio_unitario' => $lineaData['precio_unitario'] ?? 0,
+                    'descuento' => $lineaData['descuento'] ?? 0,
+                    'iva' => $lineaData['iva'] ?? 21,
+                ]);
+            }
+        }
+        
         $documento->recalcularTotales();
 
         return response()->json($documento->load(['tercero', 'lineas']));

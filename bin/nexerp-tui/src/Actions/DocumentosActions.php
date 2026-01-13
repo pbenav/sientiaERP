@@ -4,10 +4,15 @@ namespace App\NexErpTui\Actions;
 
 use App\NexErpTui\ErpClient;
 use App\NexErpTui\Display\Screen;
+use App\NexErpTui\Display\ListController;
+use App\NexErpTui\Display\FormController;
 use App\NexErpTui\Input\KeyHandler;
 
 class DocumentosActions
 {
+    private ErpClient $client;
+    private Screen $screen;
+    private KeyHandler $keyHandler;
     private DetailsActions $details;
 
     public function __construct(ErpClient $client, Screen $screen, KeyHandler $keyHandler, DetailsActions $details)
@@ -23,12 +28,6 @@ class DocumentosActions
      */
     public function listar(string $tipo): void
     {
-        $page = 1;
-        $perPage = 15;
-        $running = true;
-        $selectedIndex = 0;
-        $selectionFile = '/tmp/erp_tui_selection.json';
-
         $tipoLabels = [
             'presupuesto' => 'Presupuestos',
             'pedido' => 'Pedidos',
@@ -37,146 +36,298 @@ class DocumentosActions
             'recibo' => 'Recibos',
         ];
 
-        $needsFetch = true;
-        $needsRender = true;
-
-        while ($running) {
-            try {
-                if ($needsFetch) {
-                    $response = $this->client->getDocumentos($tipo, $page, $perPage);
-                    $documentos = $response['data'] ?? [];
-                    $total = $response['total'] ?? 0;
-                    $lastPage = $response['last_page'] ?? 1;
-                    $needsFetch = false;
-                    $needsRender = true;
+        $listController = new ListController($this->keyHandler, $this->screen, $tipoLabels[$tipo] ?? ucfirst($tipo));
+        
+        // Definir columnas
+        // Definir columnas con anchos fijos y truncamiento automático
+        // Definir columnas con anchos optimizados
+        // Definir columnas responsivas
+        $listController->setColumns([
+            'numero' => [
+                'label' => 'Número', 
+                'width' => 15
+            ],
+            'fecha' => [
+                'label' => 'Fecha', 
+                'width' => 12,
+                'formatter' => function($row) {
+                    return substr($row['fecha'] ?? '', 0, 10);
                 }
-
-
-
-                if ($needsRender && !$this->keyHandler->hasPending()) {
-                    $this->renderDocumentosList($documentos, $page, $lastPage, $total, $tipoLabels[$tipo] ?? $tipo, $selectedIndex);
-                    $needsRender = false;
+            ],
+            'cliente' => [
+                'label' => 'Cliente', 
+                'width' => 20, // Ancho mínimo
+                'flex' => true, // Esta columna se expandirá
+                'formatter' => function($row) {
+                    return $row['tercero']['nombre_comercial'] ?? '---';
                 }
-
-                $input = $this->keyHandler->waitForKey();
-                if ($input === "") continue;
-
-                if ($input === "\e[A") { // Up
-                    if ($selectedIndex > 0) {
-                        $selectedIndex--;
-                        $needsRender = true;
-                    }
-                } elseif ($input === "\e[B") { // Down
-                    if ($selectedIndex < count($documentos) - 1) {
-                        $selectedIndex++;
-                        $needsRender = true;
-                    }
-                } elseif ($input === "\n") { // Enter - Select
-                    if (isset($documentos[$selectedIndex])) {
-                        $this->details->renderDocumento($documentos[$selectedIndex]['id']);
-                        $needsRender = true;
-                    }
+            ],
+            'total' => [
+                'label' => 'Total', 
+                'width' => 15, // Un poco más de aire 
+                'align' => 'right', 
+                'formatter' => function($row) {
+                    return number_format($row['total'] ?? 0, 2, ',', '.') . ' €';
                 }
-
-                $key = strtolower($input);
-                if ($key === 'n') {
-                    $this->crear($tipo);
-                    $needsFetch = true;
-                } elseif ($key === 'e') {
-                    if (isset($documentos[$selectedIndex])) {
-                        $this->editar($documentos[$selectedIndex]['id']);
-                        $needsFetch = true;
-                    }
-                } elseif ($key === 'p') {
-                    if ($page > 1) {
-                        $page--;
-                        $selectedIndex = 0;
-                        $needsFetch = true;
-                    }
-                } elseif ($key === 's') {
-                    if ($page < $lastPage) {
-                        $page++;
-                        $selectedIndex = 0;
-                        $needsFetch = true;
-                    }
-                } elseif ($input === "\e" || $input === "\x1b") {
-                    $running = false;
+            ],
+            'estado' => [
+                'label' => 'Estado', 
+                'width' => 12, 
+                'formatter' => function($row) {
+                    return ucfirst($row['estado'] ?? 'borrador');
                 }
-            } catch (\Exception $e) {
-                $this->screen->clear();
-                echo "\n\n  ❌ Error: " . $e->getMessage() . "\n\n";
-                echo "  Presione cualquier tecla para continuar...";
-                $this->keyHandler->read(5000);
-                $running = false;
-            }
-        }
+            ]
+        ]);
+        
+        // Callback para obtener datos
+        $listController->onFetch(function($page, $perPage) use ($tipo) {
+            return $this->client->getDocumentos($tipo, $page, $perPage);
+        });
+        
+        // Callback para crear
+        $listController->onCreate(function() use ($tipo) {
+            $this->crear($tipo);
+        });
+        
+        // Callback para editar
+        $listController->onEdit(function($documento) {
+            $this->editar($documento['id']);
+        });
+        
+        // Callback para ver detalles
+        $listController->onView(function($documento) {
+            $this->details->renderDocumento($documento['id']);
+        });
+        
+        // Ejecutar
+        $listController->run();
     }
 
     public function editar(int $id): void
     {
-        $this->keyHandler->setRawMode(false);
-        $this->keyHandler->clearStdin();
-        $this->screen->clear();
-
-        echo "\033[36m╔═══════════════════════════════════════════════════════════════╗\n";
-        echo "║                   EDITAR DOCUMENTO                            ║\n";
-        echo "╚═══════════════════════════════════════════════════════════════╝\033[0m\n\n";
-
         try {
             $doc = $this->client->getDocumento($id);
             
-            // Editar Estado
-            $estados = ['borrador', 'confirmado', 'anulado', 'completado'];
-            $estado = \Laravel\Prompts\select(
-                'Estado', 
-                options: array_combine($estados, $estados),
-                default: $doc['estado'] ?? 'borrador'
-            );
-
-            // Editar Fecha
-            $fecha = \Laravel\Prompts\text(
-                'Fecha (YYYY-MM-DD)', 
-                default: $doc['fecha'] ?? date('Y-m-d'),
-                validate: fn($v) => preg_match('/^\d{4}-\d{2}-\d{2}$/', $v) ? null : 'Formato inválido'
-            );
-
-            // Cambiar cliente? (Opcional, puede ser complejo si afecta precios/tarifas)
-            // Lo permitimos simple.
-            $cambiarCliente = \Laravel\Prompts\confirm('¿Cambiar cliente?', default: false);
-            $clienteId = $doc['tercero_id'];
-
-            if ($cambiarCliente) {
-                $tercerosResponse = $this->client->getTerceros(perPage: 100, tipo: 'cliente');
-                $clientesOptions = [];
-                foreach ($tercerosResponse['data'] ?? [] as $t) {
-                    $clientesOptions[$t['id']] = $t['nombre_comercial'];
+            // Formatear la fecha correctamente
+            $fechaFormateada = $doc['fecha'] ?? date('Y-m-d');
+            if (strtotime($fechaFormateada)) {
+                $fechaFormateada = date('Y-m-d', strtotime($fechaFormateada));
+            }
+            
+            $this->keyHandler->setRawMode(true);
+            
+            // Estado del editor
+            $editandoCabecera = true; // true = cabecera, false = líneas
+            $fecha = $fechaFormateada;
+            $lineas = $doc['lineas'] ?? [];
+            $selectedLineIndex = 0;
+            
+            while (true) {
+                // Renderizar pantalla completa
+                $this->renderDocumentoEditor($doc, $fecha, $lineas, $editandoCabecera, $selectedLineIndex);
+                
+                $rawKey = $this->keyHandler->waitForKey();
+                $key = \App\NexErpTui\Input\FunctionKeyMapper::mapKey($rawKey);
+                
+                // Cambiar entre cabecera y líneas
+                if ($key === 'TAB') {
+                    $editandoCabecera = !$editandoCabecera;
+                    if (!$editandoCabecera && empty($lineas)) {
+                        $selectedLineIndex = -1; // Modo "añadir primera línea"
+                    }
                 }
-                if (!empty($clientesOptions)) {
-                    $clienteId = \Laravel\Prompts\select('Nuevo Cliente', options: $clientesOptions, default: $clienteId);
+                // Guardar
+                elseif ($key === 'F10') {
+                    try {
+                        // Reindexar array de líneas (importante después de eliminar)
+                        $lineasReindexadas = array_values($lineas);
+                        
+                        $data = [
+                            'fecha' => $fecha,
+                            'tercero_id' => $doc['tercero_id'],
+                            'lineas' => $lineasReindexadas
+                        ];
+                        
+                        $this->client->updateDocumento($id, $data);
+                        $this->showMessage('Documento actualizado correctamente', 'success');
+                        return;
+                    } catch (\Exception $e) {
+                        $this->showMessage('Error al actualizar: ' . $e->getMessage(), 'error');
+                        return;
+                    }
+                }
+                // Cancelar
+                elseif ($key === 'F12' || $key === 'ESC') {
+                    return;
+                }
+                // Editar cabecera
+                elseif ($editandoCabecera) {
+                    if ($key === 'BACKSPACE' || $key === 'DELETE') {
+                        if (mb_strlen($fecha) > 0) {
+                            $fecha = mb_substr($fecha, 0, -1);
+                        }
+                    } elseif (strlen($key) === 1 && (is_numeric($key) || $key === '-')) {
+                        if (mb_strlen($fecha) < 10) {
+                            $fecha .= $key;
+                        }
+                    }
+                }
+                // Editar líneas
+                else {
+                    if ($key === 'UP' && $selectedLineIndex > 0) {
+                        $selectedLineIndex--;
+                    } elseif ($key === 'DOWN' && $selectedLineIndex < count($lineas) - 1) {
+                        $selectedLineIndex++;
+                    }
+                    // Añadir línea
+                    elseif ($key === 'F5') {
+                        $lineModal = new \App\NexErpTui\Display\LineItemModal($this->keyHandler, $this->screen);
+                        $nuevaLinea = $lineModal->run(function($searchText) {
+                            return $this->client->searchProducto($searchText);
+                        });
+                        if ($nuevaLinea) {
+                            $lineas[] = $nuevaLinea;
+                            $selectedLineIndex = count($lineas) - 1;
+                        }
+                    }
+                    // Editar línea - Abrir modal completo para cambiar producto
+                    elseif (($key === 'F2' || $key === 'F6') && !empty($lineas) && $selectedLineIndex >= 0) {
+                        $lineaActual = $lineas[$selectedLineIndex];
+                        
+                        // Usar el modal completo para editar (permite cambiar producto)
+                        $lineModal = new \App\NexErpTui\Display\LineItemModal($this->keyHandler, $this->screen);
+                        
+                        // Pre-cargar los valores actuales en el modal
+                        // (El modal se resetea al inicio, así que necesitamos una versión que acepte valores iniciales)
+                        // Por ahora, simplemente abrimos el modal y el usuario puede buscar el producto de nuevo
+                        
+                        $lineaEditada = $lineModal->run(function($searchText) {
+                            return $this->client->searchProducto($searchText);
+                        });
+                        
+                        if ($lineaEditada) {
+                            // Reemplazar la línea completa con la nueva
+                            $lineas[$selectedLineIndex] = $lineaEditada;
+                        }
+                    }
+                    // Eliminar línea
+                    elseif ($key === 'F8' && !empty($lineas) && $selectedLineIndex >= 0) {
+                        array_splice($lineas, $selectedLineIndex, 1);
+                        if ($selectedLineIndex >= count($lineas)) {
+                            $selectedLineIndex = max(0, count($lineas) - 1);
+                        }
+                    }
                 }
             }
-
-            $confirm = \Laravel\Prompts\confirm('¿Guardar cambios?', default: true);
-
-            if ($confirm) {
-                $data = [
-                    'estado' => $estado,
-                    'fecha' => $fecha,
-                    'tercero_id' => $clienteId
-                ];
-
-                $this->client->updateDocumento($id, $data);
-                \Laravel\Prompts\info('Documento actualizado.');
-                sleep(1);
-            }
-
+            
         } catch (\Exception $e) {
-            \Laravel\Prompts\error('Error: ' . $e->getMessage());
-            echo "\nPresione cualquier tecla para continuar...";
-            $this->keyHandler->waitForKey();
+            $this->showMessage('Error al cargar documento: ' . $e->getMessage(), 'error');
         }
-
-        $this->keyHandler->setRawMode(true);
+    }
+    
+    /**
+     * Renderiza el editor de documento completo
+     */
+    private function renderDocumentoEditor(array $doc, string $fecha, array $lineas, bool $editandoCabecera, int $selectedLineIndex): void
+    {
+        $this->screen->clear();
+        
+        echo "\033[36m╔══════════════════════════════════════════════════════════════════════════════╗\n";
+        echo "║                        EDITAR DOCUMENTO                                      ║\n";
+        echo "╚══════════════════════════════════════════════════════════════════════════════╝\033[0m\n\n";
+        
+        // CABECERA
+        $cabeceraColor = $editandoCabecera ? "\033[1;33m" : "\033[37m";
+        echo "  {$cabeceraColor}CABECERA:\033[0m\n";
+        echo "  \033[36m" . str_repeat("─", 76) . "\033[0m\n";
+        echo "  \033[37mNúmero:\033[0m {$doc['numero']}\n";
+        echo "  {$cabeceraColor}Fecha:\033[0m {$fecha}" . ($editandoCabecera ? "_" : "") . "\n";
+        echo "  \033[37mCliente:\033[0m {$doc['tercero']['nombre_comercial']}\n";
+        echo "  \033[37mEstado:\033[0m " . ucfirst($doc['estado'] ?? 'borrador') . "\n\n";
+        
+        // LÍNEAS
+        $lineasColor = !$editandoCabecera ? "\033[1;33m" : "\033[37m";
+        echo "  {$lineasColor}LÍNEAS:\033[0m\n";
+        echo "  \033[36m" . str_repeat("─", 76) . "\033[0m\n";
+        
+        if (empty($lineas)) {
+            echo "  \033[33mNo hay líneas. Presione F5 para añadir.\033[0m\n";
+        } else {
+            // Cabecera de tabla con espaciado correcto
+            echo "  \033[36m";
+            echo str_pad("Producto", 38);  // 38 caracteres para producto
+            echo str_pad("Cant.", 12, " ", STR_PAD_LEFT);   // 12 para cantidad
+            echo str_pad("Precio", 14, " ", STR_PAD_LEFT);  // 14 para precio
+            echo str_pad("Total", 14, " ", STR_PAD_LEFT);   // 14 para total
+            echo "\033[0m\n";
+            
+            $totalGeneral = 0;
+            foreach ($lineas as $index => $linea) {
+                $isSelected = (!$editandoCabecera && $index === $selectedLineIndex);
+                $prefix = $isSelected ? "\033[1;33m► " : "  ";
+                $color = $isSelected ? "\033[1;33m" : "\033[37m";
+                
+                $cantidad = $linea['cantidad'] ?? 0;
+                $precio = $linea['precio_unitario'] ?? 0;
+                $descuento = $linea['descuento'] ?? 0;
+                $total = $cantidad * $precio * (1 - $descuento / 100);
+                $totalGeneral += $total;
+                
+                // Formatear números con alineación decimal
+                $cantidadStr = number_format($cantidad, 2, ',', '.');
+                
+                // Precio y Total con alineación decimal (€ alineado a la derecha)
+                $precioNum = number_format($precio, 2, ',', '.');
+                $totalNum = number_format($total, 2, ',', '.');
+                
+                // Alinear números a la derecha, dejando espacio para €
+                $precioStr = str_pad($precioNum, 11, " ", STR_PAD_LEFT) . ' €';
+                $totalStr = str_pad($totalNum, 11, " ", STR_PAD_LEFT) . ' €';
+                
+                echo $prefix . $color;
+                // Producto (truncar si es muy largo)
+                echo str_pad(mb_substr($linea['descripcion'] ?? '', 0, 35), 38);
+                // Cantidad (alineada a la derecha)
+                echo str_pad($cantidadStr, 12, " ", STR_PAD_LEFT);
+                // Precio (número alineado + €)
+                echo $precioStr . ' ';
+                // Total (número alineado + €)
+                echo $totalStr;
+                echo "\033[0m\n";
+            }
+            
+            // Línea separadora y total
+            echo "  \033[36m" . str_repeat("─", 76) . "\033[0m\n";
+            
+            // Total general con misma alineación
+            $totalGeneralNum = number_format($totalGeneral, 2, ',', '.');
+            $totalGeneralStr = str_pad($totalGeneralNum, 11, " ", STR_PAD_LEFT) . ' €';
+            
+            echo "  \033[1;32m";
+            echo str_pad("TOTAL:", 64, " ", STR_PAD_LEFT);
+            echo $totalGeneralStr;
+            echo "\033[0m\n";
+        }
+        
+        echo "\n";
+        echo "\033[36m╔══════════════════════════════════════════════════════════════════════════════╗\n";
+        echo "║ \033[0m";
+        
+        if ($editandoCabecera) {
+            $helpText = "\033[32mTAB\033[0m=Ir a Líneas  \033[32mF10\033[0m=Guardar  \033[32mF12\033[0m=Cancelar";
+        } else {
+            $helpText = "\033[32mF5\033[0m=Añadir  \033[32mF2\033[0m=Editar  \033[32mF8\033[0m=Eliminar  \033[32mTAB\033[0m=Cabecera  \033[32mF10\033[0m=Guardar  \033[32mF12\033[0m=Cancelar";
+        }
+        
+        // Calcular padding para la barra de ayuda
+        $helpTextPlain = preg_replace('/\033\[[0-9;]*m/', '', $helpText);
+        $helpTextLength = mb_strlen($helpTextPlain);
+        $padding = 76 - $helpTextLength;
+        
+        echo $helpText;
+        echo str_repeat(" ", max(0, $padding));
+        echo " \033[36m║\n";
+        echo "╚══════════════════════════════════════════════════════════════════════════════╝\033[0m\n";
     }
 
     public function crear(string $tipo): void
@@ -188,11 +339,14 @@ class DocumentosActions
         $tipoLabel = match($tipo) {
             'presupuesto' => 'PRESUPUESTO',
             'pedido' => 'PEDIDO',
+            'albaran' => 'ALBARÁN',
+            'factura' => 'FACTURA',
+            'recibo' => 'RECIBO',
             default => strtoupper($tipo),
         };
 
         echo "\033[36m╔═══════════════════════════════════════════════════════════════╗\n";
-        echo "║                   NUEVO $tipoLabel                               ║\n";
+        echo "║                   NUEVO $tipoLabel                            ║\n";
         echo "╚═══════════════════════════════════════════════════════════════╝\033[0m\n\n";
 
         try {
@@ -212,57 +366,51 @@ class DocumentosActions
 
             $clienteId = \Laravel\Prompts\select('Seleccione Cliente', options: $clientes, required: true);
 
-            // 2. Líneas
+            // 2. Añadir líneas con el nuevo modal
+            $this->keyHandler->setRawMode(true);
+            
             $lineas = [];
-            $añadirCosas = true;
-
-            while ($añadirCosas) {
-                $screen_tmp = new Screen([]);
-                $screen_tmp->clear();
-                echo "\033[36mLÍNEAS ACTUALES: " . count($lineas) . "\033[0m\n\n";
-
-                $buscar = \Laravel\Prompts\text('Buscar producto (ESC para terminar)', placeholder: 'Nombre o SKU...');
+            $lineModal = new \App\NexErpTui\Display\LineItemModal($this->keyHandler, $this->screen);
+            
+            $continuarAñadiendo = true;
+            
+            while ($continuarAñadiendo) {
+                // Mostrar resumen de líneas actuales
+                $this->mostrarResumenLineas($lineas, $tipoLabel);
                 
-                if (empty($buscar)) {
-                    $añadirCosas = false;
-                    continue;
-                }
-
-                $productosResponse = $this->client->searchProducto($buscar);
-                $productos = [];
-                foreach ($productosResponse as $p) {
-                    $productos[$p['id']] = $p['name'] . " - " . number_format($p['price'], 2) . "€";
-                }
-
-                if (empty($productos)) {
-                    \Laravel\Prompts\warning('No se encontraron productos.');
-                    continue;
-                }
-
-                $productoId = \Laravel\Prompts\select('Seleccione Producto', options: $productos);
-                $cantidad = \Laravel\Prompts\text('Cantidad', default: '1', validate: fn($v) => is_numeric($v) ? null : 'Debe ser un número');
+                echo "\n  \033[37mPresione \033[32mF5\033[37m para añadir línea, \033[32mF10\033[37m para finalizar, \033[32mF12\033[37m para cancelar\033[0m\n";
                 
-                $p = null;
-                foreach ($productosResponse as $prod) {
-                    if ($prod['id'] == $productoId) { $p = $prod; break; }
+                $rawKey = $this->keyHandler->waitForKey();
+                $key = \App\NexErpTui\Input\FunctionKeyMapper::mapKey($rawKey);
+                
+                if ($key === 'F5') {
+                    // Añadir nueva línea
+                    $linea = $lineModal->run(function($searchText) {
+                        return $this->client->searchProducto($searchText);
+                    });
+                    
+                    if ($linea) {
+                        $lineas[] = $linea;
+                    }
+                } elseif ($key === 'F10') {
+                    // Finalizar
+                    if (!empty($lineas)) {
+                        $continuarAñadiendo = false;
+                    }
+                } elseif ($key === 'F12' || $key === 'ESC') {
+                    // Cancelar
+                    $this->keyHandler->setRawMode(false);
+                    return;
                 }
-
-                $lineas[] = [
-                    'product_id' => $p['id'],
-                    'codigo' => $p['sku'],
-                    'descripcion' => $p['name'],
-                    'cantidad' => $cantidad,
-                    'precio_unitario' => $p['price'],
-                    'iva' => $p['tax_rate'],
-                ];
-
-                $añadirCosas = \Laravel\Prompts\confirm('¿Añadir más productos?', default: true);
             }
 
             if (empty($lineas)) {
+                $this->keyHandler->setRawMode(false);
                 \Laravel\Prompts\warning('Documento cancelado (sin líneas).');
                 sleep(1);
             } else {
+                // Confirmar creación
+                $this->keyHandler->setRawMode(false);
                 $confirm = \Laravel\Prompts\confirm('¿Desea crear el documento?', default: true);
 
                 if ($confirm) {
@@ -279,65 +427,99 @@ class DocumentosActions
                 }
             }
         } catch (\Exception $e) {
+            $this->keyHandler->setRawMode(false);
             \Laravel\Prompts\error('Error al crear documento: ' . $e->getMessage());
             echo "\nPresione cualquier tecla para continuar...";
+            $this->keyHandler->setRawMode(true);
             $this->keyHandler->waitForKey();
         }
 
         $this->keyHandler->setRawMode(true);
     }
-
-    private function renderDocumentosList(array $documentos, int $page, int $lastPage, int $total, string $tipoLabel, int $selectedIndex): void
+    
+    /**
+     * Muestra un resumen de las líneas añadidas
+     */
+    private function mostrarResumenLineas(array $lineas, string $tipoLabel): void
     {
         $this->screen->clear();
-
-        $green = "\033[32m";
-        $cyan = "\033[36m";
-        $yellow = "\033[33m";
-        $white = "\033[37m";
-        $red = "\033[31m";
-        $reset = "\033[0m";
-
-        echo "{$cyan}╔═══════════════════════════════════════════════════════════════════════════════╗\n";
-        echo "║                           {$tipoLabel}                                    ║\n";
-        echo "╚═══════════════════════════════════════════════════════════════════════════════╝{$reset}\n\n";
-
-        echo "{$white}Página {$yellow}{$page}{$white} de {$yellow}{$lastPage}{$white}  |  Total: {$yellow}{$total}{$white} documentos{$reset}\n\n";
-
-        echo "{$cyan}";
-        echo "  " . str_pad("Número", 18);
-        echo str_pad("Fecha", 12);
-        echo str_pad("Cliente", 30);
-        echo str_pad("Total", 12);
-        echo str_pad("Estado", 10);
-        echo "{$reset}\n";
-        echo "{$cyan}  " . str_repeat("─", 80) . "{$reset}\n";
-
-        if (empty($documentos)) {
-            echo "\n  {$yellow}No hay documentos para mostrar{$reset}\n\n";
+        
+        echo "\033[36m╔═══════════════════════════════════════════════════════════════════════════════╗\n";
+        
+        $title = "NUEVO $tipoLabel - LÍNEAS";
+        $titleLength = mb_strlen($title);
+        $availableSpace = 79 - 4;
+        $totalPadding = $availableSpace - $titleLength;
+        $leftPadding = (int)floor($totalPadding / 2) + 1;
+        $rightPadding = (int)ceil($totalPadding / 2) + 1;
+        
+        echo "║" . str_repeat(" ", $leftPadding);
+        echo "\033[1;37m" . $title . "\033[36m";
+        echo str_repeat(" ", $rightPadding) . "║\n";
+        
+        echo "╚═══════════════════════════════════════════════════════════════════════════════╝\033[0m\n\n";
+        
+        if (empty($lineas)) {
+            echo "  \033[33mNo hay líneas añadidas todavía\033[0m\n";
         } else {
-            foreach ($documentos as $index => $doc) {
-                $prefix = ($index === $selectedIndex) ? "{$yellow}► " : "  ";
-                $color = ($index === $selectedIndex) ? $yellow : $white;
+            echo "  \033[36m";
+            echo str_pad("Producto", 40);
+            echo str_pad("Cant.", 10, " ", STR_PAD_LEFT);
+            echo str_pad("Precio", 12, " ", STR_PAD_LEFT);
+            echo str_pad("Total", 12, " ", STR_PAD_LEFT);
+            echo "\033[0m\n";
+            echo "  \033[36m" . str_repeat("─", 74) . "\033[0m\n";
+            
+            $totalGeneral = 0;
+            
+            foreach ($lineas as $linea) {
+                $total = $linea['cantidad'] * $linea['precio_unitario'];
+                if (isset($linea['descuento']) && $linea['descuento'] > 0) {
+                    $total *= (1 - $linea['descuento'] / 100);
+                }
+                $totalGeneral += $total;
                 
-                $estadoColor = match($doc['estado'] ?? 'borrador') {
-                    'confirmado', 'cobrado', 'pagado' => $green,
-                    'anulado' => $red,
-                    default => $yellow,
-                };
-
-                echo "{$prefix}{$color}";
-                echo str_pad($doc['numero'] ?? '', 18);
-                echo str_pad($doc['fecha'] ?? '', 12);
-                echo str_pad(substr($doc['tercero']['nombre_comercial'] ?? '', 0, 28), 30);
-                echo str_pad(number_format($doc['total'] ?? 0, 2, ',', '.') . ' €', 12);
-                echo "{$estadoColor}" . str_pad(ucfirst($doc['estado'] ?? ''), 10) . "{$reset}";
-                echo "\n";
+                echo "  \033[37m";
+                echo str_pad(substr($linea['descripcion'], 0, 38), 40);
+                echo str_pad(number_format($linea['cantidad'], 2, ',', '.'), 10, " ", STR_PAD_LEFT);
+                echo str_pad(number_format($linea['precio_unitario'], 2, ',', '.') . ' €', 12, " ", STR_PAD_LEFT);
+                echo str_pad(number_format($total, 2, ',', '.') . ' €', 12, " ", STR_PAD_LEFT);
+                echo "\033[0m\n";
             }
+            
+            echo "  \033[36m" . str_repeat("─", 74) . "\033[0m\n";
+            echo "  \033[1;32m" . str_pad("TOTAL:", 62, " ", STR_PAD_LEFT);
+            echo str_pad(number_format($totalGeneral, 2, ',', '.') . ' €', 12, " ", STR_PAD_LEFT);
+            echo "\033[0m\n";
         }
+    }
 
-        echo "\n{$cyan}  " . str_repeat("─", 80) . "{$reset}\n";
-        echo "\n  {$white}↑/↓ Navegar  Enter Detalle  [N]uevo  [E]ditar  [P]ág.Ant.  [S]ig.  [ESC]Volver{$reset}\n";
+    /**
+     * Muestra un mensaje al usuario
+     */
+    private function showMessage(string $message, string $type = 'info'): void
+    {
+        $this->screen->clear();
+        
+        $color = match($type) {
+            'success' => "\033[32m",
+            'error' => "\033[31m",
+            'warning' => "\033[33m",
+            default => "\033[37m"
+        };
+        
+        $icon = match($type) {
+            'success' => '✓',
+            'error' => '✗',
+            'warning' => '⚠',
+            default => 'ℹ'
+        };
+        
+        echo "\n\n";
+        echo "  {$color}{$icon} {$message}\033[0m\n\n";
+        echo "  Presione cualquier tecla para continuar...";
+        
+        $this->keyHandler->waitForKey();
     }
 
     /**
