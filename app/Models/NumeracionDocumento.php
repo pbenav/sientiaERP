@@ -46,16 +46,35 @@ class NumeracionDocumento extends Model
             ]
         );
 
-        $numeracion->increment('ultimo_numero');
-        $numero = str_pad($numeracion->ultimo_numero, $numeracion->longitud_numero, '0', STR_PAD_LEFT);
+        // Obtener prefijo según el tipo
+        $prefijo = match($tipo) {
+            'presupuesto' => 'PRE',
+            'pedido' => 'PED',
+            'albaran' => 'ALB',
+            'factura' => 'FAC',
+            'recibo' => 'REC',
+            'pedido_compra' => 'PCO',
+            'albaran_compra' => 'ACO',
+            'factura_compra' => 'FCO',
+            'recibo_compra' => 'RCO',
+            default => strtoupper(substr($tipo, 0, 3)),
+        };
 
-        // Generar número según formato
-        $prefijo = strtoupper(substr($tipo, 0, 3));
-        $numeroFinal = str_replace(
-            ['{TIPO}', '{ANIO}', '{NUM}', '{SERIE}'],
-            [$prefijo, $anio, $numero, $serie],
-            $numeracion->formato
-        );
+        do {
+            $numeracion->increment('ultimo_numero');
+            $numeracion->refresh(); // Asegurar que tenemos el último dato
+
+            $numero = str_pad($numeracion->ultimo_numero, $numeracion->longitud_numero, '0', STR_PAD_LEFT);
+
+            $numeroFinal = str_replace(
+                ['{TIPO}', '{ANIO}', '{NUM}', '{SERIE}'],
+                [$prefijo, $anio, $numero, $serie],
+                $numeracion->formato
+            );
+            
+            // Si ya existe un documento con ese número (colisión), repetimos el bucle
+            // que incrementará de nuevo el contador.
+        } while (\App\Models\Documento::where('numero', $numeroFinal)->exists());
 
         return $numeroFinal;
     }
