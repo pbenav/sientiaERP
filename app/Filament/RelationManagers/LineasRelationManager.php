@@ -59,11 +59,14 @@ class LineasRelationManager extends RelationManager
                 ->label('Cant.')
                 ->numeric()
                 ->inputMode('decimal')
-                ->step(null)
                 ->default(1)
                 ->required()
                 ->live()
                 ->columnSpan(1)
+                ->extraInputAttributes([
+                    'style' => '-moz-appearance: textfield;',
+                    'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                ])
                 ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                     self::calcularLinea($set, $get)),
             
@@ -71,10 +74,13 @@ class LineasRelationManager extends RelationManager
                 ->label('Precio')
                 ->numeric()
                 ->inputMode('decimal')
-                ->step(null)
                 ->required()
                 ->live()
                 ->columnSpan(1)
+                ->extraInputAttributes([
+                    'style' => '-moz-appearance: textfield;',
+                    'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                ])
                 ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                     self::calcularLinea($set, $get)),
             
@@ -82,10 +88,13 @@ class LineasRelationManager extends RelationManager
                 ->label('Dto.')
                 ->numeric()
                 ->inputMode('decimal')
-                ->step(null)
                 ->default(0)
                 ->live()
                 ->columnSpan(1)
+                ->extraInputAttributes([
+                    'style' => '-moz-appearance: textfield;',
+                    'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                ])
                 ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                     self::calcularLinea($set, $get)),
             
@@ -93,11 +102,14 @@ class LineasRelationManager extends RelationManager
                 ->label('IVA')
                 ->numeric()
                 ->inputMode('decimal')
-                ->step(null)
                 ->default(21)
                 ->required()
                 ->live()
                 ->columnSpan(1)
+                ->extraInputAttributes([
+                    'style' => '-moz-appearance: textfield;',
+                    'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                ])
                 ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                     self::calcularLinea($set, $get)),
             
@@ -106,9 +118,14 @@ class LineasRelationManager extends RelationManager
                 ->numeric()
                 ->disabled()
                 ->dehydrated()
-                ->columnSpan(1),
+                ->columnSpan(1)
+                ->extraInputAttributes([
+                    'style' => '-moz-appearance: textfield;',
+                    'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                ]),
         ];
     }
+
 
 
     protected static function calcularLinea(Forms\Set $set, Forms\Get $get): void
