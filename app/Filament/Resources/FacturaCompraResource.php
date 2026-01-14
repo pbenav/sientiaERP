@@ -33,13 +33,14 @@ class FacturaCompraResource extends Resource
     {
         return $form->schema([
             Forms\Components\Section::make('Datos de la Factura')->schema([
-                Forms\Components\TextInput::make('numero')->label('Número')->disabled()->dehydrated(false),
-                Forms\Components\Select::make('serie')->label('Serie')->options(['A' => 'Serie A', 'B' => 'Serie B'])->default('A')->required(),
-                Forms\Components\DatePicker::make('fecha')->label('Fecha')->default(now())->required(),
+                Forms\Components\TextInput::make('numero')->label('Número')->disabled()->dehydrated(false)->columnSpan(1),
+                Forms\Components\Select::make('serie')->label('Serie')->options(['A' => 'Serie A', 'B' => 'Serie B'])->default('A')->required()->columnSpan(1),
+                Forms\Components\DatePicker::make('fecha')->label('Fecha')->default(now())->required()->columnSpan(1),
                 
                 Forms\Components\Select::make('tercero_id')->label('Proveedor')
                     ->relationship('tercero', 'nombre_comercial', fn($query) => $query->proveedores())
                     ->searchable(['nombre_comercial', 'nif_cif', 'codigo'])->preload()->required()
+                    ->columnSpan(2)
                     ->createOptionForm([
                         Forms\Components\TextInput::make('nombre_comercial')->required(),
                         Forms\Components\TextInput::make('nif_cif')->required(),
@@ -54,16 +55,18 @@ class FacturaCompraResource extends Resource
                 
                 Forms\Components\Select::make('forma_pago_id')->label('Forma de Pago')
                     ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
-                    ->searchable()->preload()->required(),
+                    ->searchable()->preload()->required()
+                    ->columnSpan(2),
                 
                 Forms\Components\Select::make('estado')->label('Estado')->options([
                     'borrador' => 'Borrador', 'confirmado' => 'Confirmado', 'pagado' => 'Pagado', 'anulado' => 'Anulado',
-                ])->default('borrador')->required(),
+                ])->default('borrador')->required()->columnSpan(2),
                 
-                Forms\Components\Placeholder::make('subtotal_display')->label('Subtotal')->content(fn($record) => $record ? number_format($record->subtotal, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit'),
-                Forms\Components\Placeholder::make('iva_display')->label('IVA')->content(fn($record) => $record ? number_format($record->iva, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit'),
-                Forms\Components\Placeholder::make('total_display')->label('TOTAL')->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit'),
+                Forms\Components\Placeholder::make('subtotal_display')->label('Subtotal')->content(fn($record) => $record ? number_format($record->subtotal, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit')->columnSpan(1),
+                Forms\Components\Placeholder::make('iva_display')->label('IVA')->content(fn($record) => $record ? number_format($record->iva, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit')->columnSpan(1),
+                Forms\Components\Placeholder::make('total_display')->label('TOTAL')->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit')->columnSpan(1),
             ])->columns(6)->compact(),
+
             
             
             Forms\Components\Repeater::make('lineas')->label('Líneas de la Factura')->relationship('lineas')
