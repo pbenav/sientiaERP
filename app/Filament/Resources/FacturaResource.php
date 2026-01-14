@@ -4,14 +4,16 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\FacturaResource\Pages;
 use App\Models\Documento;
+use App\Models\FormaPago;
 use App\Models\Tercero;
 use App\Models\Product;
+use App\Services\RecibosService;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Forms\Components\Repeater;
 
 class FacturaResource extends Resource
 {
@@ -38,6 +40,29 @@ class FacturaResource extends Resource
     {
         return $form
             ->schema([
+                // SECCIÓN 1: CLIENTE
+                Forms\Components\Section::make('Cliente')
+                    ->schema([
+                        Forms\Components\Select::make('tercero_id')
+                            ->label('Cliente')
+                            ->relationship('tercero', 'nombre_comercial', fn($query) => $query->clientes())
+                            ->searchable(['nombre_comercial', 'nif_cif', 'codigo'])
+                            ->preload()
+                            ->required()
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('nombre_comercial')->required(),
+                                Forms\Components\TextInput::make('nif_cif')->required(),
+                                Forms\Components\TextInput::make('email')->email(),
+                                Forms\Components\TextInput::make('telefono')->tel(),
+                            ])
+                            ->createOptionUsing(function (array $data) {
+                                $tercero = Tercero::create($data);
+                                $tercero->tipos()->attach(\App\Models\TipoTercero::where('codigo', 'CLI')->first());
+                                return $tercero->id;
+                            }),
+                    ])->columns(1),
+
+                // SECCIÓN 2: DATOS DE LA FACTURA
                 Forms\Components\Section::make('Datos de la Factura')
                     ->schema([
                         Forms\Components\TextInput::make('numero')
@@ -57,12 +82,13 @@ class FacturaResource extends Resource
                             ->default(now())
                             ->required(),
                         
-                        Forms\Components\Select::make('tercero_id')
-                            ->label('Cliente')
-                            ->relationship('tercero', 'nombre_comercial', fn($query) => $query->clientes())
+                        Forms\Components\Select::make('forma_pago_id')
+                            ->label('Forma de Pago')
+                            ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
                             ->searchable()
                             ->preload()
-                            ->required(),
+                            ->required()
+                            ->helperText('La forma de pago determina los vencimientos de los recibos'),
                         
                         Forms\Components\Select::make('estado')
                             ->label('Estado')
@@ -76,15 +102,29 @@ class FacturaResource extends Resource
                             ->required(),
                     ])->columns(3),
 
-                // En creación: Repeater estándar (para añadir productos inmediatamente)
+                // SECCIÓN 3: LÍNEAS
                 Forms\Components\Repeater::make('lineas')
                     ->label('Líneas de la Factura')
                     ->relationship('lineas')
                     ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
-                    ->columns(5)
-                    ->visibleOn('create')
-                    ->columnSpanFull(),
+                    ->columns(6)
+                    ->columnSpanFull()
+                    ->defaultItems(1)
+                    ->reorderable()
+                    ->addActionLabel('+ Añadir línea')
+                    ->simple()
+                    ->grid(1),
 
+                // SECCIÓN 4: OBSERVACIONES
+                Forms\Components\Section::make('Observaciones')
+                    ->schema([
+                        Forms\Components\Textarea::make('observaciones')
+                            ->label('Observaciones (visibles en el documento)')
+                            ->rows(3)
+                            ->columnSpanFull(),
+                    ])->collapsible(),
+
+                // SECCIÓN 5: TOTALES
                 Forms\Components\Section::make('Totales')
                     ->schema([
                         Forms\Components\Placeholder::make('subtotal_display')
@@ -98,7 +138,7 @@ class FacturaResource extends Resource
                         Forms\Components\Placeholder::make('total_display')
                             ->label('TOTAL')
                             ->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €'),
-                    ])->columns(3),
+                    ])->columns(3)->visibleOn('edit')->collapsible(),
 
                 Forms\Components\Section::make('Observaciones')
                     ->schema([
@@ -110,11 +150,16 @@ class FacturaResource extends Resource
             ]);
     }
 
-
     public static function table(Table $table): Table
     {
         return $table
             ->columns([
+                Tables\Columns\IconColumn::make('bloqueo_icon')
+                    ->label('')
+                    ->getStateUsing(fn($record) => $record->getIconoBloqueo())
+                    ->color(fn($record) => $record->getColorBloqueo())
+                    ->tooltip(fn($record) => $record->getMensajeBloqueoCorto()),
+                
                 Tables\Columns\TextColumn::make('numero')
                     ->label('Número')
                     ->searchable()
@@ -128,7 +173,8 @@ class FacturaResource extends Resource
                 Tables\Columns\TextColumn::make('tercero.nombre_comercial')
                     ->label('Cliente')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->limit(30),
                 
                 Tables\Columns\TextColumn::make('total')
                     ->label('Total')
@@ -143,35 +189,83 @@ class FacturaResource extends Resource
                         'primary' => 'cobrado',
                         'danger' => 'anulado',
                     ]),
+                
+                Tables\Columns\TextColumn::make('recibos_count')
+                    ->label('Recibos')
+                    ->counts('documentosDerivados', fn($query) => $query->where('tipo', 'recibo'))
+                    ->badge()
+                    ->color('gray'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('estado'),
+                Tables\Filters\Filter::make('sin_recibos')
+                    ->label('Sin recibos')
+                    ->query(fn ($query) => $query->whereDoesntHave('documentosDerivados', fn($q) => $q->where('tipo', 'recibo')))
+                    ->toggle(),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn($record) => $record->puedeEditarse()),
+                
                 Tables\Actions\Action::make('pdf')
                     ->label('PDF')
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('info')
                     ->url(fn($record) => route('documentos.pdf', $record))
                     ->openUrlInNewTab(),
-                Tables\Actions\Action::make('generar_recibo')
-                    ->label('Generar Recibo')
-                    ->icon('heroicon-o-credit-card')
+                
+                Tables\Actions\Action::make('generar_recibos')
+                    ->label('Generar Recibos')
+                    ->icon('heroicon-o-banknotes')
                     ->color('success')
-                    ->visible(fn($record) => $record->estado === 'confirmado')
+                    ->visible(function ($record) {
+                        return $record->estado === 'confirmado' && 
+                               !Documento::where('documento_origen_id', $record->id)
+                                   ->where('tipo', 'recibo')->exists();
+                    })
+                    ->requiresConfirmation()
                     ->action(function ($record) {
-                        $recibo = $record->convertirA('recibo');
-                        return redirect()->route('filament.adminadmin.resources.recibos.edit', $recibo);
+                        try {
+                            $service = new RecibosService();
+                            $recibos = $service->generarRecibosDesdeFactura($record);
+                            
+                            Notification::make()
+                                ->title('Recibos generados')
+                                ->success()
+                                ->body("Se han generado {$recibos->count()} recibo(s)")
+                                ->send();
+                        } catch (\Exception $e) {
+                            Notification::make()
+                                ->title('Error al generar recibos')
+                                ->danger()
+                                ->body($e->getMessage())
+                                ->send();
+                        }
                     }),
+                
+                // TODO: Descomentar cuando se cree ReciboResource
+                // Tables\Actions\Action::make('ver_recibos')
+                //     ->label('Ver Recibos')
+                //     ->icon('heroicon-o-eye')
+                //     ->color('info')
+                //     ->visible(function ($record) {
+                //         return Documento::where('documento_origen_id', $record->id)
+                //             ->where('tipo', 'recibo')->exists();
+                //     })
+                //     ->url(function ($record) {
+                //         return route('filament.admin.resources.recibos.index', [
+                //             'tableFilters[factura_id][value]' => $record->id
+                //         ]);
+                //     }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn($records) => $records && $records->every(fn($record) => $record->puedeEliminarse())),
                 ]),
-            ]);
+            ])
+            ->defaultSort('fecha', 'desc');
     }
-
 
     public static function getRelations(): array
     {

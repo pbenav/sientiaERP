@@ -2,21 +2,24 @@
 
 namespace App\Models;
 
+use App\Traits\BloqueoDocumentos;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 class Documento extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, BloqueoDocumentos;
 
     protected $fillable = [
         'tipo', 'numero', 'serie', 'fecha', 'tercero_id', 'user_id',
         'documento_origen_id', 'estado',
         'subtotal', 'descuento', 'base_imponible', 'iva', 'irpf', 'recargo_equivalencia', 'total',
-        'forma_pago', 'dias_pago',
+        'forma_pago_id',
         'observaciones', 'observaciones_internas',
         'fecha_validez', 'fecha_entrega', 'fecha_vencimiento'
     ];
@@ -90,6 +93,40 @@ class Documento extends Model
     }
 
     /**
+     * Forma de pago
+     */
+    public function formaPago(): BelongsTo
+    {
+        return $this->belongsTo(FormaPago::class);
+    }
+
+    /**
+     * Documentos origen múltiples (para documentos agrupados)
+     */
+    public function documentosOrigenMultiples(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Documento::class,
+            'documento_documento_origen',
+            'documento_id',
+            'documento_origen_id'
+        )->withPivot('cantidad_procesada')->withTimestamps();
+    }
+
+    /**
+     * Documentos derivados múltiples (documentos que tienen a este como uno de sus orígenes)
+     */
+    public function documentosDerivadosMultiples(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Documento::class,
+            'documento_documento_origen',
+            'documento_origen_id',
+            'documento_id'
+        )->withPivot('cantidad_procesada')->withTimestamps();
+    }
+
+    /**
      * Recalcular totales del documento
      */
     public function recalcularTotales(): void
@@ -145,6 +182,78 @@ class Documento extends Model
         $nuevoDocumento->recalcularTotales();
 
         return $nuevoDocumento;
+    }
+
+    /**
+     * Agrupar múltiples documentos en uno nuevo
+     * 
+     * @param array $documentosIds IDs de los documentos a agrupar
+     * @param string $tipoDestino Tipo del documento resultante
+     * @return self Nuevo documento agrupado
+     */
+    public static function agruparDesde(array $documentosIds, string $tipoDestino): self
+    {
+        if (empty($documentosIds)) {
+            throw new \InvalidArgumentException('Debe proporcionar al menos un documento para agrupar');
+        }
+
+        $documentos = static::findMany($documentosIds);
+        
+        if ($documentos->isEmpty()) {
+            throw new \InvalidArgumentException('No se encontraron documentos válidos para agrupar');
+        }
+
+        // Verificar que todos los documentos son del mismo tipo
+        $tipos = $documentos->pluck('tipo')->unique();
+        if ($tipos->count() > 1) {
+            throw new \InvalidArgumentException('Todos los documentos deben ser del mismo tipo para agrupar');
+        }
+
+        // Verificar que todos los documentos son del mismo tercero
+        $terceros = $documentos->pluck('tercero_id')->unique();
+        if ($terceros->count() > 1) {
+            throw new \InvalidArgumentException('Todos los documentos deben pertenecer al mismo cliente/proveedor');
+        }
+
+        DB::beginTransaction();
+        try {
+            // Crear el nuevo documento tomando como base el primero
+            $primerDocumento = $documentos->first();
+            $nuevoDocumento = new static([
+                'tipo' => $tipoDestino,
+                'serie' => $primerDocumento->serie,
+                'fecha' => now(),
+                'tercero_id' => $primerDocumento->tercero_id,
+                'user_id' => auth()->id() ?? $primerDocumento->user_id,
+                'estado' => 'borrador',
+                'forma_pago_id' => $primerDocumento->forma_pago_id,
+            ]);
+            $nuevoDocumento->save();
+
+            // Asociar todos los documentos origen
+            $nuevoDocumento->documentosOrigenMultiples()->attach($documentosIds);
+
+            // Copiar todas las líneas de todos los documentos
+            $orden = 1;
+            foreach ($documentos as $documento) {
+                foreach ($documento->lineas as $linea) {
+                    $nuevaLinea = $linea->replicate();
+                    $nuevaLinea->documento_id = $nuevoDocumento->id;
+                    $nuevaLinea->orden = $orden++;
+                    $nuevaLinea->save();
+                }
+            }
+
+            // Recalcular totales
+            $nuevoDocumento->recalcularTotales();
+
+            DB::commit();
+            return $nuevoDocumento;
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 
     /**
