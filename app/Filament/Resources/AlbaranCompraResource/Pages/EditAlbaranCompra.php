@@ -21,4 +21,9 @@ class EditAlbaranCompra extends EditRecord
     {
         $this->record->recalcularTotales();
     }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }
