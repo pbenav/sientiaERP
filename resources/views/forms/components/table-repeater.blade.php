@@ -23,6 +23,9 @@
             </thead>
             <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
                 @forelse ($getState() ?? [] as $uuid => $item)
+                    @php
+                        $container = $getChildComponentContainer($uuid);
+                    @endphp
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50" wire:key="{{ $getStatePath() }}-{{ $uuid }}">
                         @if ($isReorderable())
                             <td class="px-2 py-2 text-center border-b border-gray-200 dark:border-gray-700">
@@ -35,39 +38,25 @@
                         @endif
                         
                         <td class="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-                            <div class="w-full">
-                                {{ $getChildComponentContainer($uuid)->getComponent('product_id') }}
-                            </div>
+                            {{ $container->getComponent('product_id') }}
                         </td>
                         <td class="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-                            <div class="w-full">
-                                {{ $getChildComponentContainer($uuid)->getComponent('codigo') }}
-                            </div>
+                            {{ $container->getComponent('codigo') }}
                         </td>
                         <td class="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-                            <div class="w-full">
-                                {{ $getChildComponentContainer($uuid)->getComponent('cantidad') }}
-                            </div>
+                            {{ $container->getComponent('cantidad') }}
                         </td>
                         <td class="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-                            <div class="w-full">
-                                {{ $getChildComponentContainer($uuid)->getComponent('precio_unitario') }}
-                            </div>
+                            {{ $container->getComponent('precio_unitario') }}
                         </td>
                         <td class="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-                            <div class="w-full">
-                                {{ $getChildComponentContainer($uuid)->getComponent('descuento') }}
-                            </div>
+                            {{ $container->getComponent('descuento') }}
                         </td>
                         <td class="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-                            <div class="w-full">
-                                {{ $getChildComponentContainer($uuid)->getComponent('iva') }}
-                            </div>
+                            {{ $container->getComponent('iva') }}
                         </td>
                         <td class="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-                            <div class="w-full">
-                                {{ $getChildComponentContainer($uuid)->getComponent('total') }}
-                            </div>
+                            {{ $container->getComponent('total') }}
                         </td>
                         <td class="px-2 py-2 text-center border-b border-gray-200 dark:border-gray-700">
                             @unless ($isDisabled())
