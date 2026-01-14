@@ -43,6 +43,20 @@ class MainMenu
         file_put_contents('/tmp/tui_debug.log', "MainMenu::run iniciado\n", FILE_APPEND);
         $this->keyHandler->setRawMode(true);
         
+        // Habilitar señales asíncronas para redimensionado
+        pcntl_async_signals(true);
+        
+        // Manejador de señal de cambio de tamaño (SIGWINCH)
+        pcntl_signal(SIGWINCH, function($signo) use ($userName) {
+            // Layout se auto-actualiza en su método render(), 
+            // pero necesitamos forzar un repintado inmediato si estamos esperando input.
+            // Para simplificar, la próxima iteración del bucle actualizará el layout.
+            // En sistemas complejos, podríamos inyectar un evento de "RESIZE" en la cola de input.
+            
+            // Forzar actualización de dimensiones layout
+            // (Aunque render() lo hace, es bueno tenerlo explícito si cambiamos la lógica)
+        });
+        
         while (true) {
             // Preparar items del menú principal
             $menuItems = array_map(fn($m) => $m['label'], $this->menuStructure);

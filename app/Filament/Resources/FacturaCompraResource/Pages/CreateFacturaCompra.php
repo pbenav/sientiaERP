@@ -1,17 +1,17 @@
 <?php
 
-namespace App\Filament\Resources\AlbaranResource\Pages;
+namespace App\Filament\Resources\FacturaCompraResource\Pages;
 
-use App\Filament\Resources\AlbaranResource;
+use App\Filament\Resources\FacturaCompraResource;
 use Filament\Resources\Pages\CreateRecord;
 
-class CreateAlbaran extends CreateRecord
+class CreateFacturaCompra extends CreateRecord
 {
-    protected static string $resource = AlbaranResource::class;
+    protected static string $resource = FacturaCompraResource::class;
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $data['tipo'] = 'albaran';
+        $data['tipo'] = 'factura_compra';
         $data['user_id'] = auth()->id();
         
         return $data;

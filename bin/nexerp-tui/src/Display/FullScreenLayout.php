@@ -26,10 +26,10 @@ class FullScreenLayout
     private int $selectedSubMenuItem = -1;
     
     // Áreas de la pantalla
-    private const HEADER_HEIGHT = 3;
+    private const HEADER_HEIGHT = 1;
     private const MENU_HEIGHT_SINGLE = 2; // Solo menú principal
-    private const MENU_HEIGHT_DOUBLE = 4; // Menú + Submenú
-    private const STATUS_HEIGHT = 1;
+    private const MENU_HEIGHT_DOUBLE = 3; // Menú + Submenú (sin separador intermedio) + Separador final
+    private const STATUS_HEIGHT = 1; // Solo el contenido, el separador cuenta aparte
     
     public function __construct(Screen $screen)
     {
@@ -57,38 +57,55 @@ class FullScreenLayout
      */
     private function renderHeader(): void
     {
-        // Línea 1: Empresa y Fecha
-        echo "\033[36m║\033[0m ";
-        echo "\033[1;36m" . $this->companyName . "\033[0m"; // Cyan brillante
-        
         $date = date('d/m/Y H:i');
-        $headerLeftLen = mb_strlen($this->companyName);
-        $dateLen = mb_strlen($date);
         
-        $padding = $this->width - 4 - $headerLeftLen - $dateLen;
+        // Calcular longitudes visuales (usando mb_strwidth)
+        $compLen = mb_strwidth($this->companyName);
+        $title = mb_strtoupper($this->currentTitle);
+        $titleLen = mb_strwidth($title);
+        $dateLen = mb_strwidth($date);
         
-        echo str_repeat(" ", max(0, $padding));
-        echo "\033[1;37m" . $date . "\033[0m"; // Blanco brillante
-        echo " \033[36m║\033[0m\n";
+        // Espacio interior disponible (ancho - 4 por los bordes '║ ' y ' ║')
+        $innerSpace = $this->width - 4;
         
-        // Línea 2: Título Centrado (o espacio)
-        if (!empty($this->currentTitle)) {
-             echo "\033[36m║\033[0m " . str_repeat(" ", $this->width - 4) . " \033[36m║\033[0m\n";
-             
-             $titleLen = mb_strlen($this->currentTitle);
-             $paddingTotal = $this->width - 4 - $titleLen;
-             $padLeft = (int)floor($paddingTotal / 2);
-             $padRight = (int)ceil($paddingTotal / 2);
-             
-             echo "\033[36m║\033[0m ";
-             echo str_repeat(" ", max(0, $padLeft));
-             echo "\033[1;33m" . mb_strtoupper($this->currentTitle) . "\033[0m"; // Amarillo brillante
-             echo str_repeat(" ", max(0, $padRight));
-             echo " \033[36m║\033[0m\n";
-        } else {
-             echo "\033[36m║\033[0m " . str_repeat(" ", $this->width - 4) . " \033[36m║\033[0m\n";
-             echo "\033[36m║\033[0m " . str_repeat(" ", $this->width - 4) . " \033[36m║\033[0m\n";
+        // Calcular espacios para centrar el título
+        // Posición ideal de inicio del título
+        $startTitle = (int) floor(($innerSpace - $titleLen) / 2);
+        
+        // Espacios desde el final de la empresa hasta el inicio del título
+        $spaces1 = $startTitle - $compLen;
+        
+        // Asegurar mínimo 1 espacio de separación
+        if ($spaces1 < 1) $spaces1 = 1;
+        
+        // Espacios desde el final del título hasta el inicio de la fecha
+        $currentPos = $compLen + $spaces1 + $titleLen;
+        $datePos = $innerSpace - $dateLen;
+        $spaces2 = $datePos - $currentPos;
+        
+        // Asegurar mínimo 1 espacio
+        if ($spaces2 < 1) $spaces2 = 1;
+
+        // Verificar si nos pasamos del ancho (puede pasar en terminales muy estrechas)
+        $totalLen = $compLen + $spaces1 + $titleLen + $spaces2 + $dateLen;
+        if ($totalLen > $innerSpace) {
+            // Si nos pasamos, reducimos espacios
+            $excess = $totalLen - $innerSpace;
+            if ($spaces2 > $excess + 1) {
+                $spaces2 -= $excess;
+            } elseif ($spaces1 > $excess + 1) {
+                $spaces1 -= $excess;
+            }
         }
+
+        // Renderizar línea única
+        echo "\033[36m║\033[0m ";
+        echo "\033[1;36m" . $this->companyName . "\033[0m";
+        echo str_repeat(" ", (int)$spaces1);
+        echo "\033[1;33m" . $title . "\033[0m";
+        echo str_repeat(" ", (int)$spaces2);
+        echo "\033[1;37m" . $date . "\033[0m";
+        echo " \033[36m║\033[0m\n";
     }
     
     /**
@@ -135,9 +152,6 @@ class FullScreenLayout
         return $this;
     }
 
-    
-    // ...
-
     /**
      * Configura los items del submenú
      */
@@ -161,57 +175,35 @@ class FullScreenLayout
      */
     public function render(callable $contentRenderer): void
     {
+        // Actualizar dimensiones por si la terminal cambió de tamaño
+        $this->updateDimensions();
+        
         $this->screen->clear();
         
-        // Borde superior completo
+        // 1. Borde superior (1 línea)
         $this->renderTopBorder();
         
-        // Cabecera
+        // 2. Cabecera (1 línea)
         $this->renderHeader();
         
-        // Separador después de cabecera
+        // 3. Separador (1 línea)
         $this->renderSeparator();
         
-        // Menú horizontal
+        // 4. Menú horizontal (1 línea)
         $this->renderMenu();
         
-        // Submenú horizontal (si existe)
+        // 5. Submenú horizontal (1 línea, si existe)
+        // NOTA: Eliminamos el separador intermedio para ahorrar espacio
         $hasSubMenu = !empty($this->subMenuItems);
         if ($hasSubMenu) {
-            $this->renderSeparator(); // Separador entre menú y submenú
             $this->renderSubMenu();
         }
         
-        // Separador después de menú (o submenú)
+        // 6. Separador de área de trabajo (1 línea)
         $this->renderSeparator();
         
-        // Calcular altura real del menú
-        $menuHeight = $hasSubMenu ? self::MENU_HEIGHT_DOUBLE : self::MENU_HEIGHT_SINGLE;
-        
-        // Área de trabajo (contenido)
-        // Altura total - Header(3) - Menú(2 o 4) - Status(1) - Bordes(2 sup/inf + 1 linea status) = Total - X
-        // Bordes fijos verticales: Top(1), Sep1(1), Sep2(1), Sep3(1) [si submenu +1], SepStatus(1), Bottom(1)
-        // Simplificado: Total - (HeaderContent + MenuContent + StatusContent + Borders)
-        
-        $bordersCount = 4; // Top, HeaderSep, MenuSep, StatusSep
-        if ($hasSubMenu) $bordersCount++; // SubMenuSep
-        
-        $usedHeight = self::HEADER_HEIGHT + 1 + ($hasSubMenu ? 2 : 1) + 1 + 1; 
-        // Header(3-1 bordes) es confuso. Mejor usar la lógica visual:
-        // Top Border: 1
-        // Header: 1
-        // Header Sep: 1
-        // Menu: 1
-        // (SubMenu Sep: 1)
-        // (SubMenu: 1)
-        // Menu Sep: 1
-        // Work Area: N
-        // Status Sep: 1
-        // Status: 1
-        // Bottom Border: 1
-        
-        $fixedLines = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1; // 8 líneas fijas sin submenú
-        if ($hasSubMenu) $fixedLines += 2; // +1 Sep, +1 SubMenu Content
+        // Cálculo preciso de líneas usadas
+        $fixedLines = 1 + 1 + 1 + 1 + ($hasSubMenu ? 1 : 0) + 1 + 2 + 1;
         
         $workAreaHeight = $this->height - $fixedLines;
         if ($workAreaHeight < 5) $workAreaHeight = 5; // Mínimo de seguridad
@@ -224,8 +216,6 @@ class FullScreenLayout
         // Borde inferior
         $this->renderBottomBorder();
     }
-    
-    // ...
 
     /**
      * Renderiza el menú horizontal
@@ -235,24 +225,31 @@ class FullScreenLayout
         echo "\033[36m║\033[0m ";
         
         $menuText = '';
-        $menuLength = 0;
+        $menuVisualLength = 0;
         
         foreach ($this->menuItems as $index => $item) {
             $isSelected = ($index === $this->selectedMenuItem);
             
             if ($isSelected) {
-                // Destacado
-                $menuText .= "\033[1;33m► " . mb_strtoupper($item) . " \033[0m  ";
-                $menuLength += mb_strlen($item) + 4; // ► + espacio + item + espacio + espacio
+                // Destacado: ► (width 2? often 1, but let's be safe visually)
+                // Usamos mb_strwidth para contar ancho visual real
+                $label = mb_strtoupper($item);
+                $arrow = "►"; 
+                // NOTA: Algunos terminales renderizan ► como 1 char, otros como 2. 
+                // mb_strwidth('►') suele devolver 1, pero si visualmente ocupa más...
+                // Asumiremos que los símbolos y texto están bien medidos por mb_strwidth.
+                
+                $menuText .= "\033[1;33m{$arrow} {$label} \033[0m  ";
+                $menuVisualLength += mb_strwidth($arrow) + 1 + mb_strwidth($label) + 3; // +espacio + espacio + espacio
             } else {
                 $menuText .= "\033[37m  " . $item . " \033[0m  ";
-                $menuLength += mb_strlen($item) + 4; // espacios
+                $menuVisualLength += 2 + mb_strwidth($item) + 3; // espacios + espacios
             }
         }
         
         // Rellenar
         $availableSpace = $this->width - 4;
-        $padding = $availableSpace - $menuLength;
+        $padding = $availableSpace - $menuVisualLength;
         
         echo $menuText;
         echo str_repeat(" ", max(0, $padding));
@@ -267,7 +264,7 @@ class FullScreenLayout
         echo "\033[36m║\033[0m "; // Indentación visual para submenú
         
         $menuText = '';
-        $menuLength = 0;
+        $menuVisualLength = 0;
         
         foreach ($this->subMenuItems as $index => $item) {
             // Manejamos claves de array si es asociativo o numérico
@@ -275,21 +272,24 @@ class FullScreenLayout
             $isSelected = ($index === $this->selectedSubMenuItem);
             
             if ($isSelected) {
+                // [ Label ]
                 $menuText .= "\033[1;36m[\033[1;37m " . $label . " \033[1;36m]\033[0m ";
-                $menuLength += mb_strlen($label) + 5; 
+                $menuVisualLength += 1 + 1 + mb_strwidth($label) + 1 + 1 + 1; // [ + space + label + space + ] + space 
             } else {
+                //  Label 
                 $menuText .= "\033[36m " . $label . " \033[0m ";
-                $menuLength += mb_strlen($label) + 3;
+                $menuVisualLength += 1 + mb_strwidth($label) + 1 + 1; // space + label + space + space
             }
         }
         
         $availableSpace = $this->width - 4;
-        $padding = $availableSpace - $menuLength;
+        $padding = $availableSpace - $menuVisualLength;
         
         echo $menuText;
         echo str_repeat(" ", max(0, $padding));
         echo " \033[36m║\033[0m\n";
     }
+
     /**
      * Renderiza el área de trabajo
      */
@@ -389,28 +389,31 @@ class FullScreenLayout
                      "\033[37m←→\033[0m=Menú  " .
                      "\033[37m↑↓\033[0m=Navegar";
         
-        $statusLength = $this->stripAnsiLength($statusText);
-        $padding = $this->width - 4 - $statusLength;
+        $statusVisualLength = mb_strwidth("F1=Ayuda  F12=Salir  ←→=Menú  ↑↓=Navegar");
+        $padding = $this->width - 4 - $statusVisualLength;
         
         echo $statusText;
         echo str_repeat(" ", max(0, $padding));
         echo " \033[36m║\033[0m\n";
     }
-    
+
     /**
      * Renderiza el borde inferior
      */
     private function renderBottomBorder(): void
     {
-        echo "\033[36m╚" . str_repeat("═", $this->width - 2) . "╝\033[0m\n";
+        // Sin salto de línea al final para evitar scroll en la última línea de la terminal
+        echo "\033[36m╚" . str_repeat("═", $this->width - 2) . "╝\033[0m";
     }
-    
+
     /**
      * Calcula longitud sin códigos ANSI
      */
     private function stripAnsiLength(string $text): int
     {
-        return mb_strlen(preg_replace('/\033\[[0-9;]*m/', '', $text));
+        // NO USADO para layout visual, usar mb_strwidth sobre el texto limpio
+        $clean = preg_replace('/\033\[[0-9;]*m/', '', $text);
+        return mb_strwidth($clean);
     }
     
     /**
@@ -426,6 +429,14 @@ class FullScreenLayout
      */
     public function getContentHeight(): int
     {
-        return $this->height - self::HEADER_HEIGHT - self::MENU_HEIGHT_SINGLE - self::STATUS_HEIGHT - 3;
+        // Cálculo de líneas fijas ocupadas:
+        // TopBorder(1) + Header(1) + HeaderSep(1) = 3
+        // MenuWithSep(2 o 3)
+        // StatusSep(1) + Status(1) + BottomBorder(1) = 3
+        
+        $menuHeight = !empty($this->subMenuItems) ? self::MENU_HEIGHT_DOUBLE : self::MENU_HEIGHT_SINGLE;
+        
+        // Total deducible = 6 (fijos arriba/abajo) + altura menú
+        return $this->height - 6 - $menuHeight;
     }
 }

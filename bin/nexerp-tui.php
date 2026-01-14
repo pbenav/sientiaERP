@@ -2,41 +2,31 @@
 <?php
 
 /**
- * ERP TUI Client - Terminal User Interface for ERP Management
- * 
+ * ERP TUI Client - Versión Unificada
  * Cliente TUI para gestión de terceros y documentos de negocio
- * Usa tmux para crear zonas separadas en la interfaz
- * 
- * Requisitos:
- * - PHP 8.2+
- * - tmux instalado
- * - Composer dependencies
- * 
- * Uso:
- *   php bin/erp-tui.php
- *   
- * Variables de entorno:
- *   ERP_API_URL - URL del backend API (default: http://localhost:8000)
  */
 
 require __DIR__ . '/../vendor/autoload.php';
 
-use App\NexErpTui\TmuxManager;
 use App\NexErpTui\Display\Screen;
+use App\NexErpTui\Display\MainMenu;
 use App\NexErpTui\Input\KeyHandler;
-use App\PosTui\PosClient;
+use App\NexErpTui\ErpClient;
+use App\NexErpTui\Actions\TercerosActions;
+use App\NexErpTui\Actions\DocumentosActions;
+use App\NexErpTui\Actions\AlmacenActions;
+use App\NexErpTui\Actions\DetailsActions;
 
-// Verificar que tmux está instalado
-if (!shell_exec('which tmux')) {
-    echo "\n❌ Error: tmux no está instalado.\n";
-    echo "Instálalo con: sudo apt install tmux\n\n";
-    exit(1);
-}
+// Optimización: Flush implícito
+ob_implicit_flush(true);
+
+// Cargar variables de entorno
+$dotenv = \Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
+$dotenv->safeLoad();
 
 // Configuración
 $config = [
-    'api_url' => getenv('ERP_API_URL') ?: 'http://localhost:8000',
-    'session_name' => 'nexerp-tui',
+    'api_url' => $_ENV['ERP_API_URL'] ?? getenv('ERP_API_URL') ?: 'http://localhost:8000',
     'colors' => [
         'bg' => "\033[40m",
         'fg_white' => "\033[37m",
@@ -49,25 +39,37 @@ $config = [
     ],
 ];
 
-// Inicializar componentes
+// Inicializar componentes básicos
 $screen = new Screen($config['colors']);
 $keyHandler = new KeyHandler();
 
-// MODO DESARROLLO: Cambiar a true para saltar el login manualmente
-// ¡IMPORTANTE: Cambiar a false antes de pasar a producción!
-$devMode = true; 
+// MODO DESARROLLO: false para ver login y ASCII art
+$devMode = false; 
 
 try {
-    // ... Pantalla de carga anterior ...
     $screen->clear();
-    // (Mantenemos el logo por estética si se desea, o lo saltamos)
+    $token = '';
+    $userName = 'Usuario';
+    
+    // -------------------------------------------------------------------------
+    // 1. AUTENTICACIÓN
+    // -------------------------------------------------------------------------
     
     if ($devMode) {
         $email = 'admin@sientia.com';
         $password = '12345678';
         echo "\n  \033[33m[MODO DESARROLLO ACTIVADO]\033[0m\n";
         echo "  Autologin como: {$email}\n";
+        
+        // Login automático en dev mode
+        $client = new ErpClient($config['api_url']);
+        $authData = $client->login($email, $password);
+        if (isset($authData['token'])) {
+            $token = $authData['token'];
+            $userName = $authData['user']['name'] ?? 'Admin';
+        }
     } else {
+        // Pantalla de bienvenida con ASCII Art
         echo $config['colors']['fg_cyan'];
         echo "  ╔═══════════════════════════════════════════════════════════════════════════╗\n";
         echo "  ║                                                                           ║\n";
@@ -100,42 +102,189 @@ try {
             label: 'Contraseña',
             required: true
         );
+        
+        // Autenticar
+        $client = new ErpClient($config['api_url']);
+        echo "\n  Autenticando en {$config['api_url']}...\n";
+        
+        $authData = $client->login($email, $password);
+        
+        if (!isset($authData['token'])) {
+            throw new \Exception("Error: No se recibió un token de acceso.");
+        }
+        
+        $token = $authData['token'];
+        $userName = $authData['user']['name'] ?? 'Usuario';
+
+        echo "  ✓ Autenticación exitosa\n";
+        echo "  Iniciando interfaz...\n\n";
+        sleep(1);
     }
     
-    // Autenticar
-    $client = new \App\NexErpTui\ErpClient($config['api_url']);
-    echo "\n  Autenticando en {$config['api_url']}...\n";
+    // Configurar cliente con token
+    $client->setToken($token);
     
-    $authData = $client->login($email, $password);
+    // -------------------------------------------------------------------------
+    // 2. INICIALIZACIÓN DE COMPONENTES DE MENÚ
+    // -------------------------------------------------------------------------
     
-    if (!isset($authData['token'])) {
-        throw new \Exception("Error: No se recibió un token de acceso.");
+    $screen->clear();
+    
+    // Actions
+    $detailsActions = new DetailsActions($client, $screen, $keyHandler);
+    $tercerosActions = new TercerosActions($client, $screen, $keyHandler, $detailsActions);
+    $documentosActions = new DocumentosActions($client, $screen, $keyHandler, $detailsActions);
+    $almacenActions = new AlmacenActions($client, $screen, $keyHandler);
+    
+    // Estructura de menú
+    $menuStructure = [
+        [
+            'label' => 'Compras',
+            'items' => [
+                ['label' => 'Pedidos', 'action' => 'compras_pedidos'],
+                ['label' => 'Albaranes', 'action' => 'compras_albaranes'],
+                ['label' => 'Facturas', 'action' => 'compras_facturas'],
+                ['label' => 'Recibos', 'action' => 'compras_recibos'],
+            ]
+        ],
+        [
+            'label' => 'Ventas',
+            'items' => [
+                ['label' => 'Presupuestos', 'action' => 'presupuestos'],
+                ['label' => 'Pedidos', 'action' => 'pedidos'],
+                ['label' => 'Albaranes', 'action' => 'albaranes'],
+                ['label' => 'Facturas', 'action' => 'facturas'],
+                ['label' => 'Recibos', 'action' => 'recibos'],
+            ]
+        ],
+        [
+            'label' => 'Terceros',
+            'items' => [
+                ['label' => 'Clientes', 'action' => 'clientes'],
+                ['label' => 'Proveedores', 'action' => 'proveedores'],
+                ['label' => 'Todos los Terceros', 'action' => 'terceros'],
+                ['label' => 'Nuevo Tercero', 'action' => 'nuevo_tercero'],
+            ]
+        ],
+        [
+            'label' => 'Almacén',
+            'items' => [
+                ['label' => 'Stock Actual', 'action' => 'stock'],
+                ['label' => 'Productos', 'action' => 'productos'],
+            ]
+        ],
+    ];
+    
+    // -------------------------------------------------------------------------
+    // 3. EJECUCIÓN DEL MENÚ PRINCIPAL
+    // -------------------------------------------------------------------------
+    
+    // Crear objeto MainMenu
+    $menu = new MainMenu($keyHandler, $screen, $menuStructure, \App\NexErpTui\Display\ColorTheme::IBM_GREEN);
+    
+    $running = true;
+    while ($running) {
+        $result = $menu->run($userName);
+        
+        if (!$result) {
+            continue;
+        }
+        
+        $action = $result['action'];
+        
+        if ($action === 'exit') {
+            $running = false;
+            break;
+        }
+        
+        // Ejecutar acción del sistema
+        $keyHandler->setRawMode(false);
+        $keyHandler->clearStdin();
+        
+        try {
+            switch ($action) {
+                // Compras
+                case 'compras_pedidos':
+                    $documentosActions->listarPedidosCompra();
+                    break;
+                case 'compras_albaranes':
+                    $documentosActions->listarAlbaranesCompra();
+                    break;
+                case 'compras_facturas':
+                    $documentosActions->listarFacturasCompra();
+                    break;
+                case 'compras_recibos':
+                    $documentosActions->listarRecibosCompra();
+                    break;
+
+                // Ventas
+                case 'presupuestos':
+                    $documentosActions->listarPresupuestos();
+                    break;
+                case 'pedidos':
+                    $documentosActions->listarPedidos();
+                    break;
+                case 'albaranes':
+                    $documentosActions->listarAlbaranes();
+                    break;
+                case 'facturas':
+                    $documentosActions->listarFacturas();
+                    break;
+                case 'recibos':
+                    $documentosActions->listarRecibos();
+                    break;
+                
+                // Terceros
+                case 'clientes':
+                    $tercerosActions->listarClientes();
+                    break;
+                case 'proveedores':
+                    $tercerosActions->listarProveedores();
+                    break;
+                case 'terceros':
+                    $tercerosActions->listar();
+                    break;
+                case 'nuevo_tercero':
+                    $tercerosActions->crear();
+                    break;
+                
+                // Almacén
+                case 'stock':
+                case 'productos':
+                    $almacenActions->listarStock();
+                    break;
+            }
+        } catch (\Exception $e) {
+            echo "\n\033[1;31m❌ Error: " . $e->getMessage() . "\033[0m\n";
+            echo "\nPresione cualquier tecla para continuar...";
+            $keyHandler->setRawMode(true);
+            $keyHandler->waitForKey();
+        }
+        
+        $keyHandler->setRawMode(true);
     }
-
-    echo "  ✓ Autenticación exitosa\n";
-    echo "  Iniciando interfaz...\n\n";
     
-    sleep(1);
+} catch (\Throwable $e) {
+    if (isset($keyHandler)) {
+        $keyHandler->setRawMode(false);
+    }
+    if (isset($screen)) {
+        $screen->clear();
+    }
     
-    // Guardar token en archivo temporal
-    $authFile = '/tmp/nexerp_tui_auth.json';
-    file_put_contents($authFile, json_encode([
-        'token' => $authData['token'],
-        'user' => $authData['user']['name'] ?? 'Admin'
-    ]));
-    chmod($authFile, 0600);
-
-    // Ejecutar el menú directamente
-    $screen->clear();
-    $authFileArg = escapeshellarg($authFile);
-    passthru("php bin/nexerp-tui-menu.php --auth-file={$authFileArg}");
-    
-} catch (\Exception $e) {
-    $keyHandler->setRawMode(false);
-    $screen->clear();
     echo "\n\n  ╔═══════════════════════════════════════╗\n";
     echo "  ║              ERROR                    ║\n";
     echo "  ╚═══════════════════════════════════════╝\n\n";
-    echo "  " . $e->getMessage() . "\n\n";
+    echo "  " . $e->getMessage() . "\n";
+    echo "  " . $e->getFile() . ":" . $e->getLine() . "\n\n";
+    
     exit(1);
+} finally {
+    if (isset($keyHandler)) {
+        $keyHandler->setRawMode(false);
+    }
+    if (isset($screen)) {
+        $screen->clear();
+    }
+    echo "\033[1;32m¡Hasta pronto!\033[0m\n\n";
 }

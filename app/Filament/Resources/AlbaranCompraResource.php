@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\PedidoResource\Pages;
+use App\Filament\Resources\AlbaranCompraResource\Pages;
 use App\Models\Documento;
 use App\Models\Tercero;
 use App\Models\Product;
@@ -13,32 +13,32 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Forms\Components\Repeater;
 
-class PedidoResource extends Resource
+class AlbaranCompraResource extends Resource
 {
     protected static ?string $model = Documento::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-shopping-bag';
+    protected static ?string $navigationIcon = 'heroicon-o-truck';
 
-    protected static ?string $navigationLabel = 'Pedidos';
+    protected static ?string $navigationLabel = 'Albaranes de Compra';
 
-    protected static ?string $modelLabel = 'Pedido';
+    protected static ?string $modelLabel = 'Albarán de Compra';
 
-    protected static ?string $pluralModelLabel = 'Pedidos';
+    protected static ?string $pluralModelLabel = 'Albaranes de Compra';
 
-    protected static ?int $navigationSort = 21;
+    protected static ?int $navigationSort = 12;
 
-    protected static ?string $navigationGroup = 'Ventas';
+    protected static ?string $navigationGroup = 'Compras';
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        return parent::getEloquentQuery()->where('tipo', 'pedido');
+        return parent::getEloquentQuery()->where('tipo', 'albaran_compra');
     }
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Datos del Pedido')
+                Forms\Components\Section::make('Datos del Albarán')
                     ->schema([
                         Forms\Components\TextInput::make('numero')
                             ->label('Número')
@@ -57,13 +57,9 @@ class PedidoResource extends Resource
                             ->default(now())
                             ->required(),
                         
-                        Forms\Components\DatePicker::make('fecha_entrega')
-                            ->label('Fecha de Entrega')
-                            ->default(now()->addDays(7)),
-                        
                         Forms\Components\Select::make('tercero_id')
-                            ->label('Cliente')
-                            ->relationship('tercero', 'nombre_comercial', fn($query) => $query->clientes())
+                            ->label('Proveedor')
+                            ->relationship('tercero', 'nombre_comercial', fn($query) => $query->proveedores())
                             ->searchable()
                             ->preload()
                             ->required(),
@@ -73,16 +69,15 @@ class PedidoResource extends Resource
                             ->options([
                                 'borrador' => 'Borrador',
                                 'confirmado' => 'Confirmado',
-                                'parcial' => 'Parcial',
-                                'completado' => 'Completado',
                                 'anulado' => 'Anulado',
                             ])
                             ->default('borrador')
+                            ->required(),
                     ])->columns(3),
 
-                // En creación: Repeater estándar (para añadir productos inmediatamente)
+                // En creación: Repeater estándar
                 Forms\Components\Repeater::make('lineas')
-                    ->label('Líneas del Pedido')
+                    ->label('Líneas del Albarán')
                     ->relationship('lineas')
                     ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
                     ->columns(5)
@@ -107,13 +102,12 @@ class PedidoResource extends Resource
                 Forms\Components\Section::make('Observaciones')
                     ->schema([
                         Forms\Components\Textarea::make('observaciones')
-                            ->label('Observaciones (visibles en el documento)')
+                            ->label('Observaciones')
                             ->rows(3)
                             ->columnSpanFull(),
                     ]),
             ]);
     }
-
 
     public static function table(Table $table): Table
     {
@@ -130,7 +124,7 @@ class PedidoResource extends Resource
                     ->sortable(),
                 
                 Tables\Columns\TextColumn::make('tercero.nombre_comercial')
-                    ->label('Cliente')
+                    ->label('Proveedor')
                     ->searchable()
                     ->sortable(),
                 
@@ -144,8 +138,6 @@ class PedidoResource extends Resource
                     ->colors([
                         'secondary' => 'borrador',
                         'success' => 'confirmado',
-                        'primary' => 'completado',
-                        'warning' => 'parcial',
                         'danger' => 'anulado',
                     ]),
             ])
@@ -160,14 +152,14 @@ class PedidoResource extends Resource
                     ->color('info')
                     ->url(fn($record) => route('documentos.pdf', $record))
                     ->openUrlInNewTab(),
-                Tables\Actions\Action::make('convertir_albaran')
-                    ->label('Convertir a Albarán')
-                    ->icon('heroicon-o-truck')
-                    ->color('success')
-                    ->visible(fn($record) => in_array($record->estado, ['confirmado', 'parcial']))
+                Tables\Actions\Action::make('convertir_factura_compra')
+                    ->label('Convertir a Factura')
+                    ->icon('heroicon-o-document-text')
+                    ->color('warning')
+                    ->visible(fn($record) => $record->estado === 'confirmado')
                     ->action(function ($record) {
-                        $albaran = $record->convertirA('albaran');
-                        return redirect()->route('filament.adminadmin.resources.albarans.edit', $albaran);
+                        $factura = $record->convertirA('factura_compra');
+                        return redirect()->route('filament.adminadmin.resources.factura-compras.edit', $factura);
                     }),
             ])
             ->bulkActions([
@@ -176,8 +168,6 @@ class PedidoResource extends Resource
                 ]),
             ]);
     }
-
-
 
     public static function getRelations(): array
     {
@@ -189,9 +179,9 @@ class PedidoResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPedidos::route('/'),
-            'create' => Pages\CreatePedido::route('/create'),
-            'edit' => Pages\EditPedido::route('/{record}/edit'),
+            'index' => Pages\ListAlbaranesCompra::route('/'),
+            'create' => Pages\CreateAlbaranCompra::route('/create'),
+            'edit' => Pages\EditAlbaranCompra::route('/{record}/edit'),
         ];
     }
 }

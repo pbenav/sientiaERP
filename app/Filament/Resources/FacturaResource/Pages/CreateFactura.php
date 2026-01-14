@@ -21,4 +21,9 @@ class CreateFactura extends CreateRecord
     {
         $this->record->recalcularTotales();
     }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('edit', ['record' => $this->record]);
+    }
 }

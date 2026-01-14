@@ -92,19 +92,17 @@ class FormController
         
         // Título centrado con padding dinámico
         $titleLength = mb_strlen($this->title);
-        $availableSpace = $this->width - 4; // Espacio entre los bordes (║ + espacio + espacio + ║)
+        $availableSpace = $this->width - 2; // -2 bordes 
         
+        $displayTitle = $this->title;
         if ($titleLength > $availableSpace) {
-            // Si el título es muy largo, truncarlo
             $displayTitle = mb_substr($this->title, 0, $availableSpace);
             $leftPadding = 1;
             $rightPadding = 1;
         } else {
-            // Centrar el título
-            $displayTitle = $this->title;
-            $totalPadding = $availableSpace - $titleLength;
-            $leftPadding = (int)floor($totalPadding / 2) + 1;
-            $rightPadding = (int)ceil($totalPadding / 2) + 1;
+            $totalPadding = max(0, $availableSpace - $titleLength);
+            $leftPadding = (int)floor($totalPadding / 2);
+            $rightPadding = (int)ceil($totalPadding / 2);
         }
         
         echo "║" . str_repeat(" ", $leftPadding);
@@ -114,13 +112,26 @@ class FormController
         // Separador
         echo "╠" . str_repeat("═", $this->width - 2) . "╣\033[0m\n";
         
-        // Campos
+        // Campos (Bufferizar output para envolver en marco)
+        ob_start();
         echo "\n";
         foreach ($this->fields as $index => $field) {
             $this->renderField($index, $field);
         }
-        
         echo "\n";
+        $fieldsOutput = ob_get_clean();
+        
+        $lines = explode("\n", $fieldsOutput);
+        foreach ($lines as $line) {
+            // Ignorar líneas vacías finales si hay muchas
+            if ($line === '' && $index === count($lines)-1) continue; 
+            
+            // Calcular padding para llegar al borde derecho
+            $visibleLen = $this->stripAnsiLength($line);
+            $padding = max(0, $this->width - 2 - $visibleLen);
+            
+            echo "\033[36m║\033[0m" . $line . str_repeat(" ", $padding) . "\033[36m║\033[0m\n";
+        }
         
         // Barra de funciones
         $this->renderFunctionBar();

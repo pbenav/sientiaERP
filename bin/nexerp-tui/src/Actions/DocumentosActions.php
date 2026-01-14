@@ -30,13 +30,17 @@ class DocumentosActions
     {
         $tipoLabels = [
             'presupuesto' => 'Presupuestos',
-            'pedido' => 'Pedidos',
-            'albaran' => 'Albaranes',
-            'factura' => 'Facturas',
-            'recibo' => 'Recibos',
+            'pedido' => 'Pedidos Venta',
+            'albaran' => 'Albaranes Venta',
+            'factura' => 'Facturas Venta',
+            'recibo' => 'Recibos Venta',
+            'pedido_compra' => 'Pedidos Compra',
+            'albaran_compra' => 'Albaranes Compra',
+            'factura_compra' => 'Facturas Compra',
+            'recibo_compra' => 'Recibos Compra',
         ];
 
-        $listController = new ListController($this->keyHandler, $this->screen, $tipoLabels[$tipo] ?? ucfirst($tipo));
+        $listController = new ListController($this->keyHandler, $this->screen, $tipoLabels[$tipo] ?? ucfirst(str_replace('_', ' ', $tipo)));
         
         // Definir columnas
         // Definir columnas con anchos fijos y truncamiento automático
@@ -345,28 +349,69 @@ class DocumentosActions
             default => strtoupper($tipo),
         };
 
-        echo "\033[36m╔═══════════════════════════════════════════════════════════════╗\n";
-        echo "║                   NUEVO $tipoLabel                            ║\n";
-        echo "╚═══════════════════════════════════════════════════════════════╝\033[0m\n\n";
+        // DIBUJAR MARCO GLOBAL
+        // Borde superior
+        echo "\033[36m╔══════════════════════════════════════════════════════════════════════════════╗\n";
+        // Título centrado
+        $title = "NUEVO $tipoLabel";
+        $titlePadding = (78 - mb_strlen($title)) / 2;
+        echo "║" . str_repeat(" ", (int)floor($titlePadding)) . "\033[1;37m" . $title . "\033[36m" . str_repeat(" ", (int)ceil($titlePadding)) . "║\n";
+        // Separador
+        echo "╠══════════════════════════════════════════════════════════════════════════════╣\n";
+        
+        // Cuerpo vacío inicial para mantener el marco mientras se opera
+        for ($i = 0; $i < 20; $i++) {
+             echo "║" . str_repeat(" ", 78) . "║\n";
+        }
+        
+        // Borde inferior
+        echo "╚══════════════════════════════════════════════════════════════════════════════╝\033[0m";
+        
+        // Mover cursor al inicio del área de contenido para los prompts
+        // Como Laravel Prompts borra y redibuja, esto es un compromiso visual.
+        // Lo ideal sería que el selector se renderice DENTRO del marco, pero Prompts toma control del stdout.
+        // Simularemos el marco reimprimiéndolo o aceptando que el prompt desplazará cosas.
+        // O mejor: Usamos el Window para dibujar y luego prompts en coordenadas si es posible (no fácil con Prompts).
+        // SOLUCIÓN PRÁCTICA: Limpiar, dibujar título y dejar que Prompts use el área central, 
+        // pero "enmarcándolo" visualmente antes de llamar a search.
+        
+        $this->screen->clear();
+        echo "\033[36m╔══════════════════════════════════════════════════════════════════════════════╗\n";
+        echo "║" . str_repeat(" ", (int)floor($titlePadding)) . "\033[1;37m" . $title . "\033[36m" . str_repeat(" ", (int)ceil($titlePadding)) . "║\n";
+        echo "╚══════════════════════════════════════════════════════════════════════════════╝\033[0m\n\n";
 
         try {
-            // 1. Seleccionar Cliente
-            $tercerosResponse = $this->client->getTerceros(perPage: 100, tipo: 'cliente');
-            $clientes = [];
+            // Determinar si es Cliente o Proveedor según el tipo de documento
+            $isCompra = str_contains($tipo, 'compra') || str_contains($tipo, 'pedido_compra'); 
+            
+            $apiTipo = $isCompra ? 'proveedor' : 'cliente';
+            $humanLabel = $isCompra ? 'Proveedor' : 'Cliente';
+
+            $tercerosResponse = $this->client->getTerceros(perPage: 100, tipo: $apiTipo);
+            $terceros = [];
             foreach ($tercerosResponse['data'] ?? [] as $t) {
-                $clientes[$t['id']] = $t['nombre_comercial'] . " (" . $t['nif_cif'] . ")";
+                $terceros[$t['id']] = $t['nombre_comercial'] . " (" . $t['nif_cif'] . ")";
             }
 
-            if (empty($clientes)) {
-                \Laravel\Prompts\error('No hay clientes registrados.');
+            if (empty($terceros)) {
+                \Laravel\Prompts\error("No hay {$apiTipo}s registrados.");
                 sleep(2);
                 $this->keyHandler->setRawMode(true);
                 return;
             }
 
-            $clienteId = \Laravel\Prompts\select('Seleccione Cliente', options: $clientes, required: true);
+            // Usar search
+            $clienteId = \Laravel\Prompts\search(
+                label: "Seleccione $humanLabel",
+                options: fn (string $value) => 
+                    strlen($value) === 0 
+                        ? $terceros 
+                        : array_filter($terceros, fn ($name) => str_contains(strtolower($name), strtolower($value))),
+                placeholder: "Escriba para buscar...",
+                scroll: 10
+            );
 
-            // 2. Añadir líneas con el nuevo modal
+            // 2. Añadir líneas
             $this->keyHandler->setRawMode(true);
             
             $lineas = [];
@@ -375,30 +420,23 @@ class DocumentosActions
             $continuarAñadiendo = true;
             
             while ($continuarAñadiendo) {
-                // Mostrar resumen de líneas actuales
+                // Mostrar resumen de líneas actuales (que ya dibuja su propio marco)
                 $this->mostrarResumenLineas($lineas, $tipoLabel);
                 
                 echo "\n  \033[37mPresione \033[32mF5\033[37m para añadir línea, \033[32mF10\033[37m para finalizar, \033[32mF12\033[37m para cancelar\033[0m\n";
+                // ... logic continues ...
                 
                 $rawKey = $this->keyHandler->waitForKey();
                 $key = \App\NexErpTui\Input\FunctionKeyMapper::mapKey($rawKey);
                 
                 if ($key === 'F5') {
-                    // Añadir nueva línea
                     $linea = $lineModal->run(function($searchText) {
                         return $this->client->searchProducto($searchText);
                     });
-                    
-                    if ($linea) {
-                        $lineas[] = $linea;
-                    }
+                    if ($linea) $lineas[] = $linea;
                 } elseif ($key === 'F10') {
-                    // Finalizar
-                    if (!empty($lineas)) {
-                        $continuarAñadiendo = false;
-                    }
+                    if (!empty($lineas)) $continuarAñadiendo = false;
                 } elseif ($key === 'F12' || $key === 'ESC') {
-                    // Cancelar
                     $this->keyHandler->setRawMode(false);
                     return;
                 }
@@ -409,7 +447,6 @@ class DocumentosActions
                 \Laravel\Prompts\warning('Documento cancelado (sin líneas).');
                 sleep(1);
             } else {
-                // Confirmar creación
                 $this->keyHandler->setRawMode(false);
                 $confirm = \Laravel\Prompts\confirm('¿Desea crear el documento?', default: true);
 
@@ -428,7 +465,8 @@ class DocumentosActions
             }
         } catch (\Exception $e) {
             $this->keyHandler->setRawMode(false);
-            \Laravel\Prompts\error('Error al crear documento: ' . $e->getMessage());
+            // El error limpio ya viene del ErpClient
+            \Laravel\Prompts\error($e->getMessage());
             echo "\nPresione cualquier tecla para continuar...";
             $this->keyHandler->setRawMode(true);
             $this->keyHandler->waitForKey();
@@ -548,5 +586,28 @@ class DocumentosActions
     public function listarRecibos(): void
     {
         $this->listar('recibo');
+    }
+
+    /**
+     * Métodos específicos para Compras
+     */
+    public function listarPedidosCompra(): void
+    {
+        $this->listar('pedido_compra');
+    }
+
+    public function listarAlbaranesCompra(): void
+    {
+        $this->listar('albaran_compra');
+    }
+
+    public function listarFacturasCompra(): void
+    {
+        $this->listar('factura_compra');
+    }
+
+    public function listarRecibosCompra(): void
+    {
+        $this->listar('recibo_compra');
     }
 }

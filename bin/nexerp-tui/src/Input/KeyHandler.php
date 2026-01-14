@@ -111,14 +111,15 @@ class KeyHandler
                 }
             }
         }
+        
+        // Ensure signals (like SIGWINCH) are processed
+        if (function_exists('pcntl_signal_dispatch')) {
+            pcntl_signal_dispatch();
+        }
 
         // 4. Procesar buffer
         return $this->extractKey();
     }
-
-    /**
-     * Extrae una única secuencia de tecla del buffer.
-     */
     private function extractKey(): string
     {
         if ($this->buffer === '') return '';

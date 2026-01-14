@@ -227,7 +227,8 @@ class ListController
         $pagingInfo = "Pág {$this->page}/{$this->totalPages} | Total: {$this->totalRecords}";
         // Alienar: Título a la izquierda, Paging a la derecha
         $titleStr = mb_substr($this->title, 0, 40);
-        $space = $effectiveWidth - mb_strlen($titleStr) - mb_strlen($pagingInfo);
+        // Restamos 2 para dar margen y evitar que pegue al borde derecho
+        $space = $effectiveWidth - mb_strlen($titleStr) - mb_strlen($pagingInfo) - 2;
         
         echo "\n \033[1;37m" . $titleStr . str_repeat(" ", max(1, $space)) . "\033[33m" . $pagingInfo . "\033[0m\n";
         
@@ -308,8 +309,8 @@ class ListController
     
     private function getFunctionBarText(): string {
         $functions = [];
-        if ($this->onCreate) $functions[] = "F5=Crear";
         if ($this->onEdit) $functions[] = "F2=Editar";
+        if ($this->onCreate) $functions[] = "F5=Crear";
         if ($this->onDelete) $functions[] = "F8=Eliminar";
         if ($this->onView) $functions[] = "Enter=Ver";
         $functions[] = "F12=Volver";

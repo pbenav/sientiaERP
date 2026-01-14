@@ -44,9 +44,38 @@ class ErpClient
         try {
             $response = $this->client->request($method, $endpoint, $options);
             return json_decode($response->getBody()->getContents(), true);
+        } catch (\GuzzleHttp\Exception\ClientException $e) {
+            // Manejar errores de validación (422) y otros errores del cliente (4xx) de forma elegante
+            $responseBody = $e->hasResponse() ? $e->getResponse()->getBody()->getContents() : '';
+            $errorData = json_decode($responseBody, true);
+            
+            $mensaje = "Error en la petición";
+            
+            if (isset($errorData['error'])) {
+                $mensaje = $errorData['error'];
+                // Si hay detalles (ej: validación de campos), añadirlos
+                if (isset($errorData['details']) && is_array($errorData['details'])) {
+                   $detalles = [];
+                   foreach ($errorData['details'] as $campo => $errores) {
+                       $detalles[] = "$campo: " . implode(', ', $errores);
+                   }
+                   if (!empty($detalles)) {
+                       $mensaje .= "\nDetalles:\n - " . implode("\n - ", $detalles);
+                   }
+                }
+            } elseif (isset($errorData['message'])) {
+                 $mensaje = $errorData['message'];
+            }
+            
+            // Log para debug
+            file_put_contents('/tmp/erp_api_error.log', date('Y-m-d H:i:s') . " Client Error {$method} {$endpoint}: " . $mensaje . "\n", FILE_APPEND);
+            
+            // Lanzar excepción con el mensaje limpio
+            throw new \Exception($mensaje);
+            
         } catch (GuzzleException $e) {
             file_put_contents('/tmp/erp_api_error.log', date('Y-m-d H:i:s') . " Error {$method} {$endpoint}: " . $e->getMessage() . "\n", FILE_APPEND);
-            throw new \Exception("Error en la petición: " . $e->getMessage());
+            throw new \Exception("Error de conexión: " . $e->getMessage());
         }
     }
 
@@ -55,7 +84,7 @@ class ErpClient
      */
     public function login(string $email, string $password): array
     {
-        $response = $this->request('POST', '/api/pos/login', [
+        $response = $this->request('POST', 'api/pos/login', [
             'email' => $email,
             'password' => $password,
         ]);

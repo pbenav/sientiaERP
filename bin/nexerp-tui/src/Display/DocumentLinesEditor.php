@@ -100,87 +100,116 @@ class DocumentLinesEditor
     {
         $this->screen->clear();
         
-        // Borde superior
+        // --- CABECERA ---
         echo "\033[36m";
         echo "╔" . str_repeat("═", $this->width - 2) . "╗\n";
         
-        // Título
+        // Título centrado
         $titleLength = mb_strlen($this->title);
-        $availableSpace = $this->width - 4;
-        $totalPadding = $availableSpace - $titleLength;
-        $leftPadding = (int)floor($totalPadding / 2) + 1;
-        $rightPadding = (int)ceil($totalPadding / 2) + 1;
+        $availableSpace = $this->width - 2; // -2 bordes (║...║)
+        $totalPadding = max(0, $availableSpace - $titleLength);
+        $leftPadding = (int)floor($totalPadding / 2);
+        $rightPadding = (int)ceil($totalPadding / 2);
         
         echo "║" . str_repeat(" ", $leftPadding);
         echo "\033[1;37m" . $this->title . "\033[36m";
         echo str_repeat(" ", $rightPadding) . "║\n";
         
-        echo "╚" . str_repeat("═", $this->width - 2) . "╝\033[0m\n\n";
+        echo "╠" . str_repeat("═", $this->width - 2) . "╣\033[0m\n"; // Separador cabecera
+        
+        // --- CUERPO ---
+        $contentLines = [];
         
         if (empty($this->lines)) {
-            echo "  \033[33mNo hay líneas. Presione F5 para añadir.\033[0m\n\n";
+            $contentLines[] = "";
+            $contentLines[] = "  \033[33mNo hay líneas añadidas todavía\033[0m";
+            $contentLines[] = "";
+            $contentLines[] = "  Presione \033[32mF5\033[0m para añadir línea, \033[32mF10\033[0m para finalizar, \033[32mF12\033[0m para cancelar";
         } else {
-            // Cabecera de tabla
-            echo "  \033[36m";
-            echo str_pad("Producto", 35);
-            echo str_pad("Cant.", 10, " ", STR_PAD_LEFT);
-            echo str_pad("Precio", 12, " ", STR_PAD_LEFT);
-            echo str_pad("Desc%", 8, " ", STR_PAD_LEFT);
-            echo str_pad("Total", 12, " ", STR_PAD_LEFT);
-            echo "\033[0m\n";
-            echo "  \033[36m" . str_repeat("─", 77) . "\033[0m\n";
+            // ... (código existente de tabla) ...
+            $header = "  \033[36m" . 
+                str_pad("Producto", 35) .
+                str_pad("Cant.", 10, " ", STR_PAD_LEFT) .
+                str_pad("Precio", 12, " ", STR_PAD_LEFT) .
+                str_pad("Desc%", 8, " ", STR_PAD_LEFT) .
+                str_pad("Total", 12, " ", STR_PAD_LEFT) . 
+                "\033[0m";
             
-            // Líneas
+            $contentLines[] = $header;
+            $contentLines[] = "  \033[36m" . str_repeat("─", $this->width - 6) . "\033[0m";
+            
             $totalGeneral = 0;
             foreach ($this->lines as $index => $line) {
-                $isSelected = ($index === $this->selectedIndex);
-                $prefix = $isSelected ? "\033[1;33m► " : "  ";
-                $color = $isSelected ? "\033[1;33m" : "\033[37m";
-                
+                // ... (cálculos existentes) ...
                 $cantidad = $line['cantidad'] ?? 0;
                 $precio = $line['precio_unitario'] ?? 0;
                 $descuento = $line['descuento'] ?? 0;
-                
                 $subtotal = $cantidad * $precio;
                 $total = $subtotal * (1 - $descuento / 100);
                 $totalGeneral += $total;
+
+                $isSelected = ($index === $this->selectedIndex);
+                $prefix = $isSelected ? "\033[1;33m► " : "  ";
+                $color = $isSelected ? "\033[1;33m" : "\033[37m";
+                $reset = "\033[0m";
+
+                $lineStr = $prefix . $color .
+                    str_pad(substr($line['descripcion'] ?? '', 0, 33), 35) .
+                    str_pad(number_format($cantidad, 2, ',', '.'), 10, " ", STR_PAD_LEFT) .
+                    str_pad(number_format($precio, 2, ',', '.') . ' €', 12, " ", STR_PAD_LEFT) .
+                    str_pad(number_format($descuento, 0) . '%', 8, " ", STR_PAD_LEFT) .
+                    str_pad(number_format($total, 2, ',', '.') . ' €', 12, " ", STR_PAD_LEFT) .
+                    $reset;
                 
-                echo $prefix . $color;
-                echo str_pad(substr($line['descripcion'] ?? '', 0, 33), 35);
-                echo str_pad(number_format($cantidad, 2, ',', '.'), 10, " ", STR_PAD_LEFT);
-                echo str_pad(number_format($precio, 2, ',', '.') . ' €', 12, " ", STR_PAD_LEFT);
-                echo str_pad(number_format($descuento, 0) . '%', 8, " ", STR_PAD_LEFT);
-                echo str_pad(number_format($total, 2, ',', '.') . ' €', 12, " ", STR_PAD_LEFT);
-                echo "\033[0m\n";
+                $contentLines[] = $lineStr;
             }
             
-            // Total
-            echo "  \033[36m" . str_repeat("─", 77) . "\033[0m\n";
-            echo "  \033[1;32m" . str_pad("TOTAL:", 65, " ", STR_PAD_LEFT);
-            echo str_pad(number_format($totalGeneral, 2, ',', '.') . ' €', 12, " ", STR_PAD_LEFT);
-            echo "\033[0m\n";
+            $contentLines[] = "  \033[36m" . str_repeat("─", $this->width - 6) . "\033[0m";
+            
+            $totalLabel = "TOTAL:";
+            $totalValue = number_format($totalGeneral, 2, ',', '.') . ' €';
+            $padLen = ($this->width - 6) - mb_strlen($totalLabel) - mb_strlen($totalValue) - 2; 
+            if ( $padLen < 0 ) $padLen = 0;
+
+            $contentLines[] = "  \033[1;32m" . $totalLabel . str_repeat(" ", $padLen) . $totalValue . "\033[0m";
         }
         
-        echo "\n";
+        // Rellenar hasta altura mínima para formar un marco decente
+        $minHeight = 15;
+        while (count($contentLines) < $minHeight) {
+            $contentLines[] = "";
+        }
         
-        // Barra de funciones
-        echo "\033[36m";
-        echo "╔" . str_repeat("═", $this->width - 2) . "╗\n";
-        echo "║ \033[0m";
+        // Imprimir líneas del cuerpo con bordes laterales
+        foreach ($contentLines as $line) {
+            $visibleLen = $this->stripAnsiLength($line);
+            $paddingRight = max(0, $this->width - 2 - $visibleLen);
+            
+            echo "\033[36m║\033[0m" . $line . str_repeat(" ", $paddingRight) . "\033[36m║\033[0m\n";
+        }
+
+        // Rellenar líneas vacías si es muy corto para mantener estética (opcional, por ahora dinámico)
         
+        // --- PIE DE PÁGINA ---
+        echo "\033[36m╠" . str_repeat("═", $this->width - 2) . "╣\033[0m\n"; // Separador pie
+        
+        echo "\033[36m║ \033[0m";
+        
+        // Reordenación de teclas: F2, F5, F8, F10, F12
         $functions = [
-            "\033[32mF5\033[0m=Añadir",
-            "\033[32mF2/F6\033[0m=Editar",
+            "\033[32mF2\033[0m=Editar",
+            "\033[32mF5\033[0m=Añadir", 
             "\033[32mF8\033[0m=Eliminar",
-            "\033[37m↑↓\033[0m=Navegar",
+            // "\033[37mTAB\033[0m=Cabecera", // Si queremos mantener lo que había en screenshot
             "\033[32mF10\033[0m=Guardar",
             "\033[32mF12\033[0m=Cancelar"
         ];
         
         $functionText = implode("  ", $functions);
-        $padding = $this->width - 4 - $this->stripAnsiLength($functionText);
+        $len = $this->stripAnsiLength($functionText);
+        $padding = max(0, $this->width - 4 - $len);
         
-        echo $functionText . str_repeat(" ", max(0, $padding));
+        echo $functionText . str_repeat(" ", $padding);
         echo "\033[36m ║\n";
         echo "╚" . str_repeat("═", $this->width - 2) . "╝\033[0m\n";
     }

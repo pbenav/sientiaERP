@@ -1,0 +1,11 @@
+nohup: no se tendrá en cuenta la entrada
+
+   INFO  Server running on [http://127.0.0.1:8000].  
+
+  Press Ctrl+C to stop the server
+
+  Request: /api/pos/login
+  2026-01-14 09:13:48 /api/pos/login ............................. ~ 501.47ms
+  2026-01-14 09:14:30 /api/pos/login ............................. ~ 500.31ms
+  2026-01-14 09:14:58 /api/pos/login ............................... ~ 0.11ms
+  2026-01-14 09:15:14 /api/pos/login ............................... ~ 0.39ms

@@ -112,7 +112,7 @@ class ErpController extends Controller
     public function createDocumento(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'tipo' => 'required|in:presupuesto,pedido,albaran,factura,recibo',
+            'tipo' => 'required|in:presupuesto,pedido,albaran,factura,recibo,pedido_compra,albaran_compra,factura_compra,recibo_compra',
             'tercero_id' => 'required|exists:terceros,id',
             'fecha' => 'required|date',
             'lineas' => 'sometimes|array',
@@ -199,7 +199,7 @@ class ErpController extends Controller
         $documento = Documento::findOrFail($id);
         
         $validated = $request->validate([
-            'tipo_destino' => 'required|in:pedido,albaran,factura,recibo',
+            'tipo_destino' => 'required|in:pedido,albaran,factura,recibo,pedido_compra,albaran_compra,factura_compra,recibo_compra',
         ]);
 
         $nuevoDocumento = $documento->convertirA($validated['tipo_destino']);

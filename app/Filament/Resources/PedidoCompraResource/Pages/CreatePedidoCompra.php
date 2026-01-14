@@ -1,17 +1,17 @@
 <?php
 
-namespace App\Filament\Resources\AlbaranResource\Pages;
+namespace App\Filament\Resources\PedidoCompraResource\Pages;
 
-use App\Filament\Resources\AlbaranResource;
+use App\Filament\Resources\PedidoCompraResource;
 use Filament\Resources\Pages\CreateRecord;
 
-class CreateAlbaran extends CreateRecord
+class CreatePedidoCompra extends CreateRecord
 {
-    protected static string $resource = AlbaranResource::class;
+    protected static string $resource = PedidoCompraResource::class;
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $data['tipo'] = 'albaran';
+        $data['tipo'] = 'pedido_compra';
         $data['user_id'] = auth()->id();
         
         return $data;

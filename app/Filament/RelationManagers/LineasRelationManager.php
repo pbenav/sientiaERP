@@ -1,0 +1,178 @@
+<?php
+
+namespace App\Filament\RelationManagers;
+
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Tables;
+use Filament\Tables\Table;
+use App\Models\Product;
+use Illuminate\Database\Eloquent\Model;
+
+class LineasRelationManager extends RelationManager
+{
+    protected static string $relationship = 'lineas';
+
+    protected static ?string $title = 'Líneas del Documento';
+
+    protected static ?string $modelLabel = 'Línea';
+
+    protected static ?string $pluralModelLabel = 'Líneas';
+
+    public function form(Form $form): Form
+    {
+        return $form->schema(self::getLineFormSchema());
+    }
+
+    public static function getLineFormSchema(): array
+    {
+        return [
+            Forms\Components\Select::make('product_id')
+                ->label('Producto')
+                ->relationship('product', 'name')
+                ->searchable()
+                ->preload()
+                ->live()
+                ->afterStateUpdated(function ($state, Forms\Set $set) {
+                    if ($state) {
+                        $product = Product::find($state);
+                        if ($product) {
+                            $set('codigo', $product->sku);
+                            $set('descripcion', $product->name);
+                            $set('precio_unitario', $product->price);
+                            $set('iva', $product->tax_rate);
+                        }
+                    }
+                })
+                ->columnSpan(2),
+            
+            Forms\Components\TextInput::make('codigo')
+                ->label('Código')
+                ->maxLength(50),
+            
+            Forms\Components\Textarea::make('descripcion')
+                ->label('Descripción')
+                ->required()
+                ->rows(2)
+                ->columnSpanFull(),
+            
+            Forms\Components\TextInput::make('cantidad')
+                ->label('Cantidad')
+                ->numeric()
+                ->default(1)
+                ->required()
+                ->live()
+                ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
+                    self::calcularLinea($set, $get)),
+            
+            Forms\Components\TextInput::make('precio_unitario')
+                ->label('Precio')
+                ->numeric()
+                ->prefix('€')
+                ->required()
+                ->live()
+                ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
+                    self::calcularLinea($set, $get)),
+            
+            Forms\Components\TextInput::make('descuento')
+                ->label('Dto. %')
+                ->numeric()
+                ->default(0)
+                ->suffix('%')
+                ->live()
+                ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
+                    self::calcularLinea($set, $get)),
+            
+            Forms\Components\TextInput::make('iva')
+                ->label('IVA %')
+                ->numeric()
+                ->default(21)
+                ->suffix('%')
+                ->required()
+                ->live()
+                ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
+                    self::calcularLinea($set, $get)),
+            
+            Forms\Components\TextInput::make('total')
+                ->label('Total')
+                ->numeric()
+                ->prefix('€')
+                ->disabled()
+                ->dehydrated(),
+        ];
+    }
+
+    protected static function calcularLinea(Forms\Set $set, Forms\Get $get): void
+    {
+        $cantidad = floatval($get('cantidad') ?? 0);
+        $precio = floatval($get('precio_unitario') ?? 0);
+        $descuento = floatval($get('descuento') ?? 0);
+        $iva = floatval($get('iva') ?? 0);
+
+        $subtotal = $cantidad * $precio;
+        
+        if ($descuento > 0) {
+            $subtotal = $subtotal * (1 - ($descuento / 100));
+        }
+
+        $importeIva = $subtotal * ($iva / 100);
+        $total = $subtotal + $importeIva;
+
+        $set('subtotal', round($subtotal, 2));
+        $set('importe_iva', round($importeIva, 2));
+        $set('total', round($total, 2));
+    }
+
+    public function table(Table $table): Table
+    {
+        return $table
+            ->recordTitleAttribute('descripcion')
+            ->columns([
+                Tables\Columns\TextColumn::make('product.name')
+                    ->label('Producto')
+                    ->searchable()
+                    ->sortable(),
+                
+                Tables\Columns\TextColumn::make('cantidad')
+                    ->label('Cant.')
+                    ->numeric()
+                    ->sortable(),
+                
+                Tables\Columns\TextColumn::make('precio_unitario')
+                    ->label('Precio')
+                    ->money('EUR')
+                    ->sortable(),
+                
+                Tables\Columns\TextColumn::make('descuento')
+                    ->label('Dto.%')
+                    ->suffix('%'),
+                    
+                Tables\Columns\TextColumn::make('total')
+                    ->label('Total')
+                    ->money('EUR')
+                    ->sortable(),
+            ])
+            ->filters([
+                //
+            ])
+            ->headerActions([
+                Tables\Actions\CreateAction::make()
+                    ->label('Añadir Línea')
+                    ->modalHeading('Añadir Línea al Documento')
+                    ->after(fn ($livewire) => $livewire->getOwnerRecord()->recalcularTotales()),
+            ])
+            ->actions([
+                Tables\Actions\EditAction::make()
+                    ->after(fn ($livewire) => $livewire->getOwnerRecord()->recalcularTotales()),
+                Tables\Actions\DeleteAction::make()
+                    ->after(fn ($livewire) => $livewire->getOwnerRecord()->recalcularTotales()),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->after(fn ($livewire) => $livewire->getOwnerRecord()->recalcularTotales()),
+                ]),
+            ]);
+    }
+}

@@ -48,9 +48,32 @@ class DocumentoSeeder extends Seeder
         // 4. Recibos
         $this->createDocument($clienteFactura, $user, 'recibo', $products->random(1), 'completado');
 
-        // 5. De proveedores (Pedidos de compra)
-        foreach ($proveedores as $proveedor) {
-            $this->createDocument($proveedor, $user, 'pedido', $products->random(rand(2, 4)));
+        // 5. De proveedores (Documentos de compra)
+        foreach ($proveedores as $index => $proveedor) {
+            // CHAIN: Pedido -> Albaran -> Factura -> Recibo (Flujo completo)
+            // 1. Crear Pedido Inicial
+            $pedido = $this->createDocument($proveedor, $user, 'pedido', $products->random(rand(2, 4)), 'confirmado');
+            
+            // 2. Convertir a Albaran
+            $albaran = $pedido->convertirA('albaran');
+            $albaran->confirmar();
+            
+            // 3. Convertir a Factura
+            $factura = $albaran->convertirA('factura');
+            $factura->confirmar();
+
+            // 4. Generar Recibo (Manual, la conversión directa a recibo no siempre es workflow estándar pero lo simulamos)
+            $recibo = $factura->convertirA('recibo');
+            $recibo->update(['estado' => 'completado']);
+
+            // UNLINKED: Documentos sueltos para variedad
+            if ($index === 0) {
+                 // Albaran suelto (Directo)
+                 $this->createDocument($proveedor, $user, 'albaran', $products->random(rand(2, 4)), 'confirmado');
+                 
+                 // Factura suelta (Directa)
+                 $this->createDocument($proveedor, $user, 'factura', $products->random(rand(1, 4)), 'confirmado');
+            }
         }
     }
 
