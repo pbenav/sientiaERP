@@ -44,20 +44,23 @@ class RecibosService
         try {
             $recibos = collect();
             
+            // Determinar el tipo de recibo según el tipo de factura
+            $tipoRecibo = $factura->tipo === 'factura_compra' ? 'recibo_compra' : 'recibo';
+            
             // Calcular vencimientos usando la forma de pago
             $fechaBase = $factura->fecha ?? now();
             $vencimientos = $factura->formaPago->calcularVencimientos($fechaBase, (float) $factura->total);
 
             foreach ($vencimientos as $index => $vencimiento) {
                 $recibo = new Documento([
-                    'tipo' => 'recibo',
+                    'tipo' => $tipoRecibo,
                     'serie' => $factura->serie,
                     'fecha' => $fechaBase,
                     'fecha_vencimiento' => $vencimiento['fecha_vencimiento'],
                     'tercero_id' => $factura->tercero_id,
                     'user_id' => auth()->id() ?? $factura->user_id,
                     'documento_origen_id' => $factura->id,
-                    'estado' => 'pendiente', // Estado para recibos: pendiente, cobrado, anulado
+                    'estado' => 'pendiente', // Estado para recibos: pendiente, cobrado/pagado, anulado
                     'subtotal' => $vencimiento['importe'],
                     'base_imponible' => $vencimiento['importe'],
                     'total' => $vencimiento['importe'],

@@ -81,7 +81,7 @@ class AlbaranCompraResource extends Resource
         return $table->columns([
             Tables\Columns\IconColumn::make('bloqueo_icon')->label('')->getStateUsing(fn($record) => $record->getIconoBloqueo())->color(fn($record) => $record->getColorBloqueo())->tooltip(fn($record) => $record->getMensajeBloqueoCorto()),
             Tables\Columns\TextColumn::make('numero')->label('Número')->searchable()->sortable(),
-            Tables\Columns\TextColumn::make('fecha')->label('Fecha')->date()->sortable(),
+            Tables\Columns\TextColumn::make('fecha')->label('Fecha')->date('d/m/Y')->sortable(),
             Tables\Columns\TextColumn::make('tercero.nombre_comercial')->label('Proveedor')->searchable()->sortable()->limit(30),
             Tables\Columns\TextColumn::make('total')->label('Total')->money('EUR')->sortable(),
             Tables\Columns\BadgeColumn::make('estado')->label('Estado')->colors([
