@@ -151,12 +151,13 @@ class PedidoResource extends Resource
                     ->label('Líneas del Pedido')
                     ->relationship('lineas')
                     ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
-                    ->columns(6)
-                    ->columnSpanFull()
+                    ->columns(7)
                     ->defaultItems(1)
                     ->reorderable()
                     ->addActionLabel('+ Añadir línea')
-                    ->view('forms.components.table-repeater'),
+                    ->collapsible()
+                    ->cloneable(),
+
 
                 // SECCIÓN 4: OBSERVACIONES
                 Forms\Components\Section::make('Observaciones')
