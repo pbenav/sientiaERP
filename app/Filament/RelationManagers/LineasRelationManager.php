@@ -34,6 +34,7 @@ class LineasRelationManager extends RelationManager
                 ->searchable()
                 ->preload()
                 ->live()
+                ->columnSpan(2)
                 ->afterStateUpdated(function ($state, Forms\Set $set) {
                     if ($state) {
                         $product = Product::find($state);
@@ -48,7 +49,8 @@ class LineasRelationManager extends RelationManager
             
             Forms\Components\TextInput::make('codigo')
                 ->label('Código')
-                ->maxLength(50),
+                ->maxLength(50)
+                ->columnSpan(1),
             
             // Descripción oculta - se muestra en el tooltip del producto
             Forms\Components\Hidden::make('descripcion'),
@@ -56,48 +58,58 @@ class LineasRelationManager extends RelationManager
             Forms\Components\TextInput::make('cantidad')
                 ->label('Cant.')
                 ->numeric()
+                ->inputMode('decimal')
+                ->step(null)
                 ->default(1)
                 ->required()
                 ->live()
+                ->columnSpan(1)
                 ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                     self::calcularLinea($set, $get)),
             
             Forms\Components\TextInput::make('precio_unitario')
                 ->label('Precio')
                 ->numeric()
-                ->prefix('€')
+                ->inputMode('decimal')
+                ->step(null)
                 ->required()
                 ->live()
+                ->columnSpan(1)
                 ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                     self::calcularLinea($set, $get)),
             
             Forms\Components\TextInput::make('descuento')
-                ->label('Dto. %')
+                ->label('Dto.')
                 ->numeric()
+                ->inputMode('decimal')
+                ->step(null)
                 ->default(0)
-                ->suffix('%')
                 ->live()
+                ->columnSpan(1)
                 ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                     self::calcularLinea($set, $get)),
             
             Forms\Components\TextInput::make('iva')
-                ->label('IVA %')
+                ->label('IVA')
                 ->numeric()
+                ->inputMode('decimal')
+                ->step(null)
                 ->default(21)
-                ->suffix('%')
                 ->required()
                 ->live()
+                ->columnSpan(1)
                 ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                     self::calcularLinea($set, $get)),
             
             Forms\Components\TextInput::make('total')
                 ->label('Total')
                 ->numeric()
-                ->prefix('€')
                 ->disabled()
-                ->dehydrated(),
+                ->dehydrated()
+                ->columnSpan(1),
         ];
     }
+
 
     protected static function calcularLinea(Forms\Set $set, Forms\Get $get): void
     {
