@@ -126,11 +126,20 @@ class FormaPago extends Model
      */
     public function getPlazoMaximoAttribute(): int
     {
-        if (empty($this->tramos)) {
+        // Asegurar que tramos es un array
+        $tramos = $this->tramos;
+        if (is_string($tramos)) {
+            $tramos = json_decode($tramos, true) ?? [];
+        }
+        if (!is_array($tramos)) {
+            $tramos = [];
+        }
+        
+        if (empty($tramos)) {
             return 0;
         }
 
-        return max(array_column($this->tramos, 'dias'));
+        return max(array_column($tramos, 'dias'));
     }
 
     /**

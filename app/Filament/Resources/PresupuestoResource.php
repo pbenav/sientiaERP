@@ -233,7 +233,7 @@ class PresupuestoResource extends Resource
                 
                 Tables\Columns\TextColumn::make('fecha')
                     ->label('Fecha')
-                    ->date()
+                    ->date('d/m/Y')
                     ->sortable(),
                 
                 Tables\Columns\TextColumn::make('tercero.nombre_comercial')
@@ -256,7 +256,7 @@ class PresupuestoResource extends Resource
                 
                 Tables\Columns\TextColumn::make('fecha_validez')
                     ->label('Válido hasta')
-                    ->date()
+                    ->date('d/m/Y')
                     ->sortable(),
                 
                 Tables\Columns\TextColumn::make('user.name')

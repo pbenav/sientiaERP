@@ -100,7 +100,7 @@ class ReciboResource extends Resource
                 
                 Tables\Columns\TextColumn::make('fecha')
                     ->label('Fecha')
-                    ->date()
+                    ->date('d/m/Y')
                     ->sortable(),
                 
                 Tables\Columns\TextColumn::make('tercero.nombre_comercial')
