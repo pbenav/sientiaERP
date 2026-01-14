@@ -48,7 +48,16 @@ class FormaPago extends Model
     {
         $vencimientos = collect();
         
-        if (empty($this->tramos)) {
+        // Asegurar que tramos es un array
+        $tramos = $this->tramos;
+        if (is_string($tramos)) {
+            $tramos = json_decode($tramos, true) ?? [];
+        }
+        if (!is_array($tramos)) {
+            $tramos = [];
+        }
+        
+        if (empty($tramos)) {
             // Si no hay tramos definidos, un solo pago al contado
             $vencimientos->push([
                 'fecha_vencimiento' => $fechaBase->copy(),
@@ -62,7 +71,7 @@ class FormaPago extends Model
 
         $totalPorcentaje = 0;
         
-        foreach ($this->tramos as $index => $tramo) {
+        foreach ($tramos as $index => $tramo) {
             $dias = $tramo['dias'] ?? 0;
             $porcentaje = $tramo['porcentaje'] ?? 0;
             
@@ -73,8 +82,7 @@ class FormaPago extends Model
             
             // Calcular importe de este tramo
             // En el último tramo, ajustar para que sume exactamente el total (evitar errores de redondeo)
-            $tramosList = is_array($this->tramos) ? $this->tramos : [];
-            if ($index === count($tramosList) - 1) {
+            if ($index === count($tramos) - 1) {
                 $importeTramo = $importe - $vencimientos->sum('importe');
             } else {
                 $importeTramo = round($importe * ($porcentaje / 100), 2);
