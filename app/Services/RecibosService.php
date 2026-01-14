@@ -22,9 +22,10 @@ class RecibosService
      */
     public function generarRecibosDesdeFactura(Documento $factura): Collection
     {
-        if ($factura->tipo !== 'factura') {
+        if (!in_array($factura->tipo, ['factura', 'factura_compra'])) {
             throw new \InvalidArgumentException('Solo se pueden generar recibos desde facturas');
         }
+
 
         if (!$factura->formaPago) {
             throw new \InvalidArgumentException('La factura debe tener una forma de pago asignada');
@@ -110,9 +111,10 @@ class RecibosService
      */
     public function regenerarRecibos(Documento $factura): Collection
     {
-        if ($factura->tipo !== 'factura') {
+        if (!in_array($factura->tipo, ['factura', 'factura_compra'])) {
             throw new \InvalidArgumentException('Solo se pueden regenerar recibos desde facturas');
         }
+
 
         DB::beginTransaction();
         try {
