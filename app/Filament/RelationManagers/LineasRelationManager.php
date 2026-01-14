@@ -63,6 +63,7 @@ class LineasRelationManager extends RelationManager
                 ->required()
                 ->live()
                 ->columnSpan(1)
+                ->maxWidth('100px')
                 ->extraInputAttributes([
                     'style' => '-moz-appearance: textfield;',
                     'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
@@ -77,6 +78,7 @@ class LineasRelationManager extends RelationManager
                 ->required()
                 ->live()
                 ->columnSpan(1)
+                ->maxWidth('120px')
                 ->extraInputAttributes([
                     'style' => '-moz-appearance: textfield;',
                     'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
@@ -91,6 +93,7 @@ class LineasRelationManager extends RelationManager
                 ->default(0)
                 ->live()
                 ->columnSpan(1)
+                ->maxWidth('80px')
                 ->extraInputAttributes([
                     'style' => '-moz-appearance: textfield;',
                     'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
@@ -106,6 +109,7 @@ class LineasRelationManager extends RelationManager
                 ->required()
                 ->live()
                 ->columnSpan(1)
+                ->maxWidth('80px')
                 ->extraInputAttributes([
                     'style' => '-moz-appearance: textfield;',
                     'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
@@ -119,12 +123,14 @@ class LineasRelationManager extends RelationManager
                 ->disabled()
                 ->dehydrated()
                 ->columnSpan(1)
+                ->maxWidth('120px')
                 ->extraInputAttributes([
                     'style' => '-moz-appearance: textfield;',
                     'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
                 ]),
         ];
     }
+
 
 
 
