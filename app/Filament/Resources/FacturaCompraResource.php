@@ -59,21 +59,21 @@ class FacturaCompraResource extends Resource
                 Forms\Components\Select::make('estado')->label('Estado')->options([
                     'borrador' => 'Borrador', 'confirmado' => 'Confirmado', 'pagado' => 'Pagado', 'anulado' => 'Anulado',
                 ])->default('borrador')->required(),
-            ])->columns(3),
+                
+                Forms\Components\Placeholder::make('subtotal_display')->label('Subtotal')->content(fn($record) => $record ? number_format($record->subtotal, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit'),
+                Forms\Components\Placeholder::make('iva_display')->label('IVA')->content(fn($record) => $record ? number_format($record->iva, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit'),
+                Forms\Components\Placeholder::make('total_display')->label('TOTAL')->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit'),
+            ])->columns(6)->compact(),
+            
             
             Forms\Components\Repeater::make('lineas')->label('Líneas de la Factura')->relationship('lineas')
                 ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
-                ->columns(6)->columnSpanFull()->defaultItems(1)->reorderable()->addActionLabel('+ Añadir línea')->simple()->grid(1),
+                ->defaultItems(1)
+                ->reorderable()
+                ->addActionLabel('+ Añadir línea')
+                ->view('forms.components.table-repeater'),
             
-            Forms\Components\Section::make('Totales')->schema([
-                Forms\Components\Placeholder::make('subtotal_display')->label('Subtotal')->content(fn($record) => $record ? number_format($record->subtotal, 2, ',', '.') . ' €' : '0,00 €'),
-                Forms\Components\Placeholder::make('iva_display')->label('IVA')->content(fn($record) => $record ? number_format($record->iva, 2, ',', '.') . ' €' : '0,00 €'),
-                Forms\Components\Placeholder::make('total_display')->label('TOTAL')->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €'),
-            ])->columns(3)->visibleOn('edit'),
-            
-            Forms\Components\Section::make('Observaciones')->schema([
-                Forms\Components\Textarea::make('observaciones')->label('Observaciones')->rows(3)->columnSpanFull(),
-            ]),
+            Forms\Components\Textarea::make('observaciones')->label('Observaciones')->rows(2)->columnSpanFull(),
         ]);
     }
 
@@ -121,7 +121,7 @@ class FacturaCompraResource extends Resource
 
     public static function getRelations(): array
     {
-        return [\App\Filament\RelationManagers\LineasRelationManager::class];
+        return [];
     }
 
     public static function getPages(): array

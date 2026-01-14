@@ -44,21 +44,17 @@ class LineasRelationManager extends RelationManager
                             $set('iva', $product->tax_rate);
                         }
                     }
-                })
-                ->columnSpan(2),
+                }),
             
             Forms\Components\TextInput::make('codigo')
                 ->label('Código')
                 ->maxLength(50),
             
-            Forms\Components\Textarea::make('descripcion')
-                ->label('Descripción')
-                ->required()
-                ->rows(2)
-                ->columnSpanFull(),
+            // Descripción oculta - se muestra en el tooltip del producto
+            Forms\Components\Hidden::make('descripcion'),
             
             Forms\Components\TextInput::make('cantidad')
-                ->label('Cantidad')
+                ->label('Cant.')
                 ->numeric()
                 ->default(1)
                 ->required()

@@ -91,45 +91,22 @@ class AlbaranResource extends Resource
                             ])
                             ->default('borrador')
                             ->required(),
-                    ])->columns(3),
+                        
+                        Forms\Components\Placeholder::make('subtotal_display')->label('Subtotal')->content(fn($record) => $record ? number_format($record->subtotal, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit'),
+                        Forms\Components\Placeholder::make('iva_display')->label('IVA')->content(fn($record) => $record ? number_format($record->iva, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit'),
+                        Forms\Components\Placeholder::make('total_display')->label('TOTAL')->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit'),
+                    ])->columns(6)->compact(),
 
-                // SECCIÓN 3: LÍNEAS
                 Forms\Components\Repeater::make('lineas')
                     ->label('Líneas del Albarán')
                     ->relationship('lineas')
                     ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
-                    ->columns(6)
-                    ->columnSpanFull()
                     ->defaultItems(1)
                     ->reorderable()
                     ->addActionLabel('+ Añadir línea')
-                    ->simple()
-                    ->grid(1),
+                    ->view('forms.components.table-repeater'),
 
-                // SECCIÓN 4: OBSERVACIONES
-                Forms\Components\Section::make('Observaciones')
-                    ->schema([
-                        Forms\Components\Textarea::make('observaciones')
-                            ->label('Observaciones (visibles en el documento)')
-                            ->rows(3)
-                            ->columnSpanFull(),
-                    ])->collapsible(),
-
-                // SECCIÓN 5: TOTALES
-                Forms\Components\Section::make('Totales')
-                    ->schema([
-                        Forms\Components\Placeholder::make('subtotal_display')
-                            ->label('Subtotal')
-                            ->content(fn($record) => $record ? number_format($record->subtotal, 2, ',', '.') . ' €' : '0,00 €'),
-                        
-                        Forms\Components\Placeholder::make('iva_display')
-                            ->label('IVA')
-                            ->content(fn($record) => $record ? number_format($record->iva, 2, ',', '.') . ' €' : '0,00 €'),
-                        
-                        Forms\Components\Placeholder::make('total_display')
-                            ->label('TOTAL')
-                            ->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €'),
-                    ])->columns(3)->visibleOn('edit')->collapsible(),
+                Forms\Components\Textarea::make('observaciones')->label('Observaciones')->rows(2)->columnSpanFull(),
             ]);
     }
 
@@ -259,9 +236,7 @@ class AlbaranResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            \App\Filament\RelationManagers\LineasRelationManager::class,
-        ];
+        return [];
     }
 
     public static function getPages(): array
