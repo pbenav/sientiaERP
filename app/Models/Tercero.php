@@ -21,7 +21,7 @@ class Tercero extends Model
         'direccion_envio', 'codigo_postal_envio', 'poblacion_envio',
         'provincia_envio', 'pais_envio',
         'iban', 'swift', 'banco',
-        'forma_pago', 'dias_pago', 'descuento_comercial', 'limite_credito',
+        'forma_pago', 'forma_pago_id', 'dias_pago', 'descuento_comercial', 'limite_credito',
         'recargo_equivalencia', 'irpf',
         'activo', 'observaciones'
     ];
@@ -61,6 +61,14 @@ class Tercero extends Model
     public function documentos(): HasMany
     {
         return $this->hasMany(Documento::class);
+    }
+
+    /**
+     * Forma de pago por defecto del tercero
+     */
+    public function formaPago()
+    {
+        return $this->belongsTo(FormaPago::class, 'forma_pago_id');
     }
 
     /**

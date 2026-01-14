@@ -26,53 +26,55 @@ class DocumentoSeeder extends Seeder
             return;
         }
 
-        // Evitar duplicados masivos si se ejecuta varias veces
-        if (Documento::count() > 10) {
-            return;
+        // Evitar duplicados masivos si se ejecuta varias veces (solo ventas)
+        $ventasExistentes = Documento::whereIn('tipo', ['presupuesto', 'pedido', 'albaran', 'factura', 'recibo'])->count();
+        if ($ventasExistentes > 10) {
+            // Skip ventas pero continuar con compras
+            $skipVentas = true;
+        } else {
+            $skipVentas = false;
         }
 
-        // 1. Algunos Presupuestos
-        foreach ($clientes->take(2) as $cliente) {
-            $this->createDocument($cliente, $user, 'presupuesto', $products->random(rand(1, 3)));
-        }
+        if (!$skipVentas) {
+            // 1. Algunos Presupuestos
+            foreach ($clientes->take(2) as $cliente) {
+                $this->createDocument($cliente, $user, 'presupuesto', $products->random(rand(1, 3)));
+            }
 
-        // 2. Algunos Pedidos (uno de ellos convertido de presupuesto)
-        foreach ($clientes->slice(1, 1) as $cliente) {
-            $this->createDocument($cliente, $user, 'pedido', $products->random(rand(1, 3)), 'confirmado');
-        }
+            // 2. Algunos Pedidos
+            foreach ($clientes->slice(1, 1) as $cliente) {
+                $this->createDocument($cliente, $user, 'pedido', $products->random(rand(1, 3)), 'confirmado');
+            }
 
-        // 3. Albaranes y Facturas
-        $clienteFactura = $clientes->first();
-        $factura = $this->createDocument($clienteFactura, $user, 'factura', $products->random(2), 'confirmado');
-        
-        // 4. Recibos
-        $this->createDocument($clienteFactura, $user, 'recibo', $products->random(1), 'completado');
+            // 3. Albaranes y Facturas
+            $clienteFactura = $clientes->first();
+            $factura = $this->createDocument($clienteFactura, $user, 'factura', $products->random(2), 'confirmado');
+            
+            // 4. Recibos
+            $this->createDocument($clienteFactura, $user, 'recibo', $products->random(1), 'completado');
+        }
 
         // 5. De proveedores (Documentos de compra)
         foreach ($proveedores as $index => $proveedor) {
-            // CHAIN: Pedido -> Albaran -> Factura -> Recibo (Flujo completo)
-            // 1. Crear Pedido Inicial
-            $pedido = $this->createDocument($proveedor, $user, 'pedido', $products->random(rand(2, 4)), 'confirmado');
+            // CHAIN: Pedido -> Albaran -> Factura (Flujo completo de compras)
+            // 1. Crear Pedido de Compra
+            $pedido = $this->createDocument($proveedor, $user, 'pedido_compra', $products->random(rand(2, 4)), 'confirmado');
             
-            // 2. Convertir a Albaran
-            $albaran = $pedido->convertirA('albaran');
+            // 2. Convertir a Albaran de Compra
+            $albaran = $pedido->convertirA('albaran_compra');
             $albaran->confirmar();
             
-            // 3. Convertir a Factura
-            $factura = $albaran->convertirA('factura');
+            // 3. Convertir a Factura de Compra
+            $factura = $albaran->convertirA('factura_compra');
             $factura->confirmar();
-
-            // 4. Generar Recibo (Manual, la conversión directa a recibo no siempre es workflow estándar pero lo simulamos)
-            $recibo = $factura->convertirA('recibo');
-            $recibo->update(['estado' => 'completado']);
 
             // UNLINKED: Documentos sueltos para variedad
             if ($index === 0) {
                  // Albaran suelto (Directo)
-                 $this->createDocument($proveedor, $user, 'albaran', $products->random(rand(2, 4)), 'confirmado');
+                 $this->createDocument($proveedor, $user, 'albaran_compra', $products->random(rand(2, 4)), 'confirmado');
                  
                  // Factura suelta (Directa)
-                 $this->createDocument($proveedor, $user, 'factura', $products->random(rand(1, 4)), 'confirmado');
+                 $this->createDocument($proveedor, $user, 'factura_compra', $products->random(rand(1, 4)), 'confirmado');
             }
         }
     }
@@ -86,8 +88,7 @@ class DocumentoSeeder extends Seeder
             'fecha' => now()->subDays(rand(0, 30)),
             'estado' => $estado,
             'serie' => 'A',
-            'forma_pago' => $tercero->forma_pago,
-            'dias_pago' => $tercero->dias_pago,
+            'forma_pago_id' => \App\Models\FormaPago::where('tipo', 'contado')->first()?->id,
         ]);
 
         foreach ($selectedProducts as $index => $product) {

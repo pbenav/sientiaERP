@@ -34,6 +34,7 @@ class LineasRelationManager extends RelationManager
                 ->searchable()
                 ->preload()
                 ->live()
+                ->columnSpan(2)
                 ->afterStateUpdated(function ($state, Forms\Set $set) {
                     if ($state) {
                         $product = Product::find($state);
@@ -44,64 +45,95 @@ class LineasRelationManager extends RelationManager
                             $set('iva', $product->tax_rate);
                         }
                     }
-                })
-                ->columnSpan(2),
+                }),
             
             Forms\Components\TextInput::make('codigo')
                 ->label('Código')
-                ->maxLength(50),
+                ->maxLength(50)
+                ->columnSpan(1),
             
-            Forms\Components\Textarea::make('descripcion')
-                ->label('Descripción')
-                ->required()
-                ->rows(2)
-                ->columnSpanFull(),
+            // Descripción oculta - se muestra en el tooltip del producto
+            Forms\Components\Hidden::make('descripcion'),
             
             Forms\Components\TextInput::make('cantidad')
-                ->label('Cantidad')
+                ->label('Cant.')
                 ->numeric()
+                ->inputMode('decimal')
                 ->default(1)
                 ->required()
                 ->live()
+                ->columnSpan(1)
+                ->extraAttributes(['class' => 'max-w-[100px]'])
+                ->extraInputAttributes([
+                    'style' => '-moz-appearance: textfield;',
+                    'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                ])
                 ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                     self::calcularLinea($set, $get)),
             
             Forms\Components\TextInput::make('precio_unitario')
                 ->label('Precio')
                 ->numeric()
-                ->prefix('€')
+                ->inputMode('decimal')
                 ->required()
                 ->live()
+                ->columnSpan(1)
+                ->extraAttributes(['class' => 'max-w-[120px]'])
+                ->extraInputAttributes([
+                    'style' => '-moz-appearance: textfield;',
+                    'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                ])
                 ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                     self::calcularLinea($set, $get)),
             
             Forms\Components\TextInput::make('descuento')
-                ->label('Dto. %')
+                ->label('Dto.')
                 ->numeric()
+                ->inputMode('decimal')
                 ->default(0)
-                ->suffix('%')
                 ->live()
+                ->columnSpan(1)
+                ->extraAttributes(['class' => 'max-w-[80px]'])
+                ->extraInputAttributes([
+                    'style' => '-moz-appearance: textfield;',
+                    'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                ])
                 ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                     self::calcularLinea($set, $get)),
             
             Forms\Components\TextInput::make('iva')
-                ->label('IVA %')
+                ->label('IVA')
                 ->numeric()
+                ->inputMode('decimal')
                 ->default(21)
-                ->suffix('%')
                 ->required()
                 ->live()
+                ->columnSpan(1)
+                ->extraAttributes(['class' => 'max-w-[80px]'])
+                ->extraInputAttributes([
+                    'style' => '-moz-appearance: textfield;',
+                    'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                ])
                 ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                     self::calcularLinea($set, $get)),
             
             Forms\Components\TextInput::make('total')
                 ->label('Total')
                 ->numeric()
-                ->prefix('€')
                 ->disabled()
-                ->dehydrated(),
+                ->dehydrated()
+                ->columnSpan(1)
+                ->extraAttributes(['class' => 'max-w-[120px]'])
+                ->extraInputAttributes([
+                    'style' => '-moz-appearance: textfield;',
+                    'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                ]),
         ];
     }
+
+
+
+
 
     protected static function calcularLinea(Forms\Set $set, Forms\Get $get): void
     {
