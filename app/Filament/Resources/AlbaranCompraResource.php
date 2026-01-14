@@ -64,6 +64,7 @@ class AlbaranCompraResource extends Resource
             Forms\Components\Repeater::make('lineas')->label('Líneas del Albarán')->relationship('lineas')
                 ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
                 ->columns(7)
+                ->columnSpanFull()
                 ->defaultItems(1)
                 ->reorderable()
                 ->addActionLabel('+ Añadir línea')

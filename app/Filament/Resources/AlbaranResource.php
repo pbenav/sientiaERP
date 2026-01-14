@@ -102,6 +102,7 @@ class AlbaranResource extends Resource
                     ->relationship('lineas')
                     ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
                     ->columns(7)
+                    ->columnSpanFull()
                     ->defaultItems(1)
                     ->reorderable()
                     ->addActionLabel('+ Añadir línea')
