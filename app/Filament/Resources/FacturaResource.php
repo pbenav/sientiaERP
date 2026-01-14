@@ -110,7 +110,7 @@ class FacturaResource extends Resource
                     ->label('Líneas de la Factura')
                     ->relationship('lineas')
                     ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
-                    ->columns(7)
+                    ->columns(8)
                     ->columnSpanFull()
                     ->defaultItems(1)
                     ->reorderable()

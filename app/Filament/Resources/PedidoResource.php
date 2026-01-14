@@ -151,7 +151,7 @@ class PedidoResource extends Resource
                     ->label('Líneas del Pedido')
                     ->relationship('lineas')
                     ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
-                    ->columns(7)
+                    ->columns(8)
                     ->columnSpanFull()
                     ->defaultItems(1)
                     ->reorderable()
