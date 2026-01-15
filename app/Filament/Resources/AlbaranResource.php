@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\AlbaranResource\Pages;
+use App\Filament\RelationManagers\LineasRelationManager;
 use App\Models\Documento;
 use App\Models\FormaPago;
 use App\Models\Tercero;
@@ -208,7 +209,7 @@ class AlbaranResource extends Resource
                                     ->body("Se ha creado la factura {$factura->numero} con {$records->count()} albaranes")
                                     ->send();
                                 
-                                return redirect()->route('filament.admin.resources.facturas.edit', $factura);
+                                return redirect()->to(FacturaResource::getUrl('edit', ['record' => $factura]));
                             } catch (\Exception $e) {
                                 Notification::make()
                                     ->title('Error al agrupar')
@@ -227,7 +228,9 @@ class AlbaranResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            LineasRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

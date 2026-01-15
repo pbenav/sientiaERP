@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\FacturaCompraResource\Pages;
+use App\Filament\RelationManagers\LineasRelationManager;
 use App\Models\Documento;
 use App\Models\FormaPago;
 use App\Models\Tercero;
@@ -115,7 +116,9 @@ class FacturaCompraResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            LineasRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

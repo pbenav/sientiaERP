@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PedidoResource\Pages;
+use App\Filament\RelationManagers\LineasRelationManager;
 use App\Models\Documento;
 use App\Models\FormaPago;
 use App\Models\Tercero;
@@ -282,7 +283,7 @@ class PedidoResource extends Resource
                             ->body("Se ha creado el albarán {$albaran->numero}")
                             ->send();
                         
-                        return redirect()->route('filament.admin.resources.albarans.edit', $albaran);
+                        return redirect()->to(AlbaranResource::getUrl('edit', ['record' => $albaran]));
                     }),
             ])
             ->bulkActions([
@@ -306,7 +307,7 @@ class PedidoResource extends Resource
                                     ->body("Se ha creado el albarán {$albaran->numero} con {$records->count()} pedidos")
                                     ->send();
                                 
-                                return redirect()->route('filament.admin.resources.albarans.edit', $albaran);
+                                return redirect()->to(AlbaranResource::getUrl('edit', ['record' => $albaran]));
                             } catch (\Exception $e) {
                                 Notification::make()
                                     ->title('Error al agrupar')
@@ -325,7 +326,9 @@ class PedidoResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            LineasRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

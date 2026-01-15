@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PresupuestoResource\Pages;
+use App\Filament\RelationManagers\LineasRelationManager;
 use App\Models\Documento;
 use App\Models\Tercero;
 use App\Models\Product;
@@ -222,6 +223,13 @@ class PresupuestoResource extends Resource
                 ]),
             ])
             ->defaultSort('fecha', 'desc');
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            LineasRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

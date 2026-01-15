@@ -164,21 +164,32 @@ class LineasRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('product.name')
                     ->label('Producto')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->limit(30),
                 
-                Tables\Columns\TextColumn::make('cantidad')
+                Tables\Columns\TextInputColumn::make('cantidad')
                     ->label('Cant.')
-                    ->numeric()
-                    ->sortable(),
+                    ->type('number')
+                    ->rules(['required', 'numeric', 'min:0'])
+                    ->afterStateUpdated(fn ($record) => $record->documento->recalcularTotales()),
                 
-                Tables\Columns\TextColumn::make('precio_unitario')
+                Tables\Columns\TextInputColumn::make('precio_unitario')
                     ->label('Precio')
-                    ->money('EUR')
-                    ->sortable(),
+                    ->type('number')
+                    ->rules(['required', 'numeric', 'min:0'])
+                    ->afterStateUpdated(fn ($record) => $record->documento->recalcularTotales()),
                 
-                Tables\Columns\TextColumn::make('descuento')
+                Tables\Columns\TextInputColumn::make('descuento')
                     ->label('Dto.%')
-                    ->suffix('%'),
+                    ->type('number')
+                    ->rules(['numeric', 'min:0', 'max:100'])
+                    ->afterStateUpdated(fn ($record) => $record->documento->recalcularTotales()),
+                
+                Tables\Columns\TextInputColumn::make('iva')
+                    ->label('IVA%')
+                    ->type('number')
+                    ->rules(['required', 'numeric', 'min:0'])
+                    ->afterStateUpdated(fn ($record) => $record->documento->recalcularTotales()),
                     
                 Tables\Columns\TextColumn::make('total')
                     ->label('Total')
