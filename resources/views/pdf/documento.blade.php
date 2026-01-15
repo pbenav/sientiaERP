@@ -1,3 +1,12 @@
+@php
+    $currencySymbol = App\Models\Setting::get('currency_symbol', '€');
+    $currencyPosition = App\Models\Setting::get('currency_position', 'suffix');
+    
+    function formatMoney($amount, $symbol, $position) {
+        $formattedAmount = number_format($amount, 2, ',', '.');
+        return $position === 'suffix' ? $formattedAmount . ' ' . $symbol : $symbol . ' ' . $formattedAmount;
+    }
+@endphp
 <!DOCTYPE html>
 <html>
 <head>
@@ -28,10 +37,7 @@
         <div class="company-info">
             <h1>nexERP System</h1>
             <p>
-                <strong>Sientia SL</strong><br>
-                NIF: B12345678<br>
-                Calle Falsa 123, 28001 Madrid<br>
-                Email: info@sientia.com | Tel: 912 345 678
+                {!! App\Models\Setting::get('pdf_header_html', '<strong>Sientia SL</strong><br>NIF: B12345678<br>Calle Falsa 123, 28001 Madrid') !!}
             </p>
         </div>
         <div class="doc-info">
@@ -80,8 +86,8 @@
                     <strong>{{ $linea->codigo }}</strong> - {{ $linea->descripcion }}
                 </td>
                 <td class="text-right">{{ number_format($linea->cantidad, 2, ',', '.') }}</td>
-                <td class="text-right">{{ number_format($linea->precio_unitario, 2, ',', '.') }} €</td>
-                <td class="text-right">{{ number_format($linea->total, 2, ',', '.') }} €</td>
+                <td class="text-right">{{ formatMoney($linea->precio_unitario, $currencySymbol, $currencyPosition) }}</td>
+                <td class="text-right">{{ formatMoney($linea->total, $currencySymbol, $currencyPosition) }}</td>
             </tr>
             @endforeach
         </tbody>
@@ -97,22 +103,22 @@
         <div class="totals">
             <div class="total-row">
                 <span>Subtotal:</span>
-                <span class="text-right">{{ number_format($doc->subtotal, 2, ',', '.') }} €</span>
+                <span class="text-right">{{ formatMoney($doc->subtotal, $currencySymbol, $currencyPosition) }}</span>
             </div>
             <div class="total-row">
                 <span>IVA:</span>
-                <span class="text-right">{{ number_format($doc->iva, 2, ',', '.') }} €</span>
+                <span class="text-right">{{ formatMoney($doc->iva, $currencySymbol, $currencyPosition) }}</span>
             </div>
             <div class="grand-total">
                 <span>TOTAL:</span>
-                <span style="float: right;">{{ number_format($doc->total, 2, ',', '.') }} €</span>
+                <span style="float: right;">{{ formatMoney($doc->total, $currencySymbol, $currencyPosition) }}</span>
             </div>
         </div>
         <div class="clear"></div>
     </div>
 
     <div class="footer">
-        nexERP System | Sientia SL | Registro Mercantil de Madrid, Tomo 12345, Folio 123, Sección 8, Hoja M-123456
+        {{ App\Models\Setting::get('pdf_footer_text', 'nexERP System') }}
     </div>
 </body>
 </html>

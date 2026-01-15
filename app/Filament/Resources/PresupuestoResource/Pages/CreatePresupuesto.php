@@ -9,17 +9,19 @@ class CreatePresupuesto extends CreateRecord
 {
     protected static string $resource = PresupuestoResource::class;
 
-    protected function mutateFormDataBeforeCreate(array $data): array
+    public function mount(): void
     {
-        $data['tipo'] = 'presupuesto';
-        $data['user_id'] = auth()->id();
-        
-        return $data;
-    }
+        $data = [
+            'tipo' => 'presupuesto',
+            'estado' => 'borrador',
+            'user_id' => auth()->id(),
+            'fecha' => now(),
+            'serie' => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A',
+            'fecha_validez' => now()->addDays(30),
+        ];
 
-    protected function afterCreate(): void
-    {
-        // Recalcular totales después de crear
-        $this->record->recalcularTotales();
+        $record = static::getModel()::create($data);
+
+        $this->redirect($this->getResource()::getUrl('edit', ['record' => $record]));
     }
 }

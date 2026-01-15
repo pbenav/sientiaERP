@@ -9,4 +9,8 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateBillingSerie extends CreateRecord
 {
     protected static string $resource = BillingSerieResource::class;
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }

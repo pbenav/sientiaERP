@@ -85,11 +85,12 @@ class DocumentoLinea extends Model
         // Calcular IVA
         $this->importe_iva = $this->subtotal * ($this->iva / 100);
 
-        // Calcular IRPF (retención)
-        $this->importe_irpf = $this->subtotal * ($this->irpf / 100);
+        // El IRPF ahora es global al documento, lo ponemos a 0 en la línea
+        $this->irpf = 0;
+        $this->importe_irpf = 0;
 
-        // Total = subtotal + IVA - IRPF
-        $this->total = $this->subtotal + $this->importe_iva - $this->importe_irpf;
+        // Total línea = subtotal + IVA
+        $this->total = $this->subtotal + $this->importe_iva;
     }
 
     /**

@@ -184,21 +184,25 @@ class TerceroResource extends Resource
                         Forms\Components\TextInput::make('dias_pago')
                             ->label('Días de Pago')
                             ->numeric()
+                            ->maxValue(365)
                             ->default(0)
-                            ->suffix('días'),
+                            ->suffix('días')
+                            ->extraInputAttributes(['style' => 'width: 100px']),
                         
                         Forms\Components\TextInput::make('descuento_comercial')
                             ->label('Descuento Comercial')
                             ->numeric()
-                            ->default(0)
+                            ->maxValue(100)
+                            ->default(fn() => \App\Models\Descuento::where('es_predeterminado', true)->where('activo', true)->first()?->valor ?? 0)
                             ->suffix('%')
-                            ->step(0.01),
+                            ->extraInputAttributes(['style' => 'width: 120px']),
                         
                         Forms\Components\TextInput::make('limite_credito')
                             ->label('Límite de Crédito')
                             ->numeric()
+                            ->maxValue(9999999999)
                             ->prefix('€')
-                            ->step(0.01),
+                            ->extraInputAttributes(['style' => 'width: 140px']),
                     ])->columns(2),
 
                 Forms\Components\Section::make('Datos Fiscales')
@@ -210,9 +214,10 @@ class TerceroResource extends Resource
                         Forms\Components\TextInput::make('irpf')
                             ->label('IRPF a Retener')
                             ->numeric()
+                            ->maxValue(100)
                             ->default(0)
                             ->suffix('%')
-                            ->step(0.01),
+                            ->extraInputAttributes(['style' => 'width: 120px']),
                     ])->columns(2),
 
                 Forms\Components\Section::make('Observaciones')

@@ -18,7 +18,7 @@ class Documento extends Model
     protected $fillable = [
         'tipo', 'numero', 'serie', 'fecha', 'tercero_id', 'user_id',
         'documento_origen_id', 'estado',
-        'subtotal', 'descuento', 'base_imponible', 'iva', 'irpf', 'recargo_equivalencia', 'total',
+        'subtotal', 'descuento', 'base_imponible', 'iva', 'irpf', 'porcentaje_irpf', 'recargo_equivalencia', 'total',
         'forma_pago_id',
         'observaciones', 'observaciones_internas',
         'fecha_validez', 'fecha_entrega', 'fecha_vencimiento'
@@ -34,6 +34,7 @@ class Documento extends Model
         'base_imponible' => 'decimal:2',
         'iva' => 'decimal:2',
         'irpf' => 'decimal:2',
+        'porcentaje_irpf' => 'decimal:2',
         'recargo_equivalencia' => 'decimal:2',
         'total' => 'decimal:2',
     ];
@@ -43,7 +44,8 @@ class Documento extends Model
         parent::boot();
 
         static::creating(function ($documento) {
-            if (empty($documento->numero)) {
+            // No generamos número automáticamente para facturas (se hace al confirmar)
+            if (empty($documento->numero) && !in_array($documento->tipo, ['factura', 'factura_compra'])) {
                 $documento->numero = NumeracionDocumento::generarNumero($documento->tipo, $documento->serie ?? 'A');
             }
             if (empty($documento->fecha)) {
@@ -143,9 +145,14 @@ class Documento extends Model
 
         $this->subtotal = $lineas->sum('subtotal');
         $this->iva = $lineas->sum('importe_iva');
-        $this->irpf = $lineas->sum('importe_irpf');
+        
         $this->base_imponible = $this->subtotal - $this->descuento;
-        $this->total = $this->base_imponible + $this->iva - $this->irpf + $this->recargo_equivalencia;
+        
+        // IRPF global como recargo (sumado) sobre la base imponible
+        $this->irpf = $this->base_imponible * ($this->porcentaje_irpf / 100);
+        
+        // Total = Base + IVA + IRPF (como recargo) + Recargo Eq.
+        $this->total = $this->base_imponible + $this->iva + $this->irpf + $this->recargo_equivalencia;
 
         $this->save();
     }
@@ -156,7 +163,28 @@ class Documento extends Model
     public function confirmar(): void
     {
         if ($this->estado === 'borrador') {
-            $this->update(['estado' => 'confirmado']);
+            // Validación cronológica para facturas
+            if (in_array($this->tipo, ['factura', 'factura_compra'])) {
+                $ultimaFactura = self::where('tipo', $this->tipo)
+                    ->where('serie', $this->serie)
+                    ->where('estado', 'confirmado')
+                    ->whereNotNull('numero')
+                    ->orderBy('numero', 'desc')
+                    ->first();
+
+                if ($ultimaFactura && $this->fecha->lt($ultimaFactura->fecha)) {
+                    throw new \Exception("No se puede confirmar la factura con fecha {$this->fecha->format('d/m/Y')}. Existe una factura anterior ({$ultimaFactura->numero}) con fecha {$ultimaFactura->fecha->format('d/m/Y')}.");
+                }
+            }
+
+            $data = ['estado' => 'confirmado'];
+
+            // Si es una factura y no tiene número, se genera ahora
+            if (empty($this->numero) && in_array($this->tipo, ['factura', 'factura_compra'])) {
+                $data['numero'] = NumeracionDocumento::generarNumero($this->tipo, $this->serie ?? 'A');
+            }
+
+            $this->update($data);
         }
     }
 
@@ -244,6 +272,18 @@ class Documento extends Model
             // Copiar todas las líneas de todos los documentos
             $orden = 1;
             foreach ($documentos as $documento) {
+                // Insertar línea de cabecera del documento agrupado
+                $nuevoDocumento->lineas()->create([
+                    'orden' => $orden++,
+                    'descripcion' => "--- {$documento->tipo} {$documento->numero} ({$documento->fecha->format('d/m/Y')}) ---",
+                    'cantidad' => 0,
+                    'precio_unitario' => 0,
+                    'iva' => 0,
+                    'importe_iva' => 0,
+                    'subtotal' => 0,
+                    'total' => 0,
+                ]);
+
                 foreach ($documento->lineas as $linea) {
                     $nuevaLinea = $linea->replicate();
                     $nuevaLinea->documento_id = $nuevoDocumento->id;

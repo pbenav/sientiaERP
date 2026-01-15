@@ -116,7 +116,7 @@ class AlbaranCompraResource extends Resource
                     ->action(function ($records) {
                         try {
                             $service = new AgrupacionDocumentosService();
-                            $factura = $service->agruparAlbaranesEnFactura($records->pluck('id')->toArray());
+                            $factura = $service->agruparAlbaranesCompraEnFacturaCompra($records->pluck('id')->toArray());
                             Notification::make()->title('Factura agrupada creada')->success()->body("Se ha creado la factura {$factura->numero}")->send();
                             return redirect()->route('filament.admin.resources.factura-compras.edit', $factura);
                         } catch (\Exception $e) {

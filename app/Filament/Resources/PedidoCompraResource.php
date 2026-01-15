@@ -126,7 +126,7 @@ class PedidoCompraResource extends Resource
                     ->action(function ($records) {
                         try {
                             $service = new AgrupacionDocumentosService();
-                            $albaran = $service->agruparPedidosEnAlbaran($records->pluck('id')->toArray());
+                            $albaran = $service->agruparPedidosCompraEnAlbaranCompra($records->pluck('id')->toArray());
                             Notification::make()->title('Albarán agrupado creado')->success()->body("Se ha creado el albarán {$albaran->numero}")->send();
                             return redirect()->route('filament.admin.resources.albaran-compras.edit', $albaran);
                         } catch (\Exception $e) {

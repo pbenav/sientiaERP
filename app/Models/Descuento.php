@@ -3,23 +3,21 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Impuesto extends Model
+class Descuento extends Model
 {
-    use \Illuminate\Database\Eloquent\Factories\HasFactory, SoftDeletes;
+    use \Illuminate\Database\Eloquent\Factories\HasFactory, \Illuminate\Database\Eloquent\SoftDeletes;
 
     protected $fillable = [
         'nombre',
-        'tipo',
         'valor',
-        'activo',
         'es_predeterminado',
+        'activo',
     ];
 
     protected $casts = [
         'valor' => 'decimal:2',
-        'activo' => 'boolean',
         'es_predeterminado' => 'boolean',
+        'activo' => 'boolean',
     ];
 }

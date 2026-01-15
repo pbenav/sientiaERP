@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\ImpuestoResource\Pages;
-use App\Filament\Resources\ImpuestoResource\RelationManagers;
-use App\Models\Impuesto;
+use App\Filament\Resources\DescuentoResource\Pages;
+use App\Filament\Resources\DescuentoResource\RelationManagers;
+use App\Models\Descuento;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -13,44 +13,31 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class ImpuestoResource extends Resource
+class DescuentoResource extends Resource
 {
-    protected static ?string $model = Impuesto::class;
+    protected static ?string $model = Descuento::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-receipt-percent';
-
-    protected static ?string $navigationLabel = 'Impuestos';
-
-    protected static ?string $modelLabel = 'Impuesto';
-
-    protected static ?string $pluralModelLabel = 'Impuestos';
-
+    protected static ?string $navigationIcon = 'heroicon-o-gift';
+    protected static ?string $navigationLabel = 'Descuentos';
+    protected static ?string $modelLabel = 'Descuento';
+    protected static ?string $pluralModelLabel = 'Descuentos';
     protected static ?string $navigationGroup = 'Gestión';
-
-    protected static ?int $navigationSort = 30;
+    protected static ?int $navigationSort = 31;
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Detalles del Impuesto')
+                Forms\Components\Section::make('Detalles del Descuento')
                     ->schema([
                         Forms\Components\TextInput::make('nombre')
                             ->required()
                             ->maxLength(255),
-                        Forms\Components\Select::make('tipo')
-                            ->options([
-                                'iva' => 'IVA',
-                                'irpf' => 'IRPF',
-                                'otros' => 'Otros',
-                            ])
-                            ->required(),
                         Forms\Components\TextInput::make('valor')
-                            ->type('text')
-                            ->inputMode('decimal')
+                            ->label('Valor (%)')
+                            ->required()
                             ->numeric()
                             ->maxValue(100)
-                            ->required()
                             ->prefix('%')
                             ->extraInputAttributes(['style' => 'width: 120px']),
                         Forms\Components\Toggle::make('es_predeterminado')
@@ -58,9 +45,10 @@ class ImpuestoResource extends Resource
                             ->required()
                             ->default(false),
                         Forms\Components\Toggle::make('activo')
+                            ->label('Activo')
                             ->required()
                             ->default(true),
-                    ])->columns(5)->compact(),
+                    ])->columns(4)->compact(),
             ]);
     }
 
@@ -70,13 +58,10 @@ class ImpuestoResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('nombre')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('tipo')
-                    ->searchable(),
                 Tables\Columns\TextColumn::make('valor')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\IconColumn::make('es_predeterminado')
-                    ->label('Predeterminado')
                     ->boolean(),
                 Tables\Columns\IconColumn::make('activo')
                     ->boolean(),
@@ -98,6 +83,7 @@ class ImpuestoResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -106,19 +92,10 @@ class ImpuestoResource extends Resource
             ]);
     }
 
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
-    }
-
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListImpuestos::route('/'),
-            'create' => Pages\CreateImpuesto::route('/create'),
-            'edit' => Pages\EditImpuesto::route('/{record}/edit'),
+            'index' => Pages\ManageDescuentos::route('/'),
         ];
     }
 }

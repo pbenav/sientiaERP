@@ -2,14 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Ocultar botones de incremento/decremento en campos numéricos globalmente */
-input[type=number]::-webkit-inner-spin-button,
-input[type=number]::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
+/* Para Chrome, Safari, Edge y Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0 !important;
 }
 
+/* Para Firefox */
 input[type=number] {
-    appearance: textfield;
-    -moz-appearance: textfield;
+    -moz-appearance: textfield !important;
+    appearance: textfield !important;
 }

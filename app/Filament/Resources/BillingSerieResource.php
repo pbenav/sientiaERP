@@ -53,14 +53,14 @@ class BillingSerieResource extends Resource
                     ->schema([
                         Forms\Components\Grid::make(2)
                             ->schema([
-                                Forms\Components\Toggle::make('sujeta_irpf')
-                                    ->label('Sujeta a IRPF')
-                                    ->inline(false)
-                                    ->reactive(),
                                 Forms\Components\Toggle::make('devenga_iva')
                                     ->label('Devenga IVA')
                                     ->inline(false)
                                     ->default(true),
+                                Forms\Components\Toggle::make('sujeta_irpf')
+                                    ->label('Sujeta a IRPF')
+                                    ->inline(false)
+                                    ->reactive(),
                             ]),
                         Forms\Components\Select::make('iva_defecto_id')
                             ->label('IVA por Defecto')
@@ -72,7 +72,7 @@ class BillingSerieResource extends Resource
                             ->relationship('irpfDefecto', 'nombre', fn($query) => $query->where('tipo', 'irpf')->where('activo', true))
                             ->searchable()
                             ->preload()
-                            ->visible(fn($get) => $get('sujeta_irpf')),
+                            ->visible(fn(\Filament\Forms\Get $get) => $get('sujeta_irpf')),
                     ])->columns(2),
 
                 Forms\Components\Section::make('Estado')
@@ -104,7 +104,8 @@ class BillingSerieResource extends Resource
                 Tables\Columns\TextColumn::make('ivaDefecto.nombre')
                     ->label('IVA Defecto'),
                 Tables\Columns\TextColumn::make('irpfDefecto.nombre')
-                    ->label('IRPF Defecto'),
+                    ->label('IRPF Defecto')
+                    ->state(fn ($record) => $record->sujeta_irpf ? $record->irpfDefecto?->nombre : ''),
                 Tables\Columns\IconColumn::make('activo')
                     ->boolean(),
             ])
