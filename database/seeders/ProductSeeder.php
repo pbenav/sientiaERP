@@ -9,6 +9,7 @@ class ProductSeeder extends Seeder
 {
     public function run(): void
     {
+        // Primero crear productos base (8 productos específicos)
         $products = [
             [
                 'sku' => 'LAP001',
@@ -90,5 +91,13 @@ class ProductSeeder extends Seeder
                 $data
             );
         }
+
+        $this->command->info('✓ 8 productos base creados');
+
+        // Generar 992 productos adicionales usando el factory (total: 1000)
+        Product::factory()->count(992)->create();
+        
+        $this->command->info('✓ 992 productos adicionales generados');
+        $this->command->info('✓ Total: 1000 productos en la base de datos');
     }
 }
