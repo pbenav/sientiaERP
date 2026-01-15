@@ -33,8 +33,23 @@ class ImpuestoResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Toggle::make('activo')
+                Forms\Components\TextInput::make('nombre')
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\Select::make('tipo')
+                    ->options([
+                        'iva' => 'IVA',
+                        'irpf' => 'IRPF',
+                        'otros' => 'Otros',
+                    ])
                     ->required(),
+                Forms\Components\TextInput::make('valor')
+                    ->numeric()
+                    ->required()
+                    ->prefix('%'),
+                Forms\Components\Toggle::make('activo')
+                    ->required()
+                    ->default(true),
             ]);
     }
 

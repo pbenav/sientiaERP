@@ -65,8 +65,7 @@ class LineasRelationManager extends RelationManager
                 ->columnSpan(1)
                 ->extraAttributes(['class' => 'max-w-[100px]'])
                 ->extraInputAttributes([
-                    'style' => '-moz-appearance: textfield;',
-                    'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                    // Global CSS handles hiding spin buttons
                 ])
                 ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                     self::calcularLinea($set, $get)),
@@ -80,8 +79,7 @@ class LineasRelationManager extends RelationManager
                 ->columnSpan(1)
                 ->extraAttributes(['class' => 'max-w-[120px]'])
                 ->extraInputAttributes([
-                    'style' => '-moz-appearance: textfield;',
-                    'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                    // Global CSS handles hiding spin buttons
                 ])
                 ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                     self::calcularLinea($set, $get)),
@@ -95,8 +93,7 @@ class LineasRelationManager extends RelationManager
                 ->columnSpan(1)
                 ->extraAttributes(['class' => 'max-w-[80px]'])
                 ->extraInputAttributes([
-                    'style' => '-moz-appearance: textfield;',
-                    'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                    // Global CSS handles hiding spin buttons
                 ])
                 ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                     self::calcularLinea($set, $get)),
@@ -145,8 +142,7 @@ class LineasRelationManager extends RelationManager
                 ->columnSpan(1)
                 ->extraAttributes(['class' => 'max-w-[120px]'])
                 ->extraInputAttributes([
-                    'style' => '-moz-appearance: textfield;',
-                    'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                    // Global CSS handles hiding spin buttons
                 ]),
         ];
     }

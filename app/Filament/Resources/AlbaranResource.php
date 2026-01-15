@@ -237,7 +237,7 @@ class AlbaranResource extends Resource
     public static function getRelations(): array
     {
         return [
-            LineasRelationManager::class,
+            //
         ];
     }
 

@@ -58,6 +58,10 @@ class AlbaranCompraResource extends Resource
                 ])->default('borrador')->required()->columnSpan(1),
             ])->columns(4)->compact(),
             
+            // SECCIÓN 3: PRODUCTOS
+            Forms\Components\View::make('filament.components.document-lines')
+                ->columnSpanFull(),
+
             Forms\Components\Textarea::make('observaciones')->label('Observaciones')->rows(2)->columnSpanFull(),
 
             // SECCIÓN 5: TOTALES (solo en edición)
@@ -127,7 +131,7 @@ class AlbaranCompraResource extends Resource
     public static function getRelations(): array
     {
         return [
-            LineasRelationManager::class,
+            //
         ];
     }
 

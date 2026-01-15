@@ -64,6 +64,10 @@ class FacturaCompraResource extends Resource
                 ])->default('borrador')->required()->columnSpan(2),
             ])->columns(3)->compact(),
             
+            // SECCIÓN 3: PRODUCTOS
+            Forms\Components\View::make('filament.components.document-lines')
+                ->columnSpanFull(),
+
             Forms\Components\Textarea::make('observaciones')->label('Observaciones')->rows(2)->columnSpanFull(),
 
             // SECCIÓN 5: TOTALES (solo en edición)
@@ -131,7 +135,7 @@ class FacturaCompraResource extends Resource
     public static function getRelations(): array
     {
         return [
-            LineasRelationManager::class,
+            //
         ];
     }
 
