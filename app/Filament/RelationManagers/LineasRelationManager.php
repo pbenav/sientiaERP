@@ -101,19 +101,39 @@ class LineasRelationManager extends RelationManager
                 ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                     self::calcularLinea($set, $get)),
             
-            Forms\Components\TextInput::make('iva')
-                ->label('IVA')
-                ->numeric()
-                ->inputMode('decimal')
-                ->default(21)
+            Forms\Components\Select::make('iva')
+                ->label('IVA %')
+                ->options(\App\Models\Impuesto::where('tipo', 'iva')->where('activo', true)->pluck('nombre', 'valor'))
+                ->default(function (RelationManager $livewire, Forms\Get $get) {
+                    $doc = $livewire->getOwnerRecord();
+                    $serie = \App\Models\BillingSerie::where('codigo', $doc->serie)->first();
+                    if ($serie && $serie->devenga_iva) {
+                        return $serie->ivaDefecto?->valor ?? 21;
+                    }
+                    return $serie && !$serie->devenga_iva ? 0 : 21;
+                })
                 ->required()
                 ->live()
                 ->columnSpan(1)
-                ->extraAttributes(['class' => 'max-w-[80px]'])
-                ->extraInputAttributes([
-                    'style' => '-moz-appearance: textfield;',
-                    'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
-                ])
+                ->extraAttributes(['class' => 'max-w-[100px]'])
+                ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
+                    self::calcularLinea($set, $get)),
+
+            Forms\Components\Select::make('irpf')
+                ->label('IRPF %')
+                ->options(\App\Models\Impuesto::where('tipo', 'irpf')->where('activo', true)->pluck('nombre', 'valor'))
+                ->default(function (RelationManager $livewire, Forms\Get $get) {
+                    $doc = $livewire->getOwnerRecord();
+                    $serie = \App\Models\BillingSerie::where('codigo', $doc->serie)->first();
+                    if ($serie && $serie->sujeta_irpf) {
+                        return $serie->irpfDefecto?->valor ?? 15;
+                    }
+                    return 0;
+                })
+                ->required()
+                ->live()
+                ->columnSpan(1)
+                ->extraAttributes(['class' => 'max-w-[100px]'])
                 ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                     self::calcularLinea($set, $get)),
             
@@ -187,6 +207,12 @@ class LineasRelationManager extends RelationManager
                 
                 Tables\Columns\TextInputColumn::make('iva')
                     ->label('IVA%')
+                    ->type('number')
+                    ->rules(['required', 'numeric', 'min:0'])
+                    ->afterStateUpdated(fn ($record) => $record->documento->recalcularTotales()),
+
+                Tables\Columns\TextInputColumn::make('irpf')
+                    ->label('IRPF%')
                     ->type('number')
                     ->rules(['required', 'numeric', 'min:0'])
                     ->afterStateUpdated(fn ($record) => $record->documento->recalcularTotales()),

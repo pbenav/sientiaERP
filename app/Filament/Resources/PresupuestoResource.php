@@ -49,8 +49,8 @@ class PresupuestoResource extends Resource
                         
                         Forms\Components\Select::make('serie')
                             ->label('Serie')
-                            ->options(['A' => 'Serie A', 'B' => 'Serie B'])
-                            ->default('A')
+                            ->options(\App\Models\BillingSerie::where('activo', true)->pluck('nombre', 'codigo'))
+                            ->default(fn() => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A')
                             ->required(),
                         
                         Forms\Components\DatePicker::make('fecha')
@@ -86,6 +86,10 @@ class PresupuestoResource extends Resource
                             ->default('borrador')
                             ->required(),
                     ])->columns(3),
+
+                // SECCIÓN 2: PRODUCTOS
+                Forms\Components\View::make('filament.components.document-lines')
+                    ->columnSpanFull(),
 
                 Forms\Components\Section::make('Totales')
                     ->schema([

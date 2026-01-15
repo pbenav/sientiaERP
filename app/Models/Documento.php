@@ -101,6 +101,14 @@ class Documento extends Model
     }
 
     /**
+     * Serie de facturación asociada
+     */
+    public function billingSerie(): BelongsTo
+    {
+        return $this->belongsTo(BillingSerie::class, 'serie', 'codigo');
+    }
+
+    /**
      * Documentos origen múltiples (para documentos agrupados)
      */
     public function documentosOrigenMultiples(): BelongsToMany
