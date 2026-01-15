@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PedidoCompraResource\Pages;
+use App\Filament\RelationManagers\LineasRelationManager;
 use App\Models\Documento;
 use App\Models\FormaPago;
 use App\Models\Tercero;
@@ -65,18 +66,6 @@ class PedidoCompraResource extends Resource
                 Forms\Components\Placeholder::make('total_display')->label('TOTAL')->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit')->columnSpan(1),
             ])->columns(6)->compact(),
 
-            
-            
-            Forms\Components\Repeater::make('lineas')->label('Líneas del Pedido')->relationship('lineas')
-                ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
-                ->columns(8)
-                ->columnSpanFull()
-                ->defaultItems(1)
-                ->reorderable()
-                ->addActionLabel('+ Añadir línea')
-                ->collapsible()
-                ->cloneable(),
-            
             Forms\Components\Textarea::make('observaciones')->label('Observaciones')->rows(2)->columnSpanFull(),
         ]);
     }
@@ -127,7 +116,9 @@ class PedidoCompraResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            LineasRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

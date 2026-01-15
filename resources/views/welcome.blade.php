@@ -51,7 +51,7 @@
                 <span class="text-2xl font-bold tracking-tight text-white">nex<span class="text-blue-400">ERP</span></span>
             </div>
             
-            <a href="{{ url('/adminadmin/login') }}" class="group relative px-6 py-2.5 rounded-full overflow-hidden bg-white/10 hover:bg-white/20 transition-all duration-300 border border-white/5 hover:border-white/20">
+            <a href="{{ url('/admin/login') }}" class="group relative px-6 py-2.5 rounded-full overflow-hidden bg-white/10 hover:bg-white/20 transition-all duration-300 border border-white/5 hover:border-white/20">
                 <div class="absolute inset-0 w-0 bg-gradient-to-r from-blue-600/50 to-purple-600/50 transition-all duration-[250ms] ease-out group-hover:w-full"></div>
                 <span class="relative flex items-center gap-2 text-sm font-medium text-white">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
@@ -79,7 +79,7 @@
                 </p>
 
                 <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
-                    <a href="{{ url('/adminadmin/login') }}" class="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold text-lg shadow-lg shadow-blue-500/30 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl">
+                    <a href="{{ url('/admin/login') }}" class="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold text-lg shadow-lg shadow-blue-500/30 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl">
                         Comenzar Ahora
                     </a>
                     <a href="#features" class="w-full sm:w-auto px-8 py-4 rounded-xl bg-slate-800/50 hover:bg-slate-800 text-white font-medium border border-slate-700 hover:border-slate-600 transition-all duration-300 backdrop-blur-sm">

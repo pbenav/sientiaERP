@@ -30,6 +30,18 @@ class FormaPago extends Model
     ];
 
     /**
+     * Asegurar que tramos siempre devuelva un array (mecanismo de seguridad adicional al cast)
+     */
+    public function getTramosAttribute($value)
+    {
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            return is_array($decoded) ? $decoded : [];
+        }
+        return is_array($value) ? $value : [];
+    }
+
+    /**
      * Documentos que usan esta forma de pago
      */
     public function documentos(): HasMany
@@ -47,15 +59,7 @@ class FormaPago extends Model
     public function calcularVencimientos(Carbon $fechaBase, float $importe): Collection
     {
         $vencimientos = collect();
-        
-        // Asegurar que tramos es un array
         $tramos = $this->tramos;
-        if (is_string($tramos)) {
-            $tramos = json_decode($tramos, true) ?? [];
-        }
-        if (!is_array($tramos)) {
-            $tramos = [];
-        }
         
         if (empty($tramos)) {
             // Si no hay tramos definidos, un solo pago al contado
@@ -104,7 +108,7 @@ class FormaPago extends Model
      */
     public function esContado(): bool
     {
-        $tramos = is_array($this->tramos) ? $this->tramos : [];
+        $tramos = $this->tramos;
         if (empty($tramos)) {
             return true;
         }
@@ -117,8 +121,7 @@ class FormaPago extends Model
      */
     public function getNumeroTramosAttribute(): int
     {
-        $tramos = is_array($this->tramos) ? $this->tramos : [];
-        return count($tramos);
+        return count($this->tramos);
     }
 
     /**
@@ -126,14 +129,7 @@ class FormaPago extends Model
      */
     public function getPlazoMaximoAttribute(): int
     {
-        // Asegurar que tramos es un array
         $tramos = $this->tramos;
-        if (is_string($tramos)) {
-            $tramos = json_decode($tramos, true) ?? [];
-        }
-        if (!is_array($tramos)) {
-            $tramos = [];
-        }
         
         if (empty($tramos)) {
             return 0;

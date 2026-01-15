@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\AlbaranResource\Pages;
+use App\Filament\RelationManagers\LineasRelationManager;
 use App\Models\Documento;
 use App\Models\FormaPago;
 use App\Models\Tercero;
@@ -96,19 +97,6 @@ class AlbaranResource extends Resource
                         Forms\Components\Placeholder::make('iva_display')->label('IVA')->content(fn($record) => $record ? number_format($record->iva, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit'),
                         Forms\Components\Placeholder::make('total_display')->label('TOTAL')->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit'),
                     ])->columns(6)->compact(),
-
-                Forms\Components\Repeater::make('lineas')
-                    ->label('Líneas del Albarán')
-                    ->relationship('lineas')
-                    ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
-                    ->columns(8)
-                    ->columnSpanFull()
-                    ->defaultItems(1)
-                    ->reorderable()
-                    ->addActionLabel('+ Añadir línea')
-                    ->collapsible()
-                    ->cloneable(),
-
 
                 Forms\Components\Textarea::make('observaciones')->label('Observaciones')->rows(2)->columnSpanFull(),
             ]);
@@ -221,7 +209,7 @@ class AlbaranResource extends Resource
                                     ->body("Se ha creado la factura {$factura->numero} con {$records->count()} albaranes")
                                     ->send();
                                 
-                                return redirect()->route('filament.admin.resources.facturas.edit', $factura);
+                                return redirect()->to(FacturaResource::getUrl('edit', ['record' => $factura]));
                             } catch (\Exception $e) {
                                 Notification::make()
                                     ->title('Error al agrupar')
@@ -240,7 +228,9 @@ class AlbaranResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            LineasRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

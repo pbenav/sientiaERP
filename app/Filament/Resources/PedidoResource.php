@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\PedidoResource\Pages;
+use App\Filament\RelationManagers\LineasRelationManager;
 use App\Models\Documento;
 use App\Models\FormaPago;
 use App\Models\Tercero;
@@ -146,21 +147,7 @@ class PedidoResource extends Resource
                         Forms\Components\Placeholder::make('total_display')->label('TOTAL')->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit'),
                     ])->columns(6)->compact(),
 
-                // SECCIÓN 3: LÍNEAS DE PRODUCTOS
-                Forms\Components\Repeater::make('lineas')
-                    ->label('Líneas del Pedido')
-                    ->relationship('lineas')
-                    ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
-                    ->columns(8)
-                    ->columnSpanFull()
-                    ->defaultItems(1)
-                    ->reorderable()
-                    ->addActionLabel('+ Añadir línea')
-                    ->collapsible()
-                    ->cloneable(),
-
-
-                // SECCIÓN 4: OBSERVACIONES
+                // SECCIÓN 3: OBSERVACIONES
                 Forms\Components\Section::make('Observaciones')
                     ->schema([
                         Forms\Components\Textarea::make('observaciones')
@@ -296,7 +283,7 @@ class PedidoResource extends Resource
                             ->body("Se ha creado el albarán {$albaran->numero}")
                             ->send();
                         
-                        return redirect()->route('filament.admin.resources.albarans.edit', $albaran);
+                        return redirect()->to(AlbaranResource::getUrl('edit', ['record' => $albaran]));
                     }),
             ])
             ->bulkActions([
@@ -320,7 +307,7 @@ class PedidoResource extends Resource
                                     ->body("Se ha creado el albarán {$albaran->numero} con {$records->count()} pedidos")
                                     ->send();
                                 
-                                return redirect()->route('filament.admin.resources.albarans.edit', $albaran);
+                                return redirect()->to(AlbaranResource::getUrl('edit', ['record' => $albaran]));
                             } catch (\Exception $e) {
                                 Notification::make()
                                     ->title('Error al agrupar')
@@ -339,7 +326,9 @@ class PedidoResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            LineasRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

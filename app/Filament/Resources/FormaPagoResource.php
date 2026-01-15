@@ -142,7 +142,6 @@ class FormaPagoResource extends Resource
 
                 Tables\Columns\TextColumn::make('numero_tramos')
                     ->label('Tramos')
-                    ->getStateUsing(fn ($record) => count($record->tramos ?? []))
                     ->badge()
                     ->color('gray'),
 
