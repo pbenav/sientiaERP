@@ -97,19 +97,6 @@ class AlbaranResource extends Resource
                         Forms\Components\Placeholder::make('total_display')->label('TOTAL')->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit'),
                     ])->columns(6)->compact(),
 
-                Forms\Components\Repeater::make('lineas')
-                    ->label('Líneas del Albarán')
-                    ->relationship('lineas')
-                    ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
-                    ->columns(8)
-                    ->columnSpanFull()
-                    ->defaultItems(1)
-                    ->reorderable()
-                    ->addActionLabel('+ Añadir línea')
-                    ->collapsible()
-                    ->cloneable(),
-
-
                 Forms\Components\Textarea::make('observaciones')->label('Observaciones')->rows(2)->columnSpanFull(),
             ]);
     }
