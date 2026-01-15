@@ -36,13 +36,13 @@ class PedidoCompraResource extends Resource
         return $form->schema([
             Forms\Components\Section::make('Datos del Pedido de Compra')->schema([
                 Forms\Components\TextInput::make('numero')->label('Número')->disabled()->dehydrated(false)->columnSpan(1),
-                Forms\Components\Select::make('serie')->label('Serie')->options(['A' => 'Serie A', 'B' => 'Serie B'])->default('A')->required()->columnSpan(1),
+                Forms\Components\Select::make('serie')->label('Serie')->options(\App\Models\BillingSerie::where('activo', true)->pluck('nombre', 'codigo'))->default(fn() => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A')->required()->columnSpan(1),
                 Forms\Components\DatePicker::make('fecha')->label('Fecha')->default(now())->required()->columnSpan(1),
                 Forms\Components\DatePicker::make('fecha_entrega')->label('Fecha de Recepción')->default(now()->addDays(7))->columnSpan(1),
                 
                 Forms\Components\Select::make('tercero_id')->label('Proveedor')
-                    ->relationship('tercero', 'nombre_comercial', fn($query) => $query->proveedores())
-                    ->searchable(['nombre_comercial', 'nif_cif', 'codigo'])->preload()->required()
+                    ->options(fn() => \App\Models\Tercero::proveedores()->pluck('nombre_comercial', 'id'))
+                    ->searchable()->preload()->live()->required()
                     ->columnSpan(2)
                     ->createOptionForm([
                         Forms\Components\TextInput::make('nombre_comercial')->required(),
@@ -60,13 +60,37 @@ class PedidoCompraResource extends Resource
                     'borrador' => 'Borrador', 'confirmado' => 'Confirmado', 'parcial' => 'Parcial',
                     'completado' => 'Completado', 'anulado' => 'Anulado',
                 ])->default('borrador')->required()->columnSpan(2),
-                
-                Forms\Components\Placeholder::make('subtotal_display')->label('Subtotal')->content(fn($record) => $record ? number_format($record->subtotal, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit')->columnSpan(1),
-                Forms\Components\Placeholder::make('iva_display')->label('IVA')->content(fn($record) => $record ? number_format($record->iva, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit')->columnSpan(1),
-                Forms\Components\Placeholder::make('total_display')->label('TOTAL')->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit')->columnSpan(1),
-            ])->columns(6)->compact(),
+            ])->columns(3)->compact(),
 
-            Forms\Components\Textarea::make('observaciones')->label('Observaciones')->rows(2)->columnSpanFull(),
+            // SECCIÓN 3: PRODUCTOS
+            Forms\Components\View::make('filament.components.document-lines')
+                ->columnSpanFull(),
+
+            // SECCIÓN 4: OBSERVACIONES
+            Forms\Components\Section::make('Observaciones')->schema([
+                Forms\Components\Textarea::make('observaciones')
+                    ->label('Observaciones (visibles en el documento)')
+                    ->rows(2)
+                    ->columnSpanFull(),
+            ])->collapsible(),
+
+            // SECCIÓN 5: TOTALES (solo en edición)
+            Forms\Components\Section::make('Totales')
+                ->schema([
+                    Forms\Components\Placeholder::make('subtotal_display')
+                        ->label('Subtotal')
+                        ->content(fn($record) => $record ? number_format($record->subtotal, 2, ',', '.') . ' €' : '0,00 €'),
+                    
+                    Forms\Components\Placeholder::make('iva_display')
+                        ->label('IVA')
+                        ->content(fn($record) => $record ? number_format($record->iva, 2, ',', '.') . ' €' : '0,00 €'),
+                    
+                    Forms\Components\Placeholder::make('total_display')
+                        ->label('TOTAL')
+                        ->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €'),
+                ])->columns(3)
+                ->visibleOn('edit')
+                ->collapsible(),
         ]);
     }
 
@@ -102,7 +126,7 @@ class PedidoCompraResource extends Resource
                     ->action(function ($records) {
                         try {
                             $service = new AgrupacionDocumentosService();
-                            $albaran = $service->agruparPedidosEnAlbaran($records->pluck('id')->toArray());
+                            $albaran = $service->agruparPedidosCompraEnAlbaranCompra($records->pluck('id')->toArray());
                             Notification::make()->title('Albarán agrupado creado')->success()->body("Se ha creado el albarán {$albaran->numero}")->send();
                             return redirect()->route('filament.admin.resources.albaran-compras.edit', $albaran);
                         } catch (\Exception $e) {
@@ -117,7 +141,7 @@ class PedidoCompraResource extends Resource
     public static function getRelations(): array
     {
         return [
-            LineasRelationManager::class,
+            //
         ];
     }
 

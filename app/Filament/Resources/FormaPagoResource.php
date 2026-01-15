@@ -24,9 +24,9 @@ class FormaPagoResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Formas de Pago';
 
-    protected static ?int $navigationSort = 90;
+    protected static ?string $navigationGroup = 'Gestión';
 
-    protected static ?string $navigationGroup = 'Configuración';
+    protected static ?int $navigationSort = 32;
 
     public static function form(Form $form): Form
     {

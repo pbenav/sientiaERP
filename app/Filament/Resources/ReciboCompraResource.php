@@ -62,9 +62,10 @@ class ReciboCompraResource extends Resource
                         
                         Forms\Components\Select::make('tercero_id')
                             ->label('Proveedor')
-                            ->relationship('tercero', 'nombre_comercial', fn($query) => $query->proveedores())
+                            ->options(fn() => \App\Models\Tercero::proveedores()->pluck('nombre_comercial', 'id'))
                             ->searchable()
                             ->preload()
+                            ->live()
                             ->required(),
                         
                         Forms\Components\Select::make('estado')

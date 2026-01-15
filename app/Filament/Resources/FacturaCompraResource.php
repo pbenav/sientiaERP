@@ -35,12 +35,12 @@ class FacturaCompraResource extends Resource
         return $form->schema([
             Forms\Components\Section::make('Datos de la Factura')->schema([
                 Forms\Components\TextInput::make('numero')->label('Número')->disabled()->dehydrated(false)->columnSpan(1),
-                Forms\Components\Select::make('serie')->label('Serie')->options(['A' => 'Serie A', 'B' => 'Serie B'])->default('A')->required()->columnSpan(1),
+                Forms\Components\Select::make('serie')->label('Serie')->options(\App\Models\BillingSerie::where('activo', true)->pluck('nombre', 'codigo'))->default(fn() => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A')->required()->columnSpan(1),
                 Forms\Components\DatePicker::make('fecha')->label('Fecha')->default(now())->required()->columnSpan(1),
                 
                 Forms\Components\Select::make('tercero_id')->label('Proveedor')
-                    ->relationship('tercero', 'nombre_comercial', fn($query) => $query->proveedores())
-                    ->searchable(['nombre_comercial', 'nif_cif', 'codigo'])->preload()->required()
+                    ->options(fn() => \App\Models\Tercero::proveedores()->pluck('nombre_comercial', 'id'))
+                    ->searchable()->preload()->live()->required()
                     ->columnSpan(2)
                     ->createOptionForm([
                         Forms\Components\TextInput::make('nombre_comercial')->required(),
@@ -62,13 +62,31 @@ class FacturaCompraResource extends Resource
                 Forms\Components\Select::make('estado')->label('Estado')->options([
                     'borrador' => 'Borrador', 'confirmado' => 'Confirmado', 'pagado' => 'Pagado', 'anulado' => 'Anulado',
                 ])->default('borrador')->required()->columnSpan(2),
-                
-                Forms\Components\Placeholder::make('subtotal_display')->label('Subtotal')->content(fn($record) => $record ? number_format($record->subtotal, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit')->columnSpan(1),
-                Forms\Components\Placeholder::make('iva_display')->label('IVA')->content(fn($record) => $record ? number_format($record->iva, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit')->columnSpan(1),
-                Forms\Components\Placeholder::make('total_display')->label('TOTAL')->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit')->columnSpan(1),
-            ])->columns(6)->compact(),
+            ])->columns(3)->compact(),
             
+            // SECCIÓN 3: PRODUCTOS
+            Forms\Components\View::make('filament.components.document-lines')
+                ->columnSpanFull(),
+
             Forms\Components\Textarea::make('observaciones')->label('Observaciones')->rows(2)->columnSpanFull(),
+
+            // SECCIÓN 5: TOTALES (solo en edición)
+            Forms\Components\Section::make('Totales')
+                ->schema([
+                    Forms\Components\Placeholder::make('subtotal_display')
+                        ->label('Subtotal')
+                        ->content(fn($record) => $record ? number_format($record->subtotal, 2, ',', '.') . ' €' : '0,00 €'),
+                    
+                    Forms\Components\Placeholder::make('iva_display')
+                        ->label('IVA')
+                        ->content(fn($record) => $record ? number_format($record->iva, 2, ',', '.') . ' €' : '0,00 €'),
+                    
+                    Forms\Components\Placeholder::make('total_display')
+                        ->label('TOTAL')
+                        ->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €'),
+                ])->columns(3)
+                ->visibleOn('edit')
+                ->collapsible(),
         ]);
     }
 
@@ -117,7 +135,7 @@ class FacturaCompraResource extends Resource
     public static function getRelations(): array
     {
         return [
-            LineasRelationManager::class,
+            //
         ];
     }
 

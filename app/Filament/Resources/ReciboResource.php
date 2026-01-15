@@ -57,9 +57,10 @@ class ReciboResource extends Resource
                         
                         Forms\Components\Select::make('tercero_id')
                             ->label('Cliente')
-                            ->relationship('tercero', 'nombre_comercial', fn($query) => $query->clientes())
+                            ->options(fn() => \App\Models\Tercero::clientes()->pluck('nombre_comercial', 'id'))
                             ->searchable()
                             ->preload()
+                            ->live()
                             ->required(),
                         
                         Forms\Components\TextInput::make('total')

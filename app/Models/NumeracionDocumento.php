@@ -29,9 +29,15 @@ class NumeracionDocumento extends Model
     /**
      * Generar siguiente número para un tipo y serie
      */
-    public static function generarNumero(string $tipo, string $serie = 'A'): string
+    public static function generarNumero(string $tipo, string $serie = null): string
     {
         $anio = date('Y');
+
+        // Si no se especifica serie, buscamos la primera activa o usamos 'A' por defecto
+        if (!$serie) {
+            $serieRecord = BillingSerie::where('activo', true)->orderBy('codigo')->first();
+            $serie = $serieRecord ? $serieRecord->codigo : 'A';
+        }
 
         $numeracion = static::firstOrCreate(
             [
@@ -41,7 +47,7 @@ class NumeracionDocumento extends Model
             ],
             [
                 'ultimo_numero' => 0,
-                'formato' => '{TIPO}-{ANIO}-{NUM}',
+                'formato' => '{TIPO}-{ANIO}-{SERIE}-{NUM}',
                 'longitud_numero' => 4,
             ]
         );

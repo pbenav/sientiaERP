@@ -139,15 +139,6 @@ try {
     // Estructura de menú
     $menuStructure = [
         [
-            'label' => 'Compras',
-            'items' => [
-                ['label' => 'Pedidos', 'action' => 'compras_pedidos'],
-                ['label' => 'Albaranes', 'action' => 'compras_albaranes'],
-                ['label' => 'Facturas', 'action' => 'compras_facturas'],
-                ['label' => 'Recibos', 'action' => 'compras_recibos'],
-            ]
-        ],
-        [
             'label' => 'Ventas',
             'items' => [
                 ['label' => 'Presupuestos', 'action' => 'presupuestos'],
@@ -155,6 +146,15 @@ try {
                 ['label' => 'Albaranes', 'action' => 'albaranes'],
                 ['label' => 'Facturas', 'action' => 'facturas'],
                 ['label' => 'Recibos', 'action' => 'recibos'],
+            ]
+        ],
+        [
+            'label' => 'Compras',
+            'items' => [
+                ['label' => 'Pedidos', 'action' => 'compras_pedidos'],
+                ['label' => 'Albaranes', 'action' => 'compras_albaranes'],
+                ['label' => 'Facturas', 'action' => 'compras_facturas'],
+                ['label' => 'Recibos', 'action' => 'compras_recibos'],
             ]
         ],
         [

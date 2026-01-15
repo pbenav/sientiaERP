@@ -9,21 +9,18 @@ class CreatePedido extends CreateRecord
 {
     protected static string $resource = PedidoResource::class;
 
-    protected function mutateFormDataBeforeCreate(array $data): array
+    public function mount(): void
     {
-        $data['tipo'] = 'pedido';
-        $data['user_id'] = auth()->id();
-        
-        return $data;
-    }
+        $data = [
+            'tipo' => 'pedido',
+            'estado' => 'borrador',
+            'user_id' => auth()->id(),
+            'fecha' => now(),
+            'serie' => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A',
+        ];
 
-    protected function afterCreate(): void
-    {
-        $this->record->recalcularTotales();
-    }
+        $record = static::getModel()::create($data);
 
-    protected function getRedirectUrl(): string
-    {
-        return $this->getResource()::getUrl('index');
+        $this->redirect($this->getResource()::getUrl('edit', ['record' => $record]));
     }
 }

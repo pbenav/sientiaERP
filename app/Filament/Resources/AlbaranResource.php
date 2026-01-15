@@ -46,9 +46,10 @@ class AlbaranResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('tercero_id')
                             ->label('Cliente')
-                            ->relationship('tercero', 'nombre_comercial', fn($query) => $query->clientes())
-                            ->searchable(['nombre_comercial', 'nif_cif', 'codigo'])
+                            ->options(fn() => \App\Models\Tercero::clientes()->pluck('nombre_comercial', 'id'))
+                            ->searchable()
                             ->preload()
+                            ->live()
                             ->required()
                             ->createOptionForm([
                                 Forms\Components\TextInput::make('nombre_comercial')->required(),
@@ -74,8 +75,8 @@ class AlbaranResource extends Resource
                         
                         Forms\Components\Select::make('serie')
                             ->label('Serie')
-                            ->options(['A' => 'Serie A', 'B' => 'Serie B'])
-                            ->default('A')
+                            ->options(\App\Models\BillingSerie::where('activo', true)->pluck('nombre', 'codigo'))
+                            ->default(fn() => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A')
                             ->required(),
                         
                         Forms\Components\DatePicker::make('fecha')
@@ -93,12 +94,20 @@ class AlbaranResource extends Resource
                             ->default('borrador')
                             ->required(),
                         
-                        Forms\Components\Placeholder::make('subtotal_display')->label('Subtotal')->content(fn($record) => $record ? number_format($record->subtotal, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit'),
-                        Forms\Components\Placeholder::make('iva_display')->label('IVA')->content(fn($record) => $record ? number_format($record->iva, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit'),
-                        Forms\Components\Placeholder::make('total_display')->label('TOTAL')->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €')->visibleOn('edit'),
-                    ])->columns(6)->compact(),
+                    ])->columns(3)->compact(),
 
-                Forms\Components\Textarea::make('observaciones')->label('Observaciones')->rows(2)->columnSpanFull(),
+                // SECCIÓN 3: PRODUCTOS
+                Forms\Components\View::make('filament.components.document-lines')
+                    ->columnSpanFull(),
+
+                // SECCIÓN 4: OBSERVACIONES
+                Forms\Components\Section::make('Observaciones')
+                    ->schema([
+                        Forms\Components\Textarea::make('observaciones')
+                            ->label('Observaciones (visibles en el documento)')
+                            ->rows(2)
+                            ->columnSpanFull(),
+                    ])->collapsible(),
             ]);
     }
 
@@ -229,7 +238,7 @@ class AlbaranResource extends Resource
     public static function getRelations(): array
     {
         return [
-            LineasRelationManager::class,
+            //
         ];
     }
 

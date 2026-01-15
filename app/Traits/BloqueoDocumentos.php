@@ -24,6 +24,12 @@ trait BloqueoDocumentos
      */
     public function puedeEditarse(): bool
     {
+        // Regla de Oro para Facturas: Si tiene número (está confirmada), NO se edita jamás
+        // EXCEPCIÓN: Las facturas de compra SIEMPRE se pueden editar para ajustar diferencias con el proveedor
+        if ($this->tipo === 'factura' && !empty($this->numero)) {
+            return false;
+        }
+
         // Si tiene documentos derivados, no se puede editar
         if ($this->tieneDocumentosDerivados()) {
             return false;
@@ -57,10 +63,17 @@ trait BloqueoDocumentos
     /**
      * Determinar si el documento puede eliminarse
      * 
-     * Un documento solo puede eliminarse si no tiene documentos derivados
+     * Un documento solo puede eliminarse si no tiene documentos derivados.
+     * Las facturas confirmadas JAMÁS se eliminan.
      */
     public function puedeEliminarse(): bool
     {
+        // Regla de Oro para Facturas: Si tiene número (está confirmada), NO se elimina jamás
+        // EXCEPCIÓN: Las facturas de compra SÍ se pueden eliminar para revertir flujos
+        if ($this->tipo === 'factura' && !empty($this->numero)) {
+            return false;
+        }
+
         return !$this->tieneDocumentosDerivados();
     }
 

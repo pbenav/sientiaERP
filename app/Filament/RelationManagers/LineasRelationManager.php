@@ -28,105 +28,117 @@ class LineasRelationManager extends RelationManager
     public static function getLineFormSchema(): array
     {
         return [
-            Forms\Components\Select::make('product_id')
-                ->label('Producto')
-                ->relationship('product', 'name')
-                ->searchable()
-                ->preload()
-                ->live()
-                ->columnSpan(2)
-                ->afterStateUpdated(function ($state, Forms\Set $set) {
-                    if ($state) {
-                        $product = Product::find($state);
-                        if ($product) {
-                            $set('codigo', $product->sku);
-                            $set('descripcion', $product->name);
-                            $set('precio_unitario', $product->price);
-                            $set('iva', $product->tax_rate);
-                        }
-                    }
-                }),
-            
-            Forms\Components\TextInput::make('codigo')
-                ->label('Código')
-                ->maxLength(50)
-                ->columnSpan(1),
-            
-            // Descripción oculta - se muestra en el tooltip del producto
-            Forms\Components\Hidden::make('descripcion'),
-            
-            Forms\Components\TextInput::make('cantidad')
-                ->label('Cant.')
-                ->numeric()
-                ->inputMode('decimal')
-                ->default(1)
-                ->required()
-                ->live()
-                ->columnSpan(1)
-                ->extraAttributes(['class' => 'max-w-[100px]'])
-                ->extraInputAttributes([
-                    'style' => '-moz-appearance: textfield;',
-                    'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
-                ])
-                ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
-                    self::calcularLinea($set, $get)),
-            
-            Forms\Components\TextInput::make('precio_unitario')
-                ->label('Precio')
-                ->numeric()
-                ->inputMode('decimal')
-                ->required()
-                ->live()
-                ->columnSpan(1)
-                ->extraAttributes(['class' => 'max-w-[120px]'])
-                ->extraInputAttributes([
-                    'style' => '-moz-appearance: textfield;',
-                    'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
-                ])
-                ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
-                    self::calcularLinea($set, $get)),
-            
-            Forms\Components\TextInput::make('descuento')
-                ->label('Dto.')
-                ->numeric()
-                ->inputMode('decimal')
-                ->default(0)
-                ->live()
-                ->columnSpan(1)
-                ->extraAttributes(['class' => 'max-w-[80px]'])
-                ->extraInputAttributes([
-                    'style' => '-moz-appearance: textfield;',
-                    'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
-                ])
-                ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
-                    self::calcularLinea($set, $get)),
-            
-            Forms\Components\TextInput::make('iva')
-                ->label('IVA')
-                ->numeric()
-                ->inputMode('decimal')
-                ->default(21)
-                ->required()
-                ->live()
-                ->columnSpan(1)
-                ->extraAttributes(['class' => 'max-w-[80px]'])
-                ->extraInputAttributes([
-                    'style' => '-moz-appearance: textfield;',
-                    'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
-                ])
-                ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
-                    self::calcularLinea($set, $get)),
-            
-            Forms\Components\TextInput::make('total')
-                ->label('Total')
-                ->numeric()
-                ->disabled()
-                ->dehydrated()
-                ->columnSpan(1)
-                ->extraAttributes(['class' => 'max-w-[120px]'])
-                ->extraInputAttributes([
-                    'style' => '-moz-appearance: textfield;',
-                    'class' => '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+            Forms\Components\Grid::make(6)
+                ->schema([
+                    Forms\Components\Select::make('product_id')
+                        ->label('Producto')
+                        ->relationship('product', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->live()
+                        ->columnSpan(4)
+                        ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+                            if ($state) {
+                                $product = \App\Models\Product::find($state);
+                                if ($product) {
+                                    $set('codigo', $product->sku);
+                                    $set('descripcion', $product->name);
+                                    $set('precio_unitario', $product->price);
+                                    
+                                    // Seguridad para IVA: Verificar si existe el tipo, sinó usar default
+                                    $taxRate = number_format($product->tax_rate, 2, '.', '');
+                                    $ivaExists = \App\Models\Impuesto::where('valor', $taxRate)->where('tipo', 'iva')->exists();
+                                    
+                                    if ($ivaExists) {
+                                        $set('iva', $taxRate);
+                                    } else {
+                                        // Fallback al IVA por defecto (Global o de la serie)
+                                        $globalDefault = \App\Models\Impuesto::where('tipo', 'iva')->where('es_predeterminado', true)->where('activo', true)->first()?->valor ?? 21.00;
+                                        $set('iva', number_format($globalDefault, 2, '.', ''));
+                                    }
+                                    
+                                    // Recalcular la línea con los nuevos valores
+                                    self::calcularLinea($set, $get);
+                                }
+                            }
+                        }),
+                    
+                    Forms\Components\TextInput::make('codigo')
+                        ->label('Código')
+                        ->maxLength(50)
+                        ->columnSpan(2),
+                    
+                    // Descripción oculta - se muestra en el tooltip del producto
+                    Forms\Components\Hidden::make('descripcion'),
+                    
+                    Forms\Components\TextInput::make('cantidad')
+                        ->label('Cant.')
+                        ->type('text')
+                        ->inputMode('decimal')
+                        ->numeric()
+                        ->maxValue(9999999)
+                        ->required()
+                        ->default(1)
+                        ->columnSpan(1)
+                        ->live(onBlur: true)
+                        ->extraInputAttributes(['style' => 'width: 120px'])
+                        ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
+                            self::calcularLinea($set, $get);
+                        }),
+                    
+                    Forms\Components\TextInput::make('precio_unitario')
+                        ->label('Precio')
+                        ->type('text')
+                        ->inputMode('decimal')
+                        ->numeric()
+                        ->maxValue(9999999999)
+                        ->required()
+                        ->live()
+                        ->columnSpan(1)
+                        ->extraInputAttributes(['style' => 'width: 110px'])
+                        ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
+                            self::calcularLinea($set, $get)),
+                    
+                    Forms\Components\TextInput::make('descuento')
+                        ->label('Dto.')
+                        ->type('text')
+                        ->inputMode('decimal')
+                        ->numeric()
+                        ->maxValue(100)
+                        ->default(fn() => \App\Models\Descuento::where('es_predeterminado', true)->where('activo', true)->first()?->valor ?? 0)
+                        ->live()
+                        ->columnSpan(1)
+                        ->extraInputAttributes(['style' => 'width: 110px'])
+                        ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
+                            self::calcularLinea($set, $get)),
+                    
+                    Forms\Components\Select::make('iva')
+                        ->label('IVA %')
+                        ->options(\App\Models\Impuesto::where('tipo', 'iva')->where('activo', true)->pluck('nombre', 'valor'))
+                        ->default(function (RelationManager $livewire, Forms\Get $get) {
+                            $doc = $livewire->getOwnerRecord();
+                            $serie = \App\Models\BillingSerie::where('codigo', $doc->serie)->first();
+                            $globalDefault = \App\Models\Impuesto::where('tipo', 'iva')->where('es_predeterminado', true)->where('activo', true)->first()?->valor ?? 21;
+                            
+                            if ($serie && $serie->devenga_iva) {
+                                return $serie->ivaDefecto?->valor ?? $globalDefault;
+                            }
+                            return $serie && !$serie->devenga_iva ? 0 : $globalDefault;
+                        })
+                        ->required()
+                        ->live()
+                        ->columnSpan(1)
+                        ->extraInputAttributes(['style' => 'width: 120px'])
+                        ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
+                            self::calcularLinea($set, $get)),
+
+                    Forms\Components\TextInput::make('total')
+                        ->label('Total')
+                        ->numeric()
+                        ->disabled()
+                        ->dehydrated()
+                        ->columnSpan(1)
+                        ->extraInputAttributes(['style' => 'width: 140px']),
                 ]),
         ];
     }
@@ -169,31 +181,92 @@ class LineasRelationManager extends RelationManager
                 
                 Tables\Columns\TextInputColumn::make('cantidad')
                     ->label('Cant.')
-                    ->type('number')
-                    ->rules(['required', 'numeric', 'min:0'])
-                    ->afterStateUpdated(fn ($record) => $record->documento->recalcularTotales()),
+                    ->type('text')
+                    ->inputMode('decimal')
+                    ->extraHeaderAttributes(['style' => 'width: 100px; min-width: 100px; max-width: 100px'])
+                    ->extraAttributes(['style' => 'width: 100px; min-width: 100px; max-width: 100px'])
+                    ->extraInputAttributes([
+                        'style' => 'text-align: center; padding: 4px;',
+                        'onkeydown' => 'if(event.key === "Enter") { event.preventDefault(); }', // Prevenir submit del formulario principal
+                        'onfocus' => 'this.select()',
+                    ])
+                    ->sortable()
+                    ->disabled(fn($livewire) => $livewire->getOwnerRecord()->estado !== 'borrador')
+                    ->rules(['required', 'numeric', 'min:0', 'max:9999999'])
+                    ->afterStateUpdated(function ($record, $livewire) {
+                        $record->documento->recalcularTotales();
+                        $livewire->dispatch('refresh-document-totals');
+                    }),
                 
                 Tables\Columns\TextInputColumn::make('precio_unitario')
                     ->label('Precio')
-                    ->type('number')
-                    ->rules(['required', 'numeric', 'min:0'])
-                    ->afterStateUpdated(fn ($record) => $record->documento->recalcularTotales()),
+                    ->type('text')
+                    ->inputMode('decimal')
+                    ->extraHeaderAttributes(['style' => 'width: 110px; min-width: 110px; max-width: 110px'])
+                    ->extraAttributes(['style' => 'width: 110px; min-width: 110px; max-width: 110px'])
+                    ->extraInputAttributes([
+                        'style' => 'text-align: right; padding: 4px;',
+                        'onkeydown' => 'if(event.key === "Enter") { event.preventDefault(); }',
+                        'onfocus' => 'this.select()',
+                    ])
+                    ->sortable()
+                    ->disabled(fn($livewire) => $livewire->getOwnerRecord()->estado !== 'borrador')
+                    ->rules(['required', 'numeric', 'min:0', 'max:9999999999'])
+                    ->afterStateUpdated(function ($record, $livewire) {
+                        $record->documento->recalcularTotales();
+                        $livewire->dispatch('refresh-document-totals');
+                    }),
                 
                 Tables\Columns\TextInputColumn::make('descuento')
                     ->label('Dto.%')
-                    ->type('number')
+                    ->type('text')
+                    ->inputMode('decimal')
+                    ->extraHeaderAttributes(['style' => 'width: 70px; min-width: 70px; max-width: 70px'])
+                    ->extraAttributes(['style' => 'width: 70px; min-width: 70px; max-width: 70px'])
+                    ->extraInputAttributes([
+                        'style' => 'text-align: center; padding: 4px;',
+                        'onkeydown' => 'if(event.key === "Enter") { event.preventDefault(); }',
+                        'onfocus' => 'this.select()',
+                    ])
+                    ->sortable()
+                    ->disabled(fn($livewire) => $livewire->getOwnerRecord()->estado !== 'borrador')
                     ->rules(['numeric', 'min:0', 'max:100'])
-                    ->afterStateUpdated(fn ($record) => $record->documento->recalcularTotales()),
+                    ->afterStateUpdated(function ($record, $livewire) {
+                        $record->documento->recalcularTotales();
+                        $livewire->dispatch('refresh-document-totals');
+                    }),
                 
                 Tables\Columns\TextInputColumn::make('iva')
                     ->label('IVA%')
-                    ->type('number')
-                    ->rules(['required', 'numeric', 'min:0'])
-                    ->afterStateUpdated(fn ($record) => $record->documento->recalcularTotales()),
+                    ->type('text')
+                    ->inputMode('decimal')
+                    ->extraHeaderAttributes(['style' => 'width: 90px; min-width: 90px; max-width: 90px'])
+                    ->extraAttributes(['style' => 'width: 90px; min-width: 90px; max-width: 90px'])
+                    ->extraInputAttributes([
+                        'style' => 'text-align: center; padding: 4px;',
+                        'onkeydown' => 'if(event.key === "Enter") { event.preventDefault(); }',
+                        'onfocus' => 'this.select()',
+                    ])
+                    ->sortable()
+                    ->disabled(fn($livewire) => $livewire->getOwnerRecord()->estado !== 'borrador')
+                    ->rules(['required', 'numeric', 'min:0', 'max:100'])
+                    ->afterStateUpdated(function ($record, $livewire) {
+                        $record->documento->recalcularTotales();
+                        $livewire->dispatch('refresh-document-totals');
+                    }),
                     
                 Tables\Columns\TextColumn::make('total')
                     ->label('Total')
-                    ->money('EUR')
+                    ->extraHeaderAttributes(['style' => 'width: 140px; min-width: 140px; max-width: 140px'])
+                    ->extraAttributes(['style' => 'width: 140px; min-width: 140px; max-width: 140px'])
+                    ->alignRight()
+                    ->getStateUsing(fn ($record) => $record->total)
+                    ->formatStateUsing(function ($state) {
+                        $symbol = \App\Models\Setting::get('currency_symbol', '€');
+                        $position = \App\Models\Setting::get('currency_position', 'suffix');
+                        $formatted = number_format($state, 2, ',', '.');
+                        return $position === 'suffix' ? "$formatted $symbol" : "$symbol $formatted";
+                    })
                     ->sortable(),
             ])
             ->filters([
@@ -203,18 +276,22 @@ class LineasRelationManager extends RelationManager
                 Tables\Actions\CreateAction::make()
                     ->label('Añadir Línea')
                     ->modalHeading('Añadir Línea al Documento')
-                    ->after(fn ($livewire) => $livewire->getOwnerRecord()->recalcularTotales()),
+                    ->visible(fn ($livewire) => $livewire->getOwnerRecord()->estado === 'borrador')
+                    ->after(fn ($livewire) => $livewire->dispatch('refresh-document-totals')),
             ])
             ->actions([
                 Tables\Actions\EditAction::make()
-                    ->after(fn ($livewire) => $livewire->getOwnerRecord()->recalcularTotales()),
+                    ->visible(fn ($livewire) => $livewire->getOwnerRecord()->estado === 'borrador')
+                    ->after(fn ($livewire) => $livewire->dispatch('refresh-document-totals')),
                 Tables\Actions\DeleteAction::make()
-                    ->after(fn ($livewire) => $livewire->getOwnerRecord()->recalcularTotales()),
+                    ->visible(fn ($livewire) => $livewire->getOwnerRecord()->estado === 'borrador')
+                    ->after(fn ($livewire) => $livewire->dispatch('refresh-document-totals')),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->after(fn ($livewire) => $livewire->getOwnerRecord()->recalcularTotales()),
+                        ->visible(fn ($livewire) => $livewire->getOwnerRecord()->estado === 'borrador')
+                        ->after(fn ($livewire) => $livewire->dispatch('refresh-document-totals')),
                 ]),
             ]);
     }

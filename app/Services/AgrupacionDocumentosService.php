@@ -24,6 +24,19 @@ class AgrupacionDocumentosService
     }
 
     /**
+     * Agrupar múltiples pedidos de compra en un albarán de compra
+     * 
+     * @param array $pedidosIds IDs de los pedidos de compra a agrupar
+     * @return Documento Albarán de compra creado
+     */
+    public function agruparPedidosCompraEnAlbaranCompra(array $pedidosIds): Documento
+    {
+        $this->validarAgrupacion($pedidosIds, 'pedido_compra', 'albaran_compra');
+        
+        return Documento::agruparDesde($pedidosIds, 'albaran_compra');
+    }
+
+    /**
      * Agrupar múltiples albaranes en una factura
      * 
      * @param array $albaranesIds IDs de los albaranes a agrupar
@@ -34,6 +47,19 @@ class AgrupacionDocumentosService
         $this->validarAgrupacion($albaranesIds, 'albaran', 'factura');
         
         return Documento::agruparDesde($albaranesIds, 'factura');
+    }
+
+    /**
+     * Agrupar múltiples albaranes de compra en una factura de compra
+     * 
+     * @param array $albaranesIds IDs de los albaranes de compra a agrupar
+     * @return Documento Factura de compra creada
+     */
+    public function agruparAlbaranesCompraEnFacturaCompra(array $albaranesIds): Documento
+    {
+        $this->validarAgrupacion($albaranesIds, 'albaran_compra', 'factura_compra');
+        
+        return Documento::agruparDesde($albaranesIds, 'factura_compra');
     }
 
     /**
@@ -64,7 +90,8 @@ class AgrupacionDocumentosService
         // Verificar que todos son del tipo correcto
         $tiposIncorrectos = $documentos->where('tipo', '!=', $tipoOrigen);
         if ($tiposIncorrectos->isNotEmpty()) {
-            throw new \InvalidArgumentException("Todos los documentos deben ser del tipo '{$tipoOrigen}'");
+            $primerIncorrecto = $tiposIncorrectos->first();
+            throw new \InvalidArgumentException("Todos los documentos deben ser del tipo '{$tipoOrigen}'. Se encontró uno de tipo '{$primerIncorrecto->tipo}' (ID: {$primerIncorrecto->id})");
         }
 
         // Verificar que todos pertenecen al mismo tercero
@@ -92,6 +119,8 @@ class AgrupacionDocumentosService
         $flujosValidos = [
             'pedido' => ['albaran'],
             'albaran' => ['factura'],
+            'pedido_compra' => ['albaran_compra'],
+            'albaran_compra' => ['factura_compra'],
         ];
 
         if (!isset($flujosValidos[$tipoOrigen]) || !in_array($tipoDestino, $flujosValidos[$tipoOrigen])) {

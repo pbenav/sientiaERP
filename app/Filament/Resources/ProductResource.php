@@ -30,56 +30,65 @@ class ProductResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Información del Producto')
                     ->schema([
-                        Forms\Components\TextInput::make('sku')
-                            ->label('SKU')
+                        Forms\Components\TextInput::make('name')
+                            ->label('Nombre del Producto')
                             ->required()
+                            ->maxLength(255)
+                            ->columnSpan(2),
+                        Forms\Components\TextInput::make('sku')
+                            ->label('Referencia/SKU')
+                            ->required()
+                            ->maxLength(50)
                             ->unique(ignoreRecord: true)
-                            ->maxLength(255),
-                        
+                            ->columnSpan(1),
                         Forms\Components\TextInput::make('barcode')
                             ->label('Código de Barras')
-                            ->maxLength(255),
-                        
-                        Forms\Components\TextInput::make('name')
-                            ->label('Nombre')
-                            ->required()
-                            ->maxLength(255),
-                        
+                            ->maxLength(255)
+                            ->columnSpan(1),
                         Forms\Components\Textarea::make('description')
                             ->label('Descripción')
                             ->rows(3)
-                            ->columnSpanFull(),
-                    ])->columns(2),
+                            ->columnSpan(2),
+                    ])->columns(3)->compact(),
 
-                Forms\Components\Section::make('Precio y Stock')
+                Forms\Components\Section::make('Precios y Stock')
                     ->schema([
                         Forms\Components\TextInput::make('price')
                             ->label('Precio (sin IVA)')
                             ->required()
+                            ->type('text')
+                            ->inputMode('decimal')
                             ->numeric()
+                            ->maxValue(9999999999)
                             ->prefix('€')
-                            ->step(0.01),
+                            ->extraInputAttributes(['style' => 'width: 140px']),
                         
                         Forms\Components\TextInput::make('tax_rate')
                             ->label('IVA (%)')
                             ->required()
+                            ->type('text')
+                            ->inputMode('decimal')
                             ->numeric()
-                            ->default(21.00)
+                            ->maxValue(100)
+                            ->default(fn() => \App\Models\Impuesto::where('tipo', 'iva')->where('es_predeterminado', true)->where('activo', true)->first()?->valor ?? 21.00)
                             ->suffix('%')
-                            ->step(0.01),
+                            ->extraInputAttributes(['style' => 'width: 120px']),
                         
                         Forms\Components\TextInput::make('stock')
                             ->label('Stock')
                             ->required()
+                            ->type('text')
+                            ->inputMode('decimal')
                             ->numeric()
-                            ->default(0)
-                            ->minValue(0),
+                            ->maxValue(9999999)
+                            ->extraInputAttributes(['style' => 'width: 120px'])
+                            ->default(0),
                         
                         Forms\Components\Toggle::make('active')
                             ->label('Activo')
                             ->default(true)
-                            ->inline(false),
-                    ])->columns(2),
+                            ->required(),
+                    ])->columns(4)->compact(),
             ]);
     }
 
@@ -104,7 +113,13 @@ class ProductResource extends Resource
                 
                 Tables\Columns\TextColumn::make('price')
                     ->label('Precio')
-                    ->money('EUR')
+                    ->getStateUsing(fn ($record) => $record->price)
+                    ->formatStateUsing(function ($state) {
+                        $symbol = \App\Models\Setting::get('currency_symbol', '€');
+                        $position = \App\Models\Setting::get('currency_position', 'suffix');
+                        $formatted = number_format($state, 2, ',', '.');
+                        return $position === 'suffix' ? "$formatted $symbol" : "$symbol $formatted";
+                    })
                     ->sortable(),
                 
                 Tables\Columns\TextColumn::make('tax_rate')

@@ -2,6 +2,9 @@
 
 namespace App\Providers\Filament;
 
+use Filament\Support\Facades\FilamentView;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\HtmlString;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
