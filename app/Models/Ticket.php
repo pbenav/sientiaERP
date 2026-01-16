@@ -15,7 +15,8 @@ class Ticket extends Model
     protected $fillable = [
         'user_id',
         'customer_id',
-        'session_id',
+        'session_id', // UUID
+        'tpv_slot',   // TPV Slot ID (1-4)
         'status',
         'subtotal',
         'tax',

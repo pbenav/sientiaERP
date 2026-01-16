@@ -16,13 +16,13 @@ class TicketResource extends Resource
 {
     protected static ?string $model = Ticket::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-receipt-percent';
+    protected static ?string $navigationIcon = 'heroicon-o-computer-desktop';
 
-    protected static ?string $navigationLabel = 'Tickets';
+    protected static ?string $navigationLabel = 'POS';
 
-    protected static ?string $modelLabel = 'Ticket';
+    protected static ?string $modelLabel = 'POS';
 
-    protected static ?string $pluralModelLabel = 'Tickets';
+    protected static ?string $pluralModelLabel = 'POS';
 
     protected static ?int $navigationSort = 3;
 
@@ -202,6 +202,7 @@ class TicketResource extends Resource
     {
         return [
             'index' => Pages\ListTickets::route('/'),
+            'create' => Pages\CreateTicket::route('/create'),
             'view' => Pages\ViewTicket::route('/{record}'),
         ];
     }
