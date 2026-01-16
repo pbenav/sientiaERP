@@ -46,9 +46,10 @@ class AlbaranResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('tercero_id')
                             ->label('Cliente')
-                            ->relationship('tercero', 'nombre_comercial', fn($query) => $query->clientes())
-                            ->searchable(['nombre_comercial', 'nif_cif', 'codigo'])
+                            ->options(fn() => \App\Models\Tercero::clientes()->pluck('nombre_comercial', 'id'))
+                            ->searchable()
                             ->preload()
+                            ->live()
                             ->required()
                             ->createOptionForm([
                                 Forms\Components\TextInput::make('nombre_comercial')->required(),

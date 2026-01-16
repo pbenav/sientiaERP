@@ -185,10 +185,18 @@ class LineasRelationManager extends RelationManager
                     ->inputMode('decimal')
                     ->extraHeaderAttributes(['style' => 'width: 100px; min-width: 100px; max-width: 100px'])
                     ->extraAttributes(['style' => 'width: 100px; min-width: 100px; max-width: 100px'])
-                    ->extraInputAttributes(['style' => 'text-align: center; padding: 4px;'])
+                    ->extraInputAttributes([
+                        'style' => 'text-align: center; padding: 4px;',
+                        'onkeydown' => 'if(event.key === "Enter") { event.preventDefault(); }', // Prevenir submit del formulario principal
+                        'onfocus' => 'this.select()',
+                    ])
                     ->sortable()
+                    ->disabled(fn($livewire) => $livewire->getOwnerRecord()->estado !== 'borrador')
                     ->rules(['required', 'numeric', 'min:0', 'max:9999999'])
-                    ->afterStateUpdated(fn ($record) => $record->documento->recalcularTotales()),
+                    ->afterStateUpdated(function ($record, $livewire) {
+                        $record->documento->recalcularTotales();
+                        $livewire->dispatch('refresh-document-totals');
+                    }),
                 
                 Tables\Columns\TextInputColumn::make('precio_unitario')
                     ->label('Precio')
@@ -196,10 +204,18 @@ class LineasRelationManager extends RelationManager
                     ->inputMode('decimal')
                     ->extraHeaderAttributes(['style' => 'width: 110px; min-width: 110px; max-width: 110px'])
                     ->extraAttributes(['style' => 'width: 110px; min-width: 110px; max-width: 110px'])
-                    ->extraInputAttributes(['style' => 'text-align: right; padding: 4px;'])
+                    ->extraInputAttributes([
+                        'style' => 'text-align: right; padding: 4px;',
+                        'onkeydown' => 'if(event.key === "Enter") { event.preventDefault(); }',
+                        'onfocus' => 'this.select()',
+                    ])
                     ->sortable()
+                    ->disabled(fn($livewire) => $livewire->getOwnerRecord()->estado !== 'borrador')
                     ->rules(['required', 'numeric', 'min:0', 'max:9999999999'])
-                    ->afterStateUpdated(fn ($record) => $record->documento->recalcularTotales()),
+                    ->afterStateUpdated(function ($record, $livewire) {
+                        $record->documento->recalcularTotales();
+                        $livewire->dispatch('refresh-document-totals');
+                    }),
                 
                 Tables\Columns\TextInputColumn::make('descuento')
                     ->label('Dto.%')
@@ -207,10 +223,18 @@ class LineasRelationManager extends RelationManager
                     ->inputMode('decimal')
                     ->extraHeaderAttributes(['style' => 'width: 70px; min-width: 70px; max-width: 70px'])
                     ->extraAttributes(['style' => 'width: 70px; min-width: 70px; max-width: 70px'])
-                    ->extraInputAttributes(['style' => 'text-align: center; padding: 4px;'])
+                    ->extraInputAttributes([
+                        'style' => 'text-align: center; padding: 4px;',
+                        'onkeydown' => 'if(event.key === "Enter") { event.preventDefault(); }',
+                        'onfocus' => 'this.select()',
+                    ])
                     ->sortable()
+                    ->disabled(fn($livewire) => $livewire->getOwnerRecord()->estado !== 'borrador')
                     ->rules(['numeric', 'min:0', 'max:100'])
-                    ->afterStateUpdated(fn ($record) => $record->documento->recalcularTotales()),
+                    ->afterStateUpdated(function ($record, $livewire) {
+                        $record->documento->recalcularTotales();
+                        $livewire->dispatch('refresh-document-totals');
+                    }),
                 
                 Tables\Columns\TextInputColumn::make('iva')
                     ->label('IVA%')
@@ -218,10 +242,18 @@ class LineasRelationManager extends RelationManager
                     ->inputMode('decimal')
                     ->extraHeaderAttributes(['style' => 'width: 90px; min-width: 90px; max-width: 90px'])
                     ->extraAttributes(['style' => 'width: 90px; min-width: 90px; max-width: 90px'])
-                    ->extraInputAttributes(['style' => 'text-align: center; padding: 4px;'])
+                    ->extraInputAttributes([
+                        'style' => 'text-align: center; padding: 4px;',
+                        'onkeydown' => 'if(event.key === "Enter") { event.preventDefault(); }',
+                        'onfocus' => 'this.select()',
+                    ])
                     ->sortable()
+                    ->disabled(fn($livewire) => $livewire->getOwnerRecord()->estado !== 'borrador')
                     ->rules(['required', 'numeric', 'min:0', 'max:100'])
-                    ->afterStateUpdated(fn ($record) => $record->documento->recalcularTotales()),
+                    ->afterStateUpdated(function ($record, $livewire) {
+                        $record->documento->recalcularTotales();
+                        $livewire->dispatch('refresh-document-totals');
+                    }),
                     
                 Tables\Columns\TextColumn::make('total')
                     ->label('Total')
@@ -244,18 +276,22 @@ class LineasRelationManager extends RelationManager
                 Tables\Actions\CreateAction::make()
                     ->label('Añadir Línea')
                     ->modalHeading('Añadir Línea al Documento')
-                    ->after(fn ($livewire) => $livewire->getOwnerRecord()->recalcularTotales()),
+                    ->visible(fn ($livewire) => $livewire->getOwnerRecord()->estado === 'borrador')
+                    ->after(fn ($livewire) => $livewire->dispatch('refresh-document-totals')),
             ])
             ->actions([
                 Tables\Actions\EditAction::make()
-                    ->after(fn ($livewire) => $livewire->getOwnerRecord()->recalcularTotales()),
+                    ->visible(fn ($livewire) => $livewire->getOwnerRecord()->estado === 'borrador')
+                    ->after(fn ($livewire) => $livewire->dispatch('refresh-document-totals')),
                 Tables\Actions\DeleteAction::make()
-                    ->after(fn ($livewire) => $livewire->getOwnerRecord()->recalcularTotales()),
+                    ->visible(fn ($livewire) => $livewire->getOwnerRecord()->estado === 'borrador')
+                    ->after(fn ($livewire) => $livewire->dispatch('refresh-document-totals')),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->after(fn ($livewire) => $livewire->getOwnerRecord()->recalcularTotales()),
+                        ->visible(fn ($livewire) => $livewire->getOwnerRecord()->estado === 'borrador')
+                        ->after(fn ($livewire) => $livewire->dispatch('refresh-document-totals')),
                 ]),
             ]);
     }

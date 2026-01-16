@@ -35,9 +35,16 @@ class EditPresupuesto extends EditRecord
         ];
     }
 
+    protected $listeners = ['refresh-document-totals' => '$refresh'];
+
     protected function afterSave(): void
     {
         // Recalcular totales después de guardar
         $this->record->recalcularTotales();
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
     }
 }

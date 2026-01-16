@@ -64,6 +64,8 @@ class EditFactura extends EditRecord
         ];
     }
 
+    protected $listeners = ['refresh-document-totals' => '$refresh'];
+
     protected function afterSave(): void
     {
         $this->record->recalcularTotales();

@@ -44,13 +44,15 @@ class FacturaResource extends Resource
                 // SECCIÓN 1: CLIENTE Y DATOS
                 Forms\Components\Grid::make(3)
                     ->schema([
+
                         Forms\Components\Section::make('Cliente')
                             ->schema([
                                 Forms\Components\Select::make('tercero_id')
                                     ->label('Cliente')
-                                    ->relationship('tercero', 'nombre_comercial', fn($query) => $query->clientes())
-                                    ->searchable(['nombre_comercial', 'nif_cif', 'codigo'])
+                                    ->options(fn() => \App\Models\Tercero::clientes()->pluck('nombre_comercial', 'id'))
+                                    ->searchable()
                                     ->preload()
+                                    ->live()
                                     ->required()
                                     ->createOptionForm([
                                         Forms\Components\TextInput::make('nombre_comercial')->required(),
@@ -63,7 +65,8 @@ class FacturaResource extends Resource
                                         $tercero->tipos()->attach(\App\Models\TipoTercero::where('codigo', 'CLI')->first());
                                         return $tercero->id;
                                     }),
-                            ])->columnSpan(1)->compact(),
+                            ])->columnSpan(1)->compact()
+                            ->disabled(fn ($record) => $record && $record->estado !== 'borrador'),
 
                         Forms\Components\Section::make('Datos de la Factura')
                             ->schema([
@@ -80,6 +83,30 @@ class FacturaResource extends Resource
                                             ->options(\App\Models\BillingSerie::where('activo', true)->pluck('nombre', 'codigo'))
                                             ->default(fn() => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A')
                                             ->required(),
+
+                                        Forms\Components\Toggle::make('es_rectificativa')
+                                            ->label('Es Rectificativa')
+                                            ->inline(false)
+                                            ->live()
+                                            ->afterStateUpdated(fn ($state, Forms\Set $set) => $state ? null : $set('rectificada_id', null)),
+
+                                        Forms\Components\Select::make('rectificada_id')
+                                            ->label('Factura que rectifica')
+                                            ->relationship('facturaRectificada', 'numero', function ($query, Forms\Get $get) {
+                                                $terceroId = $get('tercero_id');
+                                                $query->where('tipo', 'factura')
+                                                      ->where('estado', 'anulado');
+                                                
+                                                if ($terceroId) {
+                                                    $query->where('tercero_id', $terceroId);
+                                                }
+                                                return $query;
+                                            })
+                                            ->searchable()
+                                            ->preload()
+                                            ->required(fn (Forms\Get $get) => $get('es_rectificativa'))
+                                            ->visible(fn (Forms\Get $get) => $get('es_rectificativa'))
+                                            ->columnSpan(2),
                                         
                                         Forms\Components\DatePicker::make('fecha')
                                             ->label('Fecha')
@@ -116,7 +143,8 @@ class FacturaResource extends Resource
                                             ->required()
                                             ->columnSpan(1),
                                     ]),
-                            ])->columnSpan(2)->compact(),
+                            ])->columnSpan(2)->compact()
+                            ->disabled(fn ($record) => $record && $record->estado !== 'borrador'),
                     ]),
 
                 // SECCIÓN 3: PRODUCTOS
@@ -130,6 +158,29 @@ class FacturaResource extends Resource
                             ->rows(3)
                             ->columnSpanFull(),
                     ]),
+
+                Forms\Components\Section::make('Totales')
+                    ->schema([
+                        Forms\Components\Placeholder::make('subtotal_display')
+                            ->label('Subtotal')
+                            ->content(fn($record) => $record ? number_format($record->subtotal, 2, ',', '.') . ' €' : '0,00 €'),
+                        
+                        Forms\Components\Placeholder::make('iva_display')
+                            ->label('IVA')
+                            ->content(fn($record) => $record ? number_format($record->iva, 2, ',', '.') . ' €' : '0,00 €'),
+
+                        Forms\Components\Placeholder::make('irpf_display')
+                            ->label(fn($record) => 'IRPF (' . ($record->porcentaje_irpf ?? 0) . '%)')
+                            ->content(fn($record) => $record ? number_format($record->irpf, 2, ',', '.') . ' €' : '0,00 €')
+                            ->visible(fn($record) => $record && $record->porcentaje_irpf > 0),
+                        
+                        Forms\Components\Placeholder::make('total_display')
+                            ->label('TOTAL')
+                            ->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €')
+                            ->extraAttributes(['class' => 'text-xl font-bold text-primary-600']),
+                    ])->columns(4)
+                    ->visibleOn('edit')
+                    ->collapsible(),
             ]);
     }
 

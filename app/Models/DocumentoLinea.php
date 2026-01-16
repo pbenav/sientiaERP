@@ -14,7 +14,7 @@ class DocumentoLinea extends Model
         'documento_id', 'product_id',
         'orden', 'codigo', 'descripcion',
         'cantidad', 'unidad', 'precio_unitario', 'descuento',
-        'subtotal', 'iva', 'importe_iva', 'irpf', 'importe_irpf', 'total'
+        'subtotal', 'iva', 'importe_iva', 'recargo_equivalencia', 'importe_recargo_equivalencia', 'irpf', 'importe_irpf', 'total'
     ];
 
     protected $casts = [
@@ -25,6 +25,8 @@ class DocumentoLinea extends Model
         'subtotal' => 'decimal:2',
         'iva' => 'decimal:2',
         'importe_iva' => 'decimal:2',
+        'recargo_equivalencia' => 'decimal:2',
+        'importe_recargo_equivalencia' => 'decimal:2',
         'irpf' => 'decimal:2',
         'importe_irpf' => 'decimal:2',
         'total' => 'decimal:2',
@@ -74,23 +76,59 @@ class DocumentoLinea extends Model
      */
     protected function calcularImportes(): void
     {
-        // Subtotal = cantidad * precio_unitario
-        $this->subtotal = $this->cantidad * $this->precio_unitario;
+        // 1. Subtotal Línea = Cantidad * Precio Unitario
+        $this->subtotal = round($this->cantidad * $this->precio_unitario, 2);
 
-        // Aplicar descuento
+        // 2. Aplicar Descuento a la Base
         if ($this->descuento > 0) {
-            $this->subtotal = $this->subtotal * (1 - ($this->descuento / 100));
+            $this->subtotal = round($this->subtotal * (1 - ($this->descuento / 100)), 2);
         }
 
-        // Calcular IVA
-        $this->importe_iva = $this->subtotal * ($this->iva / 100);
+        // 3. Obtener configuración de impuestos del documento/tercero
+        $aplicaRE = false;
+        if ($this->documento && $this->documento->tercero) {
+            $aplicaRE = $this->documento->tercero->recargo_equivalencia;
+            // Validar B2C: Si no es minorista en RE, no aplica
+            // La lógica de negocio dice que solo aplica si el tercero tiene el check marcado
+        }
 
-        // El IRPF ahora es global al documento, lo ponemos a 0 en la línea
+        // 4. Calcular IVA (Cuota = Base * %IVA)
+        $this->importe_iva = round($this->subtotal * ($this->iva / 100), 2);
+
+        // 5. Calcular Recargo de Equivalencia (Si aplica)
+        $this->importe_recargo_equivalencia = 0;
+        $this->recargo_equivalencia = 0;
+
+        if ($aplicaRE) {
+            // Mapa automático IVA -> RE (España)
+            $mapaIvaRe = [
+                '21.00' => 5.2,
+                '10.00' => 1.4,
+                '4.00' => 0.5,
+            ];
+            
+            // Buscar correspondencia (convertir a string para evitar problemas de float)
+            $ivaStr = number_format($this->iva, 2);
+            if (isset($mapaIvaRe[$ivaStr])) {
+                $this->recargo_equivalencia = $mapaIvaRe[$ivaStr];
+            } else {
+                // Fallback genérico o error? Por ahora 0 si no coincide con estándar
+                // O podría intentar aproximar. Dejamos 0.
+            }
+
+            if ($this->recargo_equivalencia > 0) {
+                $this->importe_recargo_equivalencia = round($this->subtotal * ($this->recargo_equivalencia / 100), 2);
+            }
+        }
+
+        // 6. IRPF (En línea siempre es 0, se calcula globalmente en el documento)
         $this->irpf = 0;
         $this->importe_irpf = 0;
 
-        // Total línea = subtotal + IVA
-        $this->total = $this->subtotal + $this->importe_iva;
+        // 7. Total Línea = Subtotal + IVA + RE
+        // Nota: El IRPF se resta del total de la factura, no de la línea visualmente aquí, 
+        // aunque matemáticamente: Total = Base + IVA + RE.
+        $this->total = $this->subtotal + $this->importe_iva + $this->importe_recargo_equivalencia;
     }
 
     /**

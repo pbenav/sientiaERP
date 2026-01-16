@@ -17,8 +17,15 @@ class EditReciboCompra extends EditRecord
         ];
     }
 
+    protected $listeners = ['refresh-document-totals' => '$refresh'];
+
     protected function afterSave(): void
     {
         $this->record->recalcularTotales();
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
     }
 }

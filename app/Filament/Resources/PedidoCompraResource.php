@@ -41,8 +41,8 @@ class PedidoCompraResource extends Resource
                 Forms\Components\DatePicker::make('fecha_entrega')->label('Fecha de Recepción')->default(now()->addDays(7))->columnSpan(1),
                 
                 Forms\Components\Select::make('tercero_id')->label('Proveedor')
-                    ->relationship('tercero', 'nombre_comercial', fn($query) => $query->proveedores())
-                    ->searchable(['nombre_comercial', 'nif_cif', 'codigo'])->preload()->required()
+                    ->options(fn() => \App\Models\Tercero::proveedores()->pluck('nombre_comercial', 'id'))
+                    ->searchable()->preload()->live()->required()
                     ->columnSpan(2)
                     ->createOptionForm([
                         Forms\Components\TextInput::make('nombre_comercial')->required(),

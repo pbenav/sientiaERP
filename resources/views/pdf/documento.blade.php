@@ -43,6 +43,9 @@
         <div class="doc-info">
             <h2 style="color: #64748b; margin: 0;">{{ strtoupper($doc->tipo) }}</h2>
             <p style="font-size: 18px; font-weight: bold; margin: 5px 0;">{{ $doc->numero }}</p>
+            @if($doc->es_rectificativa && $doc->facturaRectificada)
+                <p style="font-size: 10px; color: #64748b; margin-top: 5px;">Rectifica a: {{ $doc->facturaRectificada->numero }} ({{ $doc->facturaRectificada->fecha->format('d/m/Y') }})</p>
+            @endif
             <p>Fecha: {{ $doc->fecha->format('d/m/Y') }}</p>
             @if($doc->fecha_entrega)
                 <p>Fecha Entrega: {{ $doc->fecha_entrega->format('d/m/Y') }}</p>
@@ -109,6 +112,12 @@
                 <span>IVA:</span>
                 <span class="text-right">{{ formatMoney($doc->iva, $currencySymbol, $currencyPosition) }}</span>
             </div>
+            @if($doc->porcentaje_irpf > 0)
+            <div class="total-row">
+                <span>IRPF ({{ $doc->porcentaje_irpf }}%):</span>
+                <span class="text-right">{{ formatMoney($doc->irpf, $currencySymbol, $currencyPosition) }}</span>
+            </div>
+            @endif
             <div class="grand-total">
                 <span>TOTAL:</span>
                 <span style="float: right;">{{ formatMoney($doc->total, $currencySymbol, $currencyPosition) }}</span>
