@@ -5,8 +5,8 @@ namespace App\Filament\Resources\TicketResource\Pages;
 use App\Filament\Resources\TicketResource;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Actions;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
+use Filament\Forms\Set; 
+use App\Models\Tercero;
 use App\Models\Product;
 use App\Models\Ticket;
 use Filament\Notifications\Notification;
@@ -23,6 +23,9 @@ class CreateTicket extends CreateRecord
     public $tpvActivo = 1;
     public $ticket; // Modelo Ticket actual
     
+    // FECHA - Propiedad dedicada para binding
+    public $fecha;
+
     // Inputs de Línea
     public $nuevoCodigo = '';
     public $nuevoNombre = ''; // Búsqueda auxiliar
@@ -32,6 +35,14 @@ class CreateTicket extends CreateRecord
     public $nuevoDescuento = 0;
     public $nuevoImporte = 0;
     
+    // Listas de Autocompletado
+    public $resultadosCodigo = [];
+    public $resultadosNombre = [];
+    public $resultadosClientes = []; // Nueva lista para clientes
+
+    // Inputs de Cabecera
+    public $nuevoClienteNombre = ''; // Input visual para cliente
+
     // Totales Calculados
     public $lineas = []; // Array visual
     public $total = 0;
@@ -43,6 +54,20 @@ class CreateTicket extends CreateRecord
     {
         // No llamamos parent::mount() porque gestionamos el registro manualmente
         $this->form->fill();
+        
+        // Cargar primeros 10 clientes para dropdown inicial
+        $this->resultadosClientes = Tercero::clientes()
+                                    ->activos()
+                                    ->orderBy('nombre_comercial')
+                                    ->limit(10)
+                                    ->pluck('nombre_comercial', 'id')
+                                    ->toArray();
+        
+        // NO cargar productos inicialmente - solo al buscar
+        
+        // INICIALIZAR FECHA A HOY
+        $this->fecha = now()->format('Y-m-d');
+        
         $this->cargarTpv(1);
     }
     
@@ -62,6 +87,8 @@ class CreateTicket extends CreateRecord
                 'session_id' => (string) \Illuminate\Support\Str::uuid(), // UUID único global
                 'numero' => 'BORRADOR', // Se asignará número real al cerrar
                 'created_at' => now(),
+                // Asignar cliente POS por defecto
+                'customer_id' => Tercero::where('codigo', 'CLIPOS')->first()?->id,
             ]
         );
         
@@ -80,12 +107,26 @@ class CreateTicket extends CreateRecord
         
         $this->recalcularTotales();
         
-        // Rellenar datos de cabecera
-        $this->data['fecha'] = $this->ticket->created_at->format('Y-m-d');
-        $this->data['numero'] = $this->ticket->id; // Mostrar ID interno o "BORRADOR"
+        // SIEMPRE establecer fecha a hoy
+        $this->fecha = now()->format('Y-m-d');
+        $this->data['fecha'] = $this->fecha;
+        $this->data['numero'] = $this->ticket->id;
+        
+        // Cargar cliente si existe
         $this->form->fill([
             'customer_id' => $this->ticket->customer_id,
         ]);
+        
+        // Si hay cliente asignado, mostrar su ID en el select; si no, vacío
+        $this->nuevoClienteNombre = $this->ticket->customer_id ?? '';
+        
+        // Si hay cliente, asegurarse de que esté en la lista de resultados
+        if ($this->ticket->customer_id && $this->ticket->customer) {
+            // Añadir el cliente actual a la lista si no está
+            if (!isset($this->resultadosClientes[$this->ticket->customer_id])) {
+                $this->resultadosClientes[$this->ticket->customer_id] = $this->ticket->customer->nombre_comercial;
+            }
+        }
         
         // Limpiar inputs entrada
         $this->limpiarInputs();
@@ -110,13 +151,71 @@ class CreateTicket extends CreateRecord
         $this->ticket->save();
     }
 
+    // Buscador de Clientes
+    public function updatedNuevoClienteNombre() 
+    { 
+        // Si está vacío, mostrar los primeros 10 ordenados
+        if (empty($this->nuevoClienteNombre)) {
+            $this->resultadosClientes = Tercero::clientes()
+                                        ->activos()
+                                        ->orderBy('nombre_comercial')
+                                        ->limit(10)
+                                        ->pluck('nombre_comercial', 'id')
+                                        ->toArray();
+        } elseif (strlen($this->nuevoClienteNombre) > 1) {
+            $this->resultadosClientes = Tercero::clientes()
+                                        ->activos()
+                                        ->where('nombre_comercial', 'like', "%{$this->nuevoClienteNombre}%")
+                                        ->limit(10)
+                                        ->pluck('nombre_comercial', 'id')
+                                        ->toArray();
+        } else {
+            $this->resultadosClientes = [];
+        }
+    }
+
+    public function seleccionarCliente($force = false)
+    {
+        if (!empty($this->nuevoClienteNombre)) {
+            // Si viene un ID (del select), buscar por ID
+            $cliente = Tercero::clientes()->activos()->find($this->nuevoClienteNombre);
+            
+            // Si no es ID válido, intentar buscar por nombre
+            if (!$cliente && is_string($this->nuevoClienteNombre)) {
+                $cliente = Tercero::clientes()->activos()->where('nombre_comercial', $this->nuevoClienteNombre)->first();
+            }
+            
+            if ($cliente) {
+                // Asignar ID al formulario
+                $this->data['customer_id'] = $cliente->id;
+                // MANTENER el ID en nuevoClienteNombre para que el select muestre el cliente correcto
+                $this->nuevoClienteNombre = $cliente->id;
+                
+                // Asegurar que el cliente está en la lista
+                if (!isset($this->resultadosClientes[$cliente->id])) {
+                    $this->resultadosClientes[$cliente->id] = $cliente->nombre_comercial;
+                }
+                
+                $this->guardarCabecera();
+            } else {
+                 if ($force) Notification::make()->title('Cliente no encontrado')->warning()->send();
+            }
+        }
+    }
+
     // Método para buscar producto por código o nombre
-    public function buscarProducto()
+    public function buscarProducto($force = false)
     {
         // Si hay código, buscar por SKU/Barcode
         if (!empty($this->nuevoCodigo)) {
+            // Primero Exact Match
             $producto = Product::where('sku', $this->nuevoCodigo)->orWhere('barcode', $this->nuevoCodigo)->first();
             
+            // Si no es exacto y es Force (Enter), buscar like (aunque SKU suele ser exacto)
+            if (!$producto && $force) {
+                // $producto = ... lógica adicional si se quisiera
+            }
+
             if ($producto) {
                 $this->cargarProducto($producto);
                 return;
@@ -125,7 +224,13 @@ class CreateTicket extends CreateRecord
         
         // Si no hay código pero hay nombre
         if (!empty($this->nuevoNombre)) {
-            $producto = Product::where('name', 'like', "%{$this->nuevoNombre}%")->first();
+            // Priorizar coincidencia exacta primero (útil si viene de autocompletado o input completo)
+            $producto = Product::where('name', $this->nuevoNombre)->first();
+            
+            // Solo si NO es exacto Y se ha forzado (Enter), hacemos búsqueda "fuzzy"
+            if (!$producto && $force) {
+                $producto = Product::where('name', 'like', "%{$this->nuevoNombre}%")->first();
+            }
             
             if ($producto) {
                 $this->cargarProducto($producto);
@@ -133,8 +238,11 @@ class CreateTicket extends CreateRecord
             }
         }
 
-        Notification::make()->title('Producto no encontrado')->warning()->send();
-        $this->limpiarInputs();
+        // Solo notificar error si fue una acción forzada (Enter)
+        if ($force) {
+            Notification::make()->title('Producto no encontrado')->warning()->send();
+            $this->limpiarInputs();
+        }
     }
 
     protected function cargarProducto($producto)
@@ -145,12 +253,42 @@ class CreateTicket extends CreateRecord
         $this->nuevoPrecio = $producto->price;
         $this->nuevoCantidad = 1;
         $this->calcularImporteLinea();
+        
+        // Emitir evento para mover foco a cantidad
+        $this->dispatch('focus-cantidad');
     }
     
     public function calcularImporteLinea()
     {
         $base = $this->nuevoCantidad * $this->nuevoPrecio;
         $this->nuevoImporte = $base * (1 - ($this->nuevoDescuento / 100));
+    }
+
+    public function updatedNuevoCodigo() 
+    { 
+        // Solo buscar si hay al menos 2 caracteres
+        if (strlen($this->nuevoCodigo) >= 2) {
+            $this->resultadosCodigo = Product::where('sku', 'like', "%{$this->nuevoCodigo}%")
+                                        ->orWhere('barcode', 'like', "%{$this->nuevoCodigo}%")
+                                        ->limit(20)
+                                        ->pluck('sku', 'id')
+                                        ->toArray();
+        } else {
+            $this->resultadosCodigo = [];
+        }
+    }
+
+    public function updatedNuevoNombre() 
+    { 
+        // Solo buscar si hay al menos 2 caracteres
+        if (strlen($this->nuevoNombre) >= 2) {
+            $this->resultadosNombre = Product::where('name', 'like', "%{$this->nuevoNombre}%")
+                                        ->limit(20)
+                                        ->pluck('name', 'id')
+                                        ->toArray();
+        } else {
+            $this->resultadosNombre = [];
+        }
     }
 
     public function updatedNuevoCantidad() { $this->calcularImporteLinea(); }
@@ -180,7 +318,8 @@ class CreateTicket extends CreateRecord
         $this->recalcularTotales();
         $this->limpiarInputs();
         
-        // Emitir evento para foco?
+        // Volver foco a código
+        $this->dispatch('focus-codigo');
     }
     
     protected function persistirLinea($linea)

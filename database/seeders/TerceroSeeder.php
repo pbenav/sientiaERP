@@ -57,6 +57,28 @@ class TerceroSeeder extends Seeder
             ]
         ];
 
+        // Cliente especial para POS (contado)
+        $clientePOS = [
+            'codigo' => 'CLIPOS',
+            'nombre_comercial' => 'Cliente de contado para POS',
+            'razon_social' => 'Cliente de contado para POS',
+            'nif_cif' => '00000000X',
+            'email' => 'pos@tienda.local',
+            'telefono' => '',
+            'direccion_fiscal' => '',
+            'codigo_postal_fiscal' => '',
+            'poblacion_fiscal' => '',
+            'provincia_fiscal' => '',
+        ];
+        
+        $terceroPOS = Tercero::updateOrCreate(
+            ['codigo' => 'CLIPOS'],
+            $clientePOS
+        );
+        if (!$terceroPOS->tipos()->where('codigo', 'CLI')->exists()) {
+            $terceroPOS->tipos()->attach($tipos['CLI']->id);
+        }
+
         foreach ($clientes as $data) {
             $tercero = Tercero::updateOrCreate(
                 ['nif_cif' => $data['nif_cif']],
