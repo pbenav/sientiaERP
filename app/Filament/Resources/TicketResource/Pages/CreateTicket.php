@@ -196,21 +196,23 @@ class CreateTicket extends CreateRecord
             }
             
             if ($cliente) {
-                // Asignar ID al formulario
-                $this->data['customer_id'] = $cliente->id;
-                // MANTENER el ID en nuevoClienteNombre para que el select muestre el cliente correcto
-                $this->nuevoClienteNombre = $cliente->id;
-                
-                // Asegurar que el cliente está en la lista
-                if (!isset($this->resultadosClientes[$cliente->id])) {
-                    $this->resultadosClientes[$cliente->id] = $cliente->nombre_comercial;
-                }
-                
-                $this->guardarCabecera();
+            $tercero = Tercero::find($this->nuevoClienteNombre);
+            
+            if ($tercero) {
+                // No es necesario guardar en customer_id por ahora
+                // debido a incompatibilidad de FK
             } else {
                  if ($force) Notification::make()->title('Cliente no encontrado')->warning()->send();
             }
         }
+    }
+    
+    /**
+     * Convertir SKU a mayúsculas automáticamente
+     */
+    public function updatedNuevoCodigo($value)
+    {
+        $this->nuevoCodigo = strtoupper($value);
     }
 
     // Método para buscar producto por código o nombre

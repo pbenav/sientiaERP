@@ -147,9 +147,9 @@ class FacturaResource extends Resource
                             ->disabled(fn ($record) => $record && $record->estado !== 'borrador'),
                     ]),
 
-                // SECCIÓN 3: PRODUCTOS
-                Forms\Components\View::make('filament.components.document-lines')
-                    ->columnSpanFull(),
+                // SECCIÓN 3: PRODUCTOS - Manejadas por LineasRelationManager (tab abajo)
+                // Forms\Components\View::make('filament.components.document-lines')
+                //     ->columnSpanFull(),
 
                 Forms\Components\Section::make('Observaciones')
                     ->schema([
