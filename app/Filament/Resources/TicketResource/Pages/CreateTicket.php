@@ -68,6 +68,16 @@ class CreateTicket extends CreateRecord
         // INICIALIZAR FECHA A HOY
         $this->fecha = now()->format('Y-m-d');
         
+        // Si viene ticket_id por parámetro, cargar ese ticket
+        $ticketId = request()->query('ticket_id');
+        if ($ticketId) {
+            $ticketExistente = Ticket::find($ticketId);
+            if ($ticketExistente) {
+                $this->cargarTicketExistente($ticketExistente);
+                return;
+            }
+        }
+        
         $this->cargarTpv(1);
     }
     
@@ -84,11 +94,11 @@ class CreateTicket extends CreateRecord
             ],
             [
                 'user_id' => auth()->id(),
-                'session_id' => (string) \Illuminate\Support\Str::uuid(), // UUID único global
-                'numero' => 'BORRADOR', // Se asignará número real al cerrar
+                'session_id' => (string) \Illuminate\Support\Str::uuid(),
+                'numero' => 'BORRADOR',
                 'created_at' => now(),
-                // Asignar cliente POS por defecto
-                'customer_id' => Tercero::where('codigo', 'CLIPOS')->first()?->id,
+                // NO asignar customer_id por ahora - la FK apunta a customers, no terceros
+                // TODO: Migrar relación de customers a terceros
             ]
         );
         
@@ -178,28 +188,34 @@ class CreateTicket extends CreateRecord
     {
         if (!empty($this->nuevoClienteNombre)) {
             // Si viene un ID (del select), buscar por ID
-            $cliente = Tercero::clientes()->activos()->find($this->nuevoClienteNombre);
+            $tercero = Tercero::find($this->nuevoClienteNombre);
             
-            // Si no es ID válido, intentar buscar por nombre
-            if (!$cliente && is_string($this->nuevoClienteNombre)) {
-                $cliente = Tercero::clientes()->activos()->where('nombre_comercial', $this->nuevoClienteNombre)->first();
-            }
-            
-            if ($cliente) {
-                // Asignar ID al formulario
-                $this->data['customer_id'] = $cliente->id;
-                // MANTENER el ID en nuevoClienteNombre para que el select muestre el cliente correcto
-                $this->nuevoClienteNombre = $cliente->id;
-                
-                // Asegurar que el cliente está en la lista
-                if (!isset($this->resultadosClientes[$cliente->id])) {
-                    $this->resultadosClientes[$cliente->id] = $cliente->nombre_comercial;
-                }
-                
-                $this->guardarCabecera();
+            if ($tercero) {
+                // No es necesario guardar en customer_id por ahora
+                // debido a incompatibilidad de FK
             } else {
                  if ($force) Notification::make()->title('Cliente no encontrado')->warning()->send();
             }
+        }
+    }
+    
+    /**
+     * Convertir SKU a mayúsculas automáticamente y autocompletar
+     */
+    public function updatedNuevoCodigo($value)
+    {
+        // Convertir a mayúsculas
+        $this->nuevoCodigo = strtoupper($value);
+        
+        // Autocompletar SKU si tiene al menos 2 caracteres
+        if (strlen($this->nuevoCodigo) >= 2) {
+            $this->resultadosCodigo = Product::where('sku', 'like', "%{$this->nuevoCodigo}%")
+                                        ->orWhere('barcode', 'like', "%{$this->nuevoCodigo}%")
+                                        ->limit(20)
+                                        ->pluck('sku', 'id')
+                                        ->toArray();
+        } else {
+            $this->resultadosCodigo = [];
         }
     }
 
@@ -262,20 +278,6 @@ class CreateTicket extends CreateRecord
     {
         $base = $this->nuevoCantidad * $this->nuevoPrecio;
         $this->nuevoImporte = $base * (1 - ($this->nuevoDescuento / 100));
-    }
-
-    public function updatedNuevoCodigo() 
-    { 
-        // Solo buscar si hay al menos 2 caracteres
-        if (strlen($this->nuevoCodigo) >= 2) {
-            $this->resultadosCodigo = Product::where('sku', 'like', "%{$this->nuevoCodigo}%")
-                                        ->orWhere('barcode', 'like', "%{$this->nuevoCodigo}%")
-                                        ->limit(20)
-                                        ->pluck('sku', 'id')
-                                        ->toArray();
-        } else {
-            $this->resultadosCodigo = [];
-        }
     }
 
     public function updatedNuevoNombre() 
@@ -380,6 +382,146 @@ class CreateTicket extends CreateRecord
         $this->nuevoDescuento = 0;
         $this->nuevoImporte = 0;
         $this->nuevoProducto = null;
+    }
+    
+    /**
+     * Cerrar el ticket actual y preparar uno nuevo
+     */
+    public function grabarTicket()
+    {
+        // Validar que hay líneas
+        if (empty($this->lineas)) {
+            Notification::make()
+                ->title('No se puede grabar un ticket vacío')
+                ->warning()
+                ->send();
+            return;
+        }
+        
+        // IMPORTANTE: Asegurar que todas las líneas están guardadas en la base de datos
+        // Borrar todas las líneas existentes y recrearlas (para evitar inconsistencias)
+        $this->ticket->items()->delete();
+        
+        foreach ($this->lineas as $linea) {
+            $this->ticket->items()->create([
+                'product_id' => $linea['product_id'],
+                'quantity' => $linea['cantidad'],
+                'unit_price' => $linea['precio'],
+                'tax_rate' => 21, // TODO: Obtener del producto
+                'subtotal' => $linea['importe'] / 1.21,
+                'tax_amount' => $linea['importe'] - ($linea['importe'] / 1.21),
+                'total' => $linea['importe'],
+            ]);
+        }
+        
+        // Recalcular totales finales
+        $this->ticket->recalculateTotals();
+        
+        // Cambiar estado del ticket
+        $this->ticket->status = 'completed';
+        
+        // Asignar número definitivo si aún es BORRADOR
+        if ($this->ticket->numero === 'BORRADOR') {
+            // Generar número secuencial
+            $ultimoNumero = Ticket::where('status', '!=', 'open')
+                                  ->max('id') ?? 0;
+            $this->ticket->numero = 'TKT-' . str_pad($ultimoNumero + 1, 6, '0', STR_PAD_LEFT);
+        }
+        
+        // Guardar ticket
+        $this->ticket->save();
+        
+        // Notificación de éxito
+        $cantidadArticulos = count($this->lineas);
+        Notification::make()
+            ->title('Ticket guardado')
+            ->body("Ticket {$this->ticket->numero} con {$cantidadArticulos} artículos")
+            ->success()
+            ->send();
+        
+        // Limpiar todo y crear nuevo ticket
+        $this->lineas = [];
+        $this->total = 0;
+        $this->limpiarInputs();
+        
+        // Cargar nuevo ticket para este TPV
+        $this->cargarTpv($this->tpvActivo);
+        
+        // Enfocar código para empezar de nuevo
+        $this->dispatch('focus-codigo');
+    }
+    
+    /**
+     * Cargar un ticket existente en el POS
+     */
+    protected function cargarTicketExistente($ticket)
+    {
+        $this->ticket = $ticket;
+        $this->tpvActivo = $ticket->tpv_slot ?? 1;
+        
+        // Cargar líneas
+        $this->lineas = $ticket->items()->get()->map(function($item) {
+            return [
+                'id' => $item->id, // Guardar ID del item para edición
+                'product_id' => $item->product_id,
+                'codigo' => $item->product->sku ?? '---',
+                'nombre' => $item->product->name,
+                'cantidad' => $item->quantity,
+                'precio' => $item->unit_price,
+                'descuento' => 0,
+                'importe' => $item->total,
+            ];
+        })->toArray();
+        
+        $this->recalcularTotales();
+        
+        // Cargar fecha y número
+        $this->fecha = $ticket->created_at->format('Y-m-d');
+        $this->data['fecha'] = $this->fecha;
+        $this->data['numero'] = $ticket->id;
+        
+        // Cargar cliente si existe
+        if ($ticket->customer_id && $ticket->customer) {
+            $this->form->fill(['customer_id' => $ticket->customer_id]);
+            $this->nuevoClienteNombre = $ticket->customer_id;
+            if (!isset($this->resultadosClientes[$ticket->customer_id])) {
+                $this->resultadosClientes[$ticket->customer_id] = $ticket->customer->name;
+            }
+        }
+        
+        $this->limpiarInputs();
+    }
+    
+    /**
+     * Editar una línea existente  (sube datos a barra de edición)
+     */
+    public function editarLinea($index)
+    {
+        if (!isset($this->lineas[$index])) {
+            return;
+        }
+        
+        $linea = $this->lineas[$index];
+        
+        // Cargar producto
+        $this->nuevoProducto = Product::find($linea['product_id']);
+        $this->nuevoCodigo = $linea['codigo'];
+        $this->nuevoNombre = $linea['nombre'];
+        $this->nuevoCantidad = $linea['cantidad'];
+        $this->nuevoPrecio = $linea['precio'];
+        $this->nuevoDescuento = $linea['descuento'];
+        $this->calcularImporteLinea();
+        
+        // Eliminar la línea del array (se volverá a añadir al confirmar)
+        $this->eliminarLinea($index);
+        
+        // Enfocar cantidad para modificar
+        $this->dispatch('focus-cantidad');
+        
+        Notification::make()
+            ->title('Artículo cargado para edición')
+            ->info()
+            ->send();
     }
     
     // Sobreescribir create para cerrar ticket

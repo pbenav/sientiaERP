@@ -141,7 +141,84 @@ class TicketResource extends Resource
                     }),
             ])
             ->actions([
+                Tables\Actions\Action::make('generarFactura')
+                    ->label('Generar Factura')
+                    ->icon('heroicon-o-document-text')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->action(function (Ticket $record) {
+                        // Cargar items del ticket
+                        $items = $record->items()->get();
+                        
+                        if ($items->isEmpty()) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Error')
+                                ->body('El ticket no tiene líneas para generar la factura')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+                        
+                        
+                        // Determinar el tercero para la factura
+                        $terceroId = $record->customer_id;
+                        if (!$terceroId) {
+                            // Si el ticket no tiene cliente, usar el cliente POS por defecto
+                            $terceroId = \App\Models\Setting::get('pos_default_customer_id');
+                        }
+                        
+                        if (!$terceroId) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Error')
+                                ->body('No se puede generar factura: el ticket no tiene cliente asignado')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+                        
+                        // Crear documento tipo factura en borrador
+                        $factura = \App\Models\Documento::create([
+                            'tipo' => 'factura',
+                            'tercero_id' => $terceroId,
+                            'user_id' => auth()->id(),
+                            'estado' => 'borrador',
+                            'fecha' => now(),
+                            'observaciones' => "Generada automáticamente desde Ticket #{$record->id}\nFecha ticket: {$record->created_at->format('d/m/Y H:i')}",
+                        ]);
+                        
+                        // Copiar líneas del ticket a la factura
+                        $orden = 1;
+                        foreach ($items as $item) {
+                            $linea = \App\Models\DocumentoLinea::create([
+                                'documento_id' => $factura->id,
+                                'producto_id' => $item->product_id,
+                                'orden' => $orden++,
+                                'codigo' => $item->product->sku ?? '',
+                                'descripcion' => $item->product->name ?? 'Producto',
+                                'cantidad' => $item->quantity,
+                                'precio_unitario' => $item->unit_price,
+                                'descuento' => 0,
+                                'iva' => 21, // Valor por defecto
+                            ]);
+                        }
+                        
+                        // Recalcular totales
+                        $factura->recalcularTotales();
+                        
+                        \Filament\Notifications\Notification::make()
+                            ->title('Factura creada')
+                            ->body("Factura #{$factura->id} con {$items->count()} líneas")
+                            ->success()
+                            ->send();
+                    }),
+                Tables\Actions\Action::make('mostrarEnPOS')
+                    ->label('Mostrar en POS')
+                    ->icon('heroicon-o-computer-desktop')
+                    ->color('warning')
+                    ->url(fn ($record) => TicketResource::getUrl('create', ['ticket_id' => $record->id])),
                 Tables\Actions\ViewAction::make(),
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->defaultSort('created_at', 'desc');
     }
