@@ -200,11 +200,23 @@ class CreateTicket extends CreateRecord
     }
     
     /**
-     * Convertir SKU a mayúsculas automáticamente
+     * Convertir SKU a mayúsculas automáticamente y autocompletar
      */
     public function updatedNuevoCodigo($value)
     {
+        // Convertir a mayúsculas
         $this->nuevoCodigo = strtoupper($value);
+        
+        // Autocompletar SKU si tiene al menos 2 caracteres
+        if (strlen($this->nuevoCodigo) >= 2) {
+            $this->resultadosCodigo = Product::where('sku', 'like', "%{$this->nuevoCodigo}%")
+                                        ->orWhere('barcode', 'like', "%{$this->nuevoCodigo}%")
+                                        ->limit(20)
+                                        ->pluck('sku', 'id')
+                                        ->toArray();
+        } else {
+            $this->resultadosCodigo = [];
+        }
     }
 
     // Método para buscar producto por código o nombre
@@ -266,20 +278,6 @@ class CreateTicket extends CreateRecord
     {
         $base = $this->nuevoCantidad * $this->nuevoPrecio;
         $this->nuevoImporte = $base * (1 - ($this->nuevoDescuento / 100));
-    }
-
-    public function updatedNuevoCodigo() 
-    { 
-        // Solo buscar si hay al menos 2 caracteres
-        if (strlen($this->nuevoCodigo) >= 2) {
-            $this->resultadosCodigo = Product::where('sku', 'like', "%{$this->nuevoCodigo}%")
-                                        ->orWhere('barcode', 'like', "%{$this->nuevoCodigo}%")
-                                        ->limit(20)
-                                        ->pluck('sku', 'id')
-                                        ->toArray();
-        } else {
-            $this->resultadosCodigo = [];
-        }
     }
 
     public function updatedNuevoNombre() 
