@@ -188,14 +188,6 @@ class CreateTicket extends CreateRecord
     {
         if (!empty($this->nuevoClienteNombre)) {
             // Si viene un ID (del select), buscar por ID
-            $cliente = Tercero::clientes()->activos()->find($this->nuevoClienteNombre);
-            
-            // Si no es ID válido, intentar buscar por nombre
-            if (!$cliente && is_string($this->nuevoClienteNombre)) {
-                $cliente = Tercero::clientes()->activos()->where('nombre_comercial', $this->nuevoClienteNombre)->first();
-            }
-            
-            if ($cliente) {
             $tercero = Tercero::find($this->nuevoClienteNombre);
             
             if ($tercero) {
