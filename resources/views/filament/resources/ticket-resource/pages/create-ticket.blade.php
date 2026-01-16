@@ -111,7 +111,7 @@
                            wire:change="buscarProducto"
                            list="codigos-list"
                            id="pos-codigo"
-                           class="pos-input w-full h-9 border-gray-300 rounded px-2 font-mono text-sm focus:ring-primary-500 focus:border-primary-500" 
+                           class="pos-input w-full h-9 border-gray-300 rounded px-2 font-mono text-sm focus:ring-primary-500 focus:border-primary-500 uppercase" 
                            placeholder="Escribe SKU..." 
                            autofocus />
                     <datalist id="codigos-list">
@@ -178,38 +178,55 @@
             <div class="flex-1 border border-gray-200 rounded-lg bg-white shadow-sm overflow-hidden flex flex-col">
                 <div class="overflow-y-auto flex-1">
                     <table class="w-full text-sm text-left">
-                        <thead class="bg-gray-50 text-gray-500 font-bold sticky top-0 border-b border-gray-200 text-xs uppercase z-10">
+                        <thead class="bg-gray-200 text-gray-700 text-xs uppercase sticky top-0">
                             <tr>
-                                <th class="px-4 py-2 font-semibold tracking-wider">Código</th>
-                                <th class="px-4 py-2 font-semibold tracking-wider">Descripción</th>
-                                <th class="px-4 py-2 font-semibold tracking-wider text-right w-20">Cant.</th>
-                                <th class="px-4 py-2 font-semibold tracking-wider text-right w-24">Precio</th>
-                                <th class="px-4 py-2 font-semibold tracking-wider text-right w-16">Dto</th>
-                                <th class="px-4 py-2 font-semibold tracking-wider text-right w-28">Total</th>
-                                <th class="px-4 py-2 w-10"></th>
+                                <th class="px-2 py-2 text-right w-12">#</th>
+                                <th class="px-2 py-2 text-left w-20">Código</th>
+                                <th class="px-2 py-2 text-left">Descripción</th>
+                                <th class="px-2 py-2 text-right w-16">Cant.</th>
+                                <th class="px-2 py-2 text-right w-20">Precio</th>
+                                <th class="px-2 py-2 text-right w-16">Dto%</th>
+                                <th class="px-2 py-2 text-right w-24">Importe</th>
+                                <th class="px-2 py-2 text-center w-20">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100">
-                            @foreach($lineas as $idx => $linea)
-                            <tr class="hover:bg-amber-50 cursor-pointer transition">
-                                <td class="px-4 py-2 font-mono text-gray-500 text-xs">{{ $linea['codigo'] }}</td>
-                                <td class="px-4 py-2 font-medium text-gray-900">{{ $linea['nombre'] }}</td>
-                                <td class="px-4 py-2 text-right text-gray-700">{{ $linea['cantidad'] }}</td>
-                                <td class="px-4 py-2 text-right text-gray-700">{{ number_format($linea['precio'], 2) }}</td>
-                                <td class="px-4 py-2 text-right text-gray-400">{{ $linea['descuento'] }}</td>
-                                <td class="px-4 py-2 text-right font-bold text-gray-900">{{ number_format($linea['importe'], 2) }}</td>
-                                <td class="px-4 py-2 text-center">
-                                    <button wire:click="eliminarLinea({{ $idx }})" class="text-gray-300 hover:text-red-500 transition">
-                                        <x-heroicon-m-trash class="w-4 h-4"/>
-                                    </button>
+                        <tbody class="text-sm">
+                            @forelse($lineas as $idx => $linea)
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="px-2 py-1 text-right text-gray-600 font-medium">{{ $idx + 1 }}</td>
+                                <td class="px-2 py-1 font-mono text-xs">{{ $linea['codigo'] }}</td>
+                                <td class="px-2 py-1 font-medium">{{ $linea['nombre'] }}</td>
+                                <td class="px-2 py-1 text-right font-bold">{{ $linea['cantidad'] }}</td>
+                                <td class="px-2 py-1 text-right">{{ number_format($linea['precio'], 2) }}</td>
+                                <td class="px-2 py-1 text-right text-gray-600">{{ $linea['descuento'] }}</td>
+                                <td class="px-2 py-1 text-right font-bold">{{ number_format($linea['importe'], 2) }} €</td>
+                                <td class="px-2 py-1 text-center">
+                                    <div class="flex items-center justify-center gap-1">
+                                        <button wire:click="editarLinea({{ $idx }})" 
+                                                class="text-amber-600 hover:text-amber-800 p-1 rounded hover:bg-amber-50"
+                                                title="Editar">
+                                            <x-heroicon-o-pencil class="w-4 h-4"/>
+                                        </button>
+                                        <button wire:click="eliminarLinea({{ $idx }})" 
+                                                class="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"
+                                                title="Eliminar">
+                                            <x-heroicon-o-trash class="w-4 h-4"/>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
-                            @endforeach
+                            @empty
+                            <tr>
+                                <td colspan="8" class="px-2 py-8 text-center text-gray-400">
+                                    No hay artículos añadidos
+                                </td>
+                            </tr>
+                            @endforelse
                             
-                            {{-- Placeholders para mantener altura --}}
-                            @for($i = 0; $i < max(0, 10 - count($lineas)); $i++)
-                            <tr class="h-10 border-b border-gray-50">
-                                <td colspan="7"></td>
+                            {{-- Filas placeholder para mantener altura fija (10 líneas) --}}
+                            @for($i = count($lineas); $i < 10; $i++)
+                            <tr class="border-b">
+                                <td colspan="8" class="px-2 py-2">&nbsp;</td>
                             </tr>
                             @endfor
                         </tbody>
@@ -230,7 +247,9 @@
                         ['Nueva', 'heroicon-o-plus', 'bg-gradient-to-b from-amber-100 to-amber-200 border-amber-400 text-amber-900 font-black'],
                         ['Salir', 'heroicon-o-arrow-right-on-rectangle', 'bg-gradient-to-b from-amber-100 to-amber-200 border-amber-400 text-amber-900'],
                      ] as $i => $btn)
-                     <button class="flex flex-col items-center justify-center rounded border shadow-sm active:scale-95 transition {{ $btn[2] }} {{ $i >= 3 ? 'ring-1 ring-amber-300' : '' }} w-full h-full">
+                     <button 
+                        @if($btn[0] === 'Grabar') wire:click="grabarTicket" @endif
+                        class="flex flex-col items-center justify-center rounded border shadow-sm active:scale-95 transition {{ $btn[2] }} {{ $i >= 3 ? 'ring-1 ring-amber-300' : '' }} w-full h-full">
                         <x-dynamic-component :component="$btn[1]" class="w-10 h-10 mb-1"/>
                         <span class="font-bold text-xs leading-none text-center uppercase shadow-sm">{{ $btn[0] }}</span>
                      </button>
