@@ -149,14 +149,8 @@ class CreateTicket extends Page
             if ($cliente) {
                 // Asegurarse de que el cliente está en la lista
                 $this->resultadosClientes[$this->ticket->tercero_id] = $cliente->nombre_comercial;
-                // Asignar el valor al select
+                // Asignar el valor al select (convertir a string para que Livewire lo reconozca)
                 $this->nuevoClienteNombre = (string) $this->ticket->tercero_id;
-                
-                \Illuminate\Support\Facades\Log::info('POS: Cliente cargado', [
-                    'tercero_id' => $this->ticket->tercero_id,
-                    'nombre' => $cliente->nombre_comercial,
-                    'nuevoClienteNombre' => $this->nuevoClienteNombre
-                ]);
             }
         } else {
             $this->nuevoClienteNombre = '';
@@ -315,8 +309,8 @@ class CreateTicket extends Page
             }
         }
 
-        // Solo notificar error si fue una acción forzada (Enter)
-        if ($force) {
+        // Solo notificar error si fue una acción forzada (Enter) Y había algo escrito
+        if ($force && (!empty($this->nuevoCodigo) || !empty($this->nuevoNombre))) {
             Notification::make()->title('Producto no encontrado')->warning()->send();
             $this->limpiarInputs();
         }
