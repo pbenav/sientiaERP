@@ -3,7 +3,8 @@
 namespace App\Filament\Resources\TicketResource\Pages;
 
 use App\Filament\Resources\TicketResource;
-use Filament\Resources\Pages\CreateRecord;
+use Filament\Resources\Pages\Page;
+use Livewire\Component;
 use Filament\Actions;
 use Filament\Forms\Set; 
 use App\Models\Tercero;
@@ -11,7 +12,7 @@ use App\Models\Product;
 use App\Models\Ticket;
 use Filament\Notifications\Notification;
 
-class CreateTicket extends CreateRecord
+class CreateTicket extends Page
 {
     protected static string $resource = TicketResource::class;
 
@@ -49,6 +50,7 @@ class CreateTicket extends CreateRecord
     public $subtotal = 0;
     public $impuestos = 0;
     public $entrega = 0;
+    public $payment_method = 'cash'; // Método de pago (cash, card)
 
     public function mount(): void
     {
