@@ -90,15 +90,17 @@ class CreateTicket extends Page
     {
         $this->tpvActivo = $slot;
         
-        // Buscar ticket abierto para este TPV SLOT
-        $ticketExistia = Ticket::where('tpv_slot', $slot)
-            ->where('status', 'open')
-            ->exists();
-            
+        // Intentar cargar ticket abierto para este slot
+        $ticketExistente = Ticket::where('tpv_slot', $slot)
+                                 ->where('status', 'open')
+                                 ->first();
+        
+        $ticketExistia = (bool) $ticketExistente;
+        
         $this->ticket = Ticket::firstOrCreate(
             [
                 'tpv_slot' => $slot,
-                'status' => 'open'
+                'status' => 'open',
             ],
             [
                 'user_id' => auth()->id(),
@@ -108,8 +110,8 @@ class CreateTicket extends Page
             ]
         );
         
-        // Si es un ticket nuevo (recién creado), asignar cliente por defecto
-        if (!$ticketExistia && !$this->ticket->tercero_id) {
+        // IMPORTANTE: Asignar cliente por defecto si no tiene cliente asignado
+        if (!$this->ticket->tercero_id) {
             $clientePorDefectoId = \App\Models\Setting::get('pos_default_tercero_id');
             if ($clientePorDefectoId) {
                 $this->ticket->tercero_id = $clientePorDefectoId;
