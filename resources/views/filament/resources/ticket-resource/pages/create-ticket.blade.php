@@ -108,6 +108,7 @@
                     <input type="text" 
                            wire:model.live.debounce.300ms="nuevoCodigo" 
                            wire:blur="buscarProducto(true)" 
+                           @input="$el.value = $el.value.toUpperCase()"
                            list="codigos-list"
                            id="pos-codigo"
                            class="pos-input w-full h-9 border-gray-300 rounded px-2 font-mono text-sm focus:ring-primary-500 focus:border-primary-500 uppercase" 
