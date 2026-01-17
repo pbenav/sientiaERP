@@ -112,10 +112,9 @@
                 <div class="w-32">
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Código</label>
                     <input type="text" 
-                           wire:model.live.debounce.300ms="nuevoCodigo" 
+                           wire:model.live.debounce.150ms="nuevoCodigo" 
                            wire:blur="buscarProducto(true)" 
                            wire:keydown.enter="buscarProducto(true); $nextTick(() => document.getElementById('pos-descripcion').focus());"
-                           @focus="$wire.cargarProductosIniciales()"
                            list="codigos-list"
                            id="pos-codigo"
                            class="pos-input w-full h-9 border-gray-300 rounded px-2 font-mono text-sm focus:ring-primary-500 focus:border-primary-500 uppercase" 
@@ -131,10 +130,9 @@
                 <div class="flex-1 min-w-[200px]">
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Descripción</label>
                     <input type="text" 
-                           wire:model.live.debounce.300ms="nuevoNombre" 
+                           wire:model.live.debounce.150ms="nuevoNombre" 
                            wire:blur="buscarProducto(true)" 
                            wire:keydown.enter="document.getElementById('pos-cantidad').focus()"
-                           @focus="$wire.cargarProductosIniciales()"
                            list="productos-list"
                            id="pos-descripcion"
                            class="pos-input w-full h-9 border-gray-300 rounded px-2 text-sm focus:ring-primary-500 focus:border-primary-500"

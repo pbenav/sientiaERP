@@ -390,8 +390,6 @@ class CreateTicket extends Page
         $this->recalcularTotales();
         $this->limpiarInputs();
         
-        // Volver foco a código
-        $this->dispatch('focus-codigo');
     }
     
     protected function persistirLinea($linea)
@@ -447,11 +445,11 @@ class CreateTicket extends Page
     {
         $this->nuevoCodigo = '';
         $this->nuevoNombre = '';
+        $this->nuevoProducto = null;
         $this->nuevoCantidad = 1;
         $this->nuevoPrecio = 0;
         $this->nuevoDescuento = 0;
         $this->nuevoImporte = 0;
-        $this->nuevoProducto = null;
     }
     
     /**
