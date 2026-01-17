@@ -258,11 +258,11 @@
                         @if($btn[0] === 'Grabar') 
                             wire:click="grabarTicket" 
                             wire:loading.attr="disabled"
-                            wire:loading.class="!bg-green-700 !text-white !border-green-900 scale-95"
+                            onclick="this.style.background='linear-gradient(to bottom, #059669, #047857)'; this.style.color='white'; this.style.transform='scale(0.9)'; setTimeout(() => { this.style.background=''; this.style.color=''; this.style.transform=''; }, 300);"
                         @endif
                         type="button"
-                        class="flex flex-col items-center justify-center rounded border-2 shadow-md hover:shadow-lg transition-all duration-150 bg-gradient-to-b {{ $btn[2] }} {{ $i >= 3 ? 'ring-1 ring-amber-300' : '' }} min-h-[70px] md:min-h-[90px] {{ $btn[0] === 'Grabar' ? 'ring-2 ring-green-300 active:scale-85 active:shadow-inner active:translate-y-2' : 'active:shadow-sm active:scale-95' }}">
-                        <x-dynamic-component :component="$btn[1]" class="w-8 h-8 md:w-10 md:h-10 mb-1 {{ $btn[0] === 'Grabar' ? 'transition-transform hover:scale-110 active:scale-90' : '' }}"/>
+                        class="flex flex-col items-center justify-center rounded border-2 shadow-md hover:shadow-lg transition-all duration-150 bg-gradient-to-b {{ $btn[2] }} {{ $i >= 3 ? 'ring-1 ring-amber-300' : '' }} min-h-[70px] md:min-h-[90px] {{ $btn[0] === 'Grabar' ? 'ring-2 ring-green-300' : 'active:shadow-sm active:scale-95' }}">
+                        <x-dynamic-component :component="$btn[1]" class="w-8 h-8 md:w-10 md:h-10 mb-1 {{ $btn[0] === 'Grabar' ? 'transition-transform hover:scale-110' : '' }}"/>
                         <span class="font-bold text-[10px] md:text-xs leading-none text-center uppercase">{{ $btn[0] }}</span>
                         @if($btn[0] === 'Grabar')
                             <span wire:loading wire:target="grabarTicket" class="absolute inset-0 flex items-center justify-center bg-green-700 bg-opacity-90 rounded text-white font-bold text-xs">
