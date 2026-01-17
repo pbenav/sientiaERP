@@ -177,6 +177,23 @@ class CreateTicket extends CreateRecord
     // Buscador de Clientes
     public function updatedNuevoClienteNombre() 
     { 
+        // Si es un ID numérico (cliente seleccionado), no hacer búsqueda
+        // Solo guardar el cliente en el ticket
+        if (is_numeric($this->nuevoClienteNombre) && $this->nuevoClienteNombre > 0) {
+            $tercero = Tercero::find($this->nuevoClienteNombre);
+            if ($tercero) {
+                // Guardar el cliente en el ticket actual
+                $this->ticket->customer_id = $tercero->id;
+                $this->ticket->save();
+                
+                // Asegurarse de que el cliente está en la lista
+                if (!isset($this->resultadosClientes[$tercero->id])) {
+                    $this->resultadosClientes[$tercero->id] = $tercero->nombre_comercial;
+                }
+            }
+            return;
+        }
+        
         // Si está vacío, mostrar los primeros 10 ordenados
         if (empty($this->nuevoClienteNombre)) {
             $this->resultadosClientes = Tercero::clientes()
