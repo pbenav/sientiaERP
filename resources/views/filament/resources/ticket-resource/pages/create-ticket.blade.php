@@ -30,29 +30,32 @@
             }
         }
     }" 
-    class="flex flex-col bg-white border border-gray-200 shadow-sm font-sans text-sm text-gray-900 h-[85vh] overflow-hidden rounded-lg">
+    class="flex flex-col bg-white border border-gray-200 shadow-sm font-sans text-sm text-gray-900 min-h-screen md:h-[85vh] overflow-hidden md:rounded-lg">
         
         {{-- Header Compacto --}}
-        <div class="flex items-center bg-white border-b border-gray-200 px-4 py-2 space-x-6 shrink-0 shadow-sm">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:flex lg:items-center gap-2 md:gap-4 lg:gap-6 bg-white border-b border-gray-200 px-3 md:px-4 py-2 shrink-0 shadow-sm">
             
-            {{-- Número --}}
-            <div class="w-32">
-                <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Número</label>
-                <input type="text" value="{{ $this->data['numero'] ?? 'AUTO' }}" readonly
-                       class="w-full h-9 bg-gray-50 border border-gray-300 rounded px-2 text-sm font-mono font-medium text-gray-700" />
-            </div>
-            
-            {{-- Fecha --}}
-            <div class="w-40">
-                <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Fecha</label>
-                <input type="date" 
-                       wire:model="fecha"
-                       id="pos-fecha"
-                       class="w-full h-9 border-gray-300 rounded px-2 text-sm font-medium focus:ring-primary-500 focus:border-primary-500" />
+            {{-- Número y Fecha en móvil juntos --}}
+            <div class="flex gap-2 md:contents">
+                {{-- Número --}}
+                <div class="flex-1 md:w-32">
+                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Número</label>
+                    <input type="text" value="{{ $this->data['numero'] ?? 'AUTO' }}" readonly
+                           class="w-full h-9 bg-gray-50 border border-gray-300 rounded px-2 text-sm font-mono font-medium text-gray-700" />
+                </div>
+                
+                {{-- Fecha --}}
+                <div class="flex-1 md:w-40">
+                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Fecha</label>
+                    <input type="date" 
+                           wire:model="fecha"
+                           id="pos-fecha"
+                           class="w-full h-9 border-gray-300 rounded px-2 text-sm font-medium focus:ring-primary-500 focus:border-primary-500" />
+                </div>
             </div>
 
             {{-- Cliente --}}
-            <div class="flex-1">
+            <div class="md:col-span-2 lg:flex-1">
                 <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Cliente</label>
                 <div class="relative">
                    <select wire:model.live="nuevoClienteNombre" 
@@ -68,8 +71,8 @@
                 </div>
             </div>
             
-            {{-- Teléfono (placeholder for now) --}}
-            <div class="w-40">
+            {{-- Teléfono oculto en móvil --}}
+            <div class="hidden lg:block w-40">
                 <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Teléfono</label>
                 <input type="text" readonly
                        class="w-full h-9 bg-gray-50 border border-gray-300 rounded px-2 text-sm text-gray-600" 
@@ -77,23 +80,23 @@
             </div>
 
             {{-- TPV Buttons --}}
-            <div class="flex flex-col gap-1">
-                <div class="flex gap-1">
+            <div class="flex flex-col gap-1 md:col-span-2 lg:col-span-1">
+                <div class="grid grid-cols-4 gap-1">
                     @foreach(range(1,4) as $tpv)
                         <button wire:click="cambiarTpv({{ $tpv }})" 
                                 type="button"
-                                class="px-3 py-1.5 rounded text-xs font-bold transition-all duration-200 
+                                class="px-2 md:px-3 py-1.5 rounded text-xs font-bold transition-all duration-200 shadow-md active:scale-95
                                        {{ $tpvActivo === $tpv 
-                                          ? 'bg-gradient-to-b from-primary-500 to-primary-700 text-white shadow-lg scale-95 ring-2 ring-primary-300' 
-                                          : 'bg-gradient-to-b from-gray-100 to-gray-200 text-gray-700 hover:from-gray-200 hover:to-gray-300 shadow-md hover:shadow-lg active:scale-95' }}"
+                                          ? 'bg-primary-600 text-white shadow-lg ring-2 ring-primary-300' 
+                                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:shadow-lg' }}"
                                 wire:loading.class="opacity-50 cursor-wait"
                                 wire:target="cambiarTpv">
-                            TPV {{ $tpv }}
+                            TPV{{ $tpv }}
                         </button>
                     @endforeach
                 </div>
                 <button type="button" 
-                        class="px-3 py-1 bg-gradient-to-b from-gray-50 to-gray-100 border border-gray-300 hover:from-gray-100 hover:to-gray-200 rounded text-xs flex items-center justify-center text-gray-700 font-bold shadow-md hover:shadow-lg transition-all active:scale-95">
+                        class="hidden md:flex px-3 py-1 bg-gray-100 border border-gray-300 hover:bg-gray-200 rounded text-xs items-center justify-center text-gray-700 font-bold shadow-sm transition active:scale-95">
                     <x-heroicon-o-ticket class="w-3 h-3 mr-1 text-primary-500"/> VALE
                 </button>
             </div>
@@ -242,22 +245,22 @@
             {{-- Footer Principal --}}
             <div class="flex gap-4 h-52 shrink-0 bg-gray-100 p-2 rounded-lg border border-gray-300">
                 
-                {{-- Panel Botones (Izquierda) - Grid 3x2 Estricto --}}
-                <div class="shrink-0 w-[420px]" style="display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 0.5rem;">
+                {{-- Panel Botones (Izquierda) - Grid adaptativo --}}
+                <div class="grid grid-cols-3 sm:grid-cols-3 gap-2 w-full md:w-[420px]">
                      @foreach([
-                        ['Grabar', 'heroicon-o-check', 'from-green-400 to-green-600 border-green-500 text-white hover:from-green-500 hover:to-green-700'],
-                        ['Imprimir', 'heroicon-o-printer', 'from-blue-400 to-blue-600 border-blue-500 text-white hover:from-blue-500 hover:to-blue-700'],
-                        ['Ticket Regalo', 'heroicon-o-gift', 'from-purple-400 to-purple-600 border-purple-500 text-white hover:from-purple-500 hover:to-purple-700'],
-                        ['Abrir Cajón', 'heroicon-o-inbox', 'from-amber-300 to-amber-500 border-amber-500 text-amber-900 hover:from-amber-400 hover:to-amber-600'],
-                        ['Nueva', 'heroicon-o-plus', 'from-emerald-400 to-emerald-600 border-emerald-500 text-white hover:from-emerald-500 hover:to-emerald-700 font-black'],
-                        ['Salir', 'heroicon-o-arrow-right-on-rectangle', 'from-red-400 to-red-600 border-red-500 text-white hover:from-red-500 hover:to-red-700'],
+                        ['Grabar', 'heroicon-o-check', 'from-white to-gray-100 border-gray-400 text-green-700 hover:from-gray-50 hover:to-gray-200'],
+                        ['Imprimir', 'heroicon-o-printer', 'from-white to-gray-100 border-gray-400 text-gray-700 hover:from-gray-50 hover:to-gray-200'],
+                        ['Regalo', 'heroicon-o-gift', 'from-white to-gray-100 border-gray-400 text-purple-700 hover:from-gray-50 hover:to-gray-200'],
+                        ['Cajón', 'heroicon-o-inbox', 'from-amber-100 to-amber-200 border-amber-400 text-amber-900 hover:from-amber-200 hover:to-amber-300'],
+                        ['Nueva', 'heroicon-o-plus', 'from-amber-100 to-amber-200 border-amber-400 text-amber-900 hover:from-amber-200 hover:to-amber-300 font-black'],
+                        ['Salir', 'heroicon-o-arrow-right-on-rectangle', 'from-amber-100 to-amber-200 border-amber-400 text-amber-900 hover:from-amber-200 hover:to-amber-300'],
                      ] as $i => $btn)
                      <button 
                         @if($btn[0] === 'Grabar') wire:click="grabarTicket" wire:loading.attr="disabled" @endif
                         type="button"
-                        class="flex flex-col items-center justify-center rounded-lg border-2 shadow-lg hover:shadow-xl active:shadow-md active:scale-95 transition-all duration-200 bg-gradient-to-b {{ $btn[2] }} w-full h-full">
-                        <x-dynamic-component :component="$btn[1]" class="w-10 h-10 mb-1 drop-shadow"/>
-                        <span class="font-bold text-xs leading-none text-center uppercase drop-shadow">{{ $btn[0] }}</span>
+                        class="flex flex-col items-center justify-center rounded border shadow-md hover:shadow-lg active:shadow-sm active:scale-95 transition-all duration-200 bg-gradient-to-b {{ $btn[2] }} {{ $i >= 3 ? 'ring-1 ring-amber-300' : '' }} min-h-[70px] md:min-h-[90px]">
+                        <x-dynamic-component :component="$btn[1]" class="w-8 h-8 md:w-10 md:h-10 mb-1"/>
+                        <span class="font-bold text-[10px] md:text-xs leading-none text-center uppercase">{{ $btn[0] }}</span>
                      </button>
                      @endforeach
                 </div>
