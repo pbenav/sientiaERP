@@ -63,7 +63,8 @@ class CreateTicket extends CreateRecord
                                     ->pluck('nombre_comercial', 'id')
                                     ->toArray();
         
-        // NO cargar productos inicialmente - solo al buscar
+        // Cargar primeros productos para mostrar en datalist al hacer focus
+        $this->cargarProductosIniciales();
         
         // INICIALIZAR FECHA A HOY
         $this->fecha = now()->format('Y-m-d');
@@ -151,6 +152,17 @@ class CreateTicket extends CreateRecord
         
         // Limpiar inputs entrada
         $this->limpiarInputs();
+    }
+    
+    public function cargarProductosIniciales()
+    {
+        // Cargar primeros 20 productos para mostrar en datalists
+        $productos = Product::orderBy('name')
+                            ->limit(20)
+                            ->get();
+        
+        $this->resultadosCodigo = $productos->pluck('sku', 'id')->toArray();
+        $this->resultadosNombre = $productos->pluck('name', 'id')->toArray();
     }
     
     public function cambiarTpv($slot)
