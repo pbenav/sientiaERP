@@ -169,7 +169,7 @@
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Dto %</label>
                     <input type="number" 
                            wire:model.live="nuevoDescuento"
-                           wire:keydown.enter="document.getElementById('btn-anadir-producto').click()"
+                           wire:keydown.enter="document.getElementById('btn-anadir-producto').focus()"
                            step="0.01"
                            id="pos-descuento"
                            class="pos-input w-full h-9 border-gray-300 rounded px-2 text-right text-sm focus:ring-primary-500 focus:border-primary-500" />
@@ -179,7 +179,11 @@
                     <span class="font-bold text-lg leading-none text-primary-600">{{ number_format($nuevoImporte, 2) }}</span>
                 </div>
                 
-                <button wire:click="anotarLinea" class="pos-action mt-4 h-9 w-12 bg-primary-600 hover:bg-primary-500 text-white rounded shadow-sm flex items-center justify-center transition focus:ring-2 focus:ring-offset-1 focus:ring-primary-600" style="margin-top: 20px;">
+                <button wire:click="anotarLinea" 
+                        wire:keydown.enter="anotarLinea"
+                        id="btn-anadir-producto"
+                        tabindex="0"
+                        class="pos-action mt-4 h-9 w-12 bg-primary-600 hover:bg-primary-500 text-white rounded shadow-sm flex items-center justify-center transition focus:ring-2 focus:ring-offset-1 focus:ring-primary-600" style="margin-top: 20px;">
                     <x-heroicon-m-plus class="w-5 h-5"/>
                 </button>
             </div>
