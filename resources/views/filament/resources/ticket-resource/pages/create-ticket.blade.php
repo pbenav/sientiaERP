@@ -81,12 +81,19 @@
                 <div class="flex gap-1">
                     @foreach(range(1,4) as $tpv)
                         <button wire:click="cambiarTpv({{ $tpv }})" 
-                                class="px-3 py-1 rounded text-xs font-bold transition {{ $tpvActivo === $tpv ? 'bg-primary-600 text-white shadow' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
+                                type="button"
+                                class="px-3 py-1.5 rounded text-xs font-bold transition-all duration-200 
+                                       {{ $tpvActivo === $tpv 
+                                          ? 'bg-gradient-to-b from-primary-500 to-primary-700 text-white shadow-lg scale-95 ring-2 ring-primary-300' 
+                                          : 'bg-gradient-to-b from-gray-100 to-gray-200 text-gray-700 hover:from-gray-200 hover:to-gray-300 shadow-md hover:shadow-lg active:scale-95' }}"
+                                wire:loading.class="opacity-50 cursor-wait"
+                                wire:target="cambiarTpv">
                             TPV {{ $tpv }}
                         </button>
                     @endforeach
                 </div>
-                <button class="px-3 py-1 bg-gray-100 border border-gray-300 hover:bg-gray-200 rounded text-xs flex items-center justify-center text-gray-700 font-bold shadow-sm transition">
+                <button type="button" 
+                        class="px-3 py-1 bg-gradient-to-b from-gray-50 to-gray-100 border border-gray-300 hover:from-gray-100 hover:to-gray-200 rounded text-xs flex items-center justify-center text-gray-700 font-bold shadow-md hover:shadow-lg transition-all active:scale-95">
                     <x-heroicon-o-ticket class="w-3 h-3 mr-1 text-primary-500"/> VALE
                 </button>
             </div>
@@ -238,18 +245,19 @@
                 {{-- Panel Botones (Izquierda) - Grid 3x2 Estricto --}}
                 <div class="shrink-0 w-[420px]" style="display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 0.5rem;">
                      @foreach([
-                        ['Grabar', 'heroicon-o-check', 'bg-gradient-to-b from-white to-gray-100 border-gray-400 text-green-700'],
-                        ['Imprimir', 'heroicon-o-printer', 'bg-gradient-to-b from-white to-gray-100 border-gray-400 text-gray-700'],
-                        ['Ticket Regalo', 'heroicon-o-gift', 'bg-gradient-to-b from-white to-gray-100 border-gray-400 text-purple-700'],
-                        ['Abrir Cajón', 'heroicon-o-inbox', 'bg-gradient-to-b from-amber-100 to-amber-200 border-amber-400 text-amber-900'],
-                        ['Nueva', 'heroicon-o-plus', 'bg-gradient-to-b from-amber-100 to-amber-200 border-amber-400 text-amber-900 font-black'],
-                        ['Salir', 'heroicon-o-arrow-right-on-rectangle', 'bg-gradient-to-b from-amber-100 to-amber-200 border-amber-400 text-amber-900'],
+                        ['Grabar', 'heroicon-o-check', 'from-green-400 to-green-600 border-green-500 text-white hover:from-green-500 hover:to-green-700'],
+                        ['Imprimir', 'heroicon-o-printer', 'from-blue-400 to-blue-600 border-blue-500 text-white hover:from-blue-500 hover:to-blue-700'],
+                        ['Ticket Regalo', 'heroicon-o-gift', 'from-purple-400 to-purple-600 border-purple-500 text-white hover:from-purple-500 hover:to-purple-700'],
+                        ['Abrir Cajón', 'heroicon-o-inbox', 'from-amber-300 to-amber-500 border-amber-500 text-amber-900 hover:from-amber-400 hover:to-amber-600'],
+                        ['Nueva', 'heroicon-o-plus', 'from-emerald-400 to-emerald-600 border-emerald-500 text-white hover:from-emerald-500 hover:to-emerald-700 font-black'],
+                        ['Salir', 'heroicon-o-arrow-right-on-rectangle', 'from-red-400 to-red-600 border-red-500 text-white hover:from-red-500 hover:to-red-700'],
                      ] as $i => $btn)
                      <button 
-                        @if($btn[0] === 'Grabar') wire:click="grabarTicket" @endif
-                        class="flex flex-col items-center justify-center rounded border shadow-sm active:scale-95 transition {{ $btn[2] }} {{ $i >= 3 ? 'ring-1 ring-amber-300' : '' }} w-full h-full">
-                        <x-dynamic-component :component="$btn[1]" class="w-10 h-10 mb-1"/>
-                        <span class="font-bold text-xs leading-none text-center uppercase shadow-sm">{{ $btn[0] }}</span>
+                        @if($btn[0] === 'Grabar') wire:click="grabarTicket" wire:loading.attr="disabled" @endif
+                        type="button"
+                        class="flex flex-col items-center justify-center rounded-lg border-2 shadow-lg hover:shadow-xl active:shadow-md active:scale-95 transition-all duration-200 bg-gradient-to-b {{ $btn[2] }} w-full h-full">
+                        <x-dynamic-component :component="$btn[1]" class="w-10 h-10 mb-1 drop-shadow"/>
+                        <span class="font-bold text-xs leading-none text-center uppercase drop-shadow">{{ $btn[0] }}</span>
                      </button>
                      @endforeach
                 </div>
