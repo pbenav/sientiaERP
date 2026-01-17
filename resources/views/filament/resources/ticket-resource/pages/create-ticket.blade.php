@@ -247,7 +247,7 @@
                 {{-- Panel Botones (Izquierda) - Grid adaptativo --}}
                 <div class="grid grid-cols-3 sm:grid-cols-3 gap-2 w-full md:w-[420px]">
                      @foreach([
-                        ['Grabar', 'heroicon-o-check', 'from-green-50 to-green-100 border-green-400 text-green-700 hover:from-green-100 hover:to-green-200 hover:border-green-500 hover:text-green-800 hover:shadow-xl active:from-green-200 active:to-green-300'],
+                        ['Grabar', 'heroicon-o-check', 'from-green-50 to-green-100 border-green-400 text-green-700 hover:from-green-100 hover:to-green-200 hover:border-green-500 hover:text-green-800 hover:shadow-xl active:from-green-300 active:to-green-400 active:border-green-600 active:text-green-900'],
                         ['Imprimir', 'heroicon-o-printer', 'from-white to-gray-100 border-gray-400 text-gray-700 hover:from-gray-50 hover:to-gray-200'],
                         ['Regalo', 'heroicon-o-gift', 'from-white to-gray-100 border-gray-400 text-purple-700 hover:from-gray-50 hover:to-gray-200'],
                         ['Cajón', 'heroicon-o-inbox', 'from-amber-100 to-amber-200 border-amber-400 text-amber-900 hover:from-amber-200 hover:to-amber-300'],
@@ -257,8 +257,8 @@
                      <button 
                         @if($btn[0] === 'Grabar') wire:click="grabarTicket" wire:loading.attr="disabled" @endif
                         type="button"
-                        class="flex flex-col items-center justify-center rounded border-2 shadow-md hover:shadow-lg active:shadow-sm active:scale-95 transition-all duration-150 bg-gradient-to-b {{ $btn[2] }} {{ $i >= 3 ? 'ring-1 ring-amber-300' : '' }} min-h-[70px] md:min-h-[90px] {{ $btn[0] === 'Grabar' ? 'ring-2 ring-green-300' : '' }}">
-                        <x-dynamic-component :component="$btn[1]" class="w-8 h-8 md:w-10 md:h-10 mb-1 {{ $btn[0] === 'Grabar' ? 'transition-transform hover:scale-110' : '' }}"/>
+                        class="flex flex-col items-center justify-center rounded border-2 shadow-md hover:shadow-lg transition-all duration-150 bg-gradient-to-b {{ $btn[2] }} {{ $i >= 3 ? 'ring-1 ring-amber-300' : '' }} min-h-[70px] md:min-h-[90px] {{ $btn[0] === 'Grabar' ? 'ring-2 ring-green-300 active:scale-90 active:shadow-inner active:translate-y-1' : 'active:shadow-sm active:scale-95' }}">
+                        <x-dynamic-component :component="$btn[1]" class="w-8 h-8 md:w-10 md:h-10 mb-1 {{ $btn[0] === 'Grabar' ? 'transition-transform hover:scale-110 active:scale-95' : '' }}"/>
                         <span class="font-bold text-[10px] md:text-xs leading-none text-center uppercase">{{ $btn[0] }}</span>
                      </button>
                      @endforeach
