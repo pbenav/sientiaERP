@@ -264,8 +264,8 @@ class CreateTicket extends Page
         // Convertir a mayúsculas
         $this->nuevoCodigo = strtoupper($value);
         
-        // Autocompletar SKU si tiene al menos 2 caracteres
-        if (strlen($this->nuevoCodigo) >= 2) {
+        // Autocompletar SKU si tiene al menos 1 carácter
+        if (strlen($this->nuevoCodigo) >= 1) {
             $this->resultadosCodigo = Product::where('sku', 'like', "%{$this->nuevoCodigo}%")
                                         ->orWhere('barcode', 'like', "%{$this->nuevoCodigo}%")
                                         ->limit(20)
@@ -339,12 +339,12 @@ class CreateTicket extends Page
 
     public function updatedNuevoNombre() 
     { 
-        // Solo buscar si hay al menos 2 caracteres
-        if (strlen($this->nuevoNombre) >= 2) {
-            $this->resultadosNombre = Product::where('name', 'like', "%{$this->nuevoNombre}%")
-                                        ->limit(20)
-                                        ->pluck('name', 'id')
-                                        ->toArray();
+        // Autocompletar nombre si tiene al menos 1 carácter
+        if (strlen($this->nuevoNombre) >= 1) {
+            $results = Product::where('name', 'like', "%{$this->nuevoNombre}%")
+                                ->limit(20)
+                                ->get();
+            $this->resultadosNombre = $results->pluck('name', 'id')->toArray();
         } else {
             $this->resultadosNombre = [];
         }
