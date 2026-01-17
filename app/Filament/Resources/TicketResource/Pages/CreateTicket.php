@@ -101,16 +101,14 @@ class CreateTicket extends CreateRecord
                 'session_id' => (string) \Illuminate\Support\Str::uuid(),
                 'numero' => 'BORRADOR',
                 'created_at' => now(),
-                // NO asignar customer_id por ahora - la FK apunta a customers, no terceros
-                // TODO: Migrar relación de customers a terceros
             ]
         );
         
         // Si es un ticket nuevo (recién creado), asignar cliente por defecto
-        if (!$ticketExistia && !$this->ticket->customer_id) {
-            $clientePorDefectoId = \App\Models\Setting::get('pos_default_customer_id');
+        if (!$ticketExistia && !$this->ticket->tercero_id) {
+            $clientePorDefectoId = \App\Models\Setting::get('pos_default_tercero_id');
             if ($clientePorDefectoId) {
-                $this->ticket->customer_id = $clientePorDefectoId;
+                $this->ticket->tercero_id = $clientePorDefectoId;
                 $this->ticket->save();
             }
         }
@@ -137,17 +135,17 @@ class CreateTicket extends CreateRecord
         
         // Cargar cliente si existe
         $this->form->fill([
-            'customer_id' => $this->ticket->customer_id,
+            'tercero_id' => $this->ticket->tercero_id,
         ]);
         
         // Si hay cliente asignado, mostrar su ID en el select; si no, vacío
-        $this->nuevoClienteNombre = $this->ticket->customer_id ?? '';
+        $this->nuevoClienteNombre = $this->ticket->tercero_id ?? '';
         
         // Si hay cliente, asegurarse de que esté en la lista de resultados
-        if ($this->ticket->customer_id) {
-            $cliente = \App\Models\Tercero::find($this->ticket->customer_id);
-            if ($cliente && !isset($this->resultadosClientes[$this->ticket->customer_id])) {
-                $this->resultadosClientes[$this->ticket->customer_id] = $cliente->nombre_comercial;
+        if ($this->ticket->tercero_id) {
+            $cliente = \App\Models\Tercero::find($this->ticket->tercero_id);
+            if ($cliente && !isset($this->resultadosClientes[$this->ticket->tercero_id])) {
+                $this->resultadosClientes[$this->ticket->tercero_id] = $cliente->nombre_comercial;
             }
         }
         
@@ -172,7 +170,7 @@ class CreateTicket extends CreateRecord
         if (!$this->ticket) return;
         
         $datos = $this->form->getState();
-        $this->ticket->customer_id = $datos['customer_id'] ?? null;
+        $this->ticket->tercero_id = $datos['tercero_id'] ?? null;
         // $this->ticket->created_at = ...
         $this->ticket->save();
     }
@@ -186,7 +184,7 @@ class CreateTicket extends CreateRecord
             $tercero = Tercero::find($this->nuevoClienteNombre);
             if ($tercero) {
                 // Guardar el cliente en el ticket actual
-                $this->ticket->customer_id = $tercero->id;
+                $this->ticket->tercero_id = $tercero->id;
                 $this->ticket->save();
                 
                 // Asegurarse de que el cliente está en la lista
@@ -225,7 +223,7 @@ class CreateTicket extends CreateRecord
             
             if ($tercero) {
                 // Guardar el cliente en el ticket actual
-                $this->ticket->customer_id = $tercero->id;
+                $this->ticket->tercero_id = $tercero->id;
                 $this->ticket->save();
             } else {
                  if ($force) Notification::make()->title('Cliente no encontrado')->warning()->send();
@@ -439,7 +437,7 @@ class CreateTicket extends CreateRecord
         
         // IMPORTANTE: Guardar el cliente seleccionado antes de cerrar el ticket
         if (!empty($this->nuevoClienteNombre)) {
-            $this->ticket->customer_id = $this->nuevoClienteNombre;
+            $this->ticket->tercero_id = $this->nuevoClienteNombre;
         }
         
         // IMPORTANTE: Asegurar que todas las líneas están guardadas en la base de datos
@@ -527,11 +525,11 @@ class CreateTicket extends CreateRecord
         $this->data['numero'] = $ticket->id;
         
         // Cargar cliente si existe
-        if ($ticket->customer_id && $ticket->customer) {
-            $this->form->fill(['customer_id' => $ticket->customer_id]);
-            $this->nuevoClienteNombre = $ticket->customer_id;
-            if (!isset($this->resultadosClientes[$ticket->customer_id])) {
-                $this->resultadosClientes[$ticket->customer_id] = $ticket->customer->name;
+        if ($ticket->tercero_id && $ticket->customer) {
+            $this->form->fill(['tercero_id' => $ticket->tercero_id]);
+            $this->nuevoClienteNombre = $ticket->tercero_id;
+            if (!isset($this->resultadosClientes[$ticket->tercero_id])) {
+                $this->resultadosClientes[$ticket->tercero_id] = $ticket->customer->name;
             }
         }
         

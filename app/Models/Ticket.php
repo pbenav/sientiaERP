@@ -14,7 +14,7 @@ class Ticket extends Model
 
     protected $fillable = [
         'user_id',
-        'customer_id',
+        'tercero_id',
         'session_id', // UUID
         'tpv_slot',   // TPV Slot ID (1-4)
         'status',
@@ -52,9 +52,9 @@ class Ticket extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function customer(): BelongsTo
+    public function tercero(): BelongsTo
     {
-        return $this->belongsTo(Customer::class);
+        return $this->belongsTo(Tercero::class);
     }
 
     public function items(): HasMany

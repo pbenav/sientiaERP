@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('tickets', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->comment('Operador de caja');
-            $table->foreignId('customer_id')->nullable()->constrained();
+            $table->foreignId('tercero_id')->nullable()->constrained('terceros');
             $table->string('session_id')->unique()->index()->comment('ID de sesión para recuperación');
             $table->enum('status', ['open', 'completed', 'cancelled'])->default('open')->index();
             $table->decimal('subtotal', 10, 2)->default(0);

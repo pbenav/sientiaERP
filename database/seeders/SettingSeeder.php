@@ -22,7 +22,7 @@ class SettingSeeder extends Seeder
         // Cliente por defecto para POS (buscar CLIPOS creado en TerceroSeeder)
         $clientePOS = \App\Models\Tercero::where('codigo', 'CLIPOS')->first();
         if ($clientePOS) {
-            \App\Models\Setting::set('pos_default_customer_id', $clientePOS->id, 'Cliente por Defecto POS', 'POS');
+            \App\Models\Setting::set('pos_default_tercero_id', $clientePOS->id, 'Cliente por Defecto POS', 'POS');
         }
     }
 }
