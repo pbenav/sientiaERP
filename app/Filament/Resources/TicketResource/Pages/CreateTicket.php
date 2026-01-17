@@ -51,6 +51,7 @@ class CreateTicket extends Page
     public $impuestos = 0;
     public $entrega = 0;
     public $payment_method = 'cash'; // Método de pago (cash, card)
+    public $data = []; // Datos del formulario (necesario para Page)
 
     public function mount(): void
     {
