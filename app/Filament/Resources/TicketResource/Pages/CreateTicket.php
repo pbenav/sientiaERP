@@ -3,7 +3,8 @@
 namespace App\Filament\Resources\TicketResource\Pages;
 
 use App\Filament\Resources\TicketResource;
-use Filament\Resources\Pages\CreateRecord;
+use Filament\Resources\Pages\Page;
+use Livewire\Component;
 use Filament\Actions;
 use Filament\Forms\Set; 
 use App\Models\Tercero;
@@ -11,7 +12,7 @@ use App\Models\Product;
 use App\Models\Ticket;
 use Filament\Notifications\Notification;
 
-class CreateTicket extends CreateRecord
+class CreateTicket extends Page
 {
     protected static string $resource = TicketResource::class;
 
@@ -49,6 +50,8 @@ class CreateTicket extends CreateRecord
     public $subtotal = 0;
     public $impuestos = 0;
     public $entrega = 0;
+    public $payment_method = 'cash'; // Método de pago (cash, card)
+    public $data = []; // Datos del formulario (necesario para Page)
 
     public function mount(): void
     {
@@ -63,7 +66,8 @@ class CreateTicket extends CreateRecord
                                     ->pluck('nombre_comercial', 'id')
                                     ->toArray();
         
-        // NO cargar productos inicialmente - solo al buscar
+        // Cargar primeros productos para mostrar en datalist al hacer focus
+        $this->cargarProductosIniciales();
         
         // INICIALIZAR FECHA A HOY
         $this->fecha = now()->format('Y-m-d');
@@ -86,32 +90,38 @@ class CreateTicket extends CreateRecord
     {
         $this->tpvActivo = $slot;
         
-        // Buscar ticket abierto para este TPV SLOT
-        $ticketExistia = Ticket::where('tpv_slot', $slot)
-            ->where('status', 'open')
-            ->exists();
-            
+        // Intentar cargar ticket abierto para este slot
+        $ticketExistente = Ticket::where('tpv_slot', $slot)
+                                 ->where('status', 'open')
+                                 ->first();
+        
+        $ticketExistia = (bool) $ticketExistente;
+        
         $this->ticket = Ticket::firstOrCreate(
             [
                 'tpv_slot' => $slot,
-                'status' => 'open'
+                'status' => 'open',
             ],
             [
                 'user_id' => auth()->id(),
                 'session_id' => (string) \Illuminate\Support\Str::uuid(),
                 'numero' => 'BORRADOR',
                 'created_at' => now(),
-                // NO asignar customer_id por ahora - la FK apunta a customers, no terceros
-                // TODO: Migrar relación de customers a terceros
             ]
         );
         
-        // Si es un ticket nuevo (recién creado), asignar cliente por defecto
-        if (!$ticketExistia && !$this->ticket->customer_id) {
-            $clientePorDefectoId = \App\Models\Setting::get('pos_default_customer_id');
+        // IMPORTANTE: Asignar cliente por defecto si no tiene cliente asignado
+        if (!$this->ticket->tercero_id) {
+            $clientePorDefectoId = \App\Models\Setting::get('pos_default_tercero_id');
             if ($clientePorDefectoId) {
-                $this->ticket->customer_id = $clientePorDefectoId;
+                $this->ticket->tercero_id = $clientePorDefectoId;
                 $this->ticket->save();
+                
+                // Asegurarse de que el cliente por defecto esté en la lista de resultados
+                $tercero = \App\Models\Tercero::find($clientePorDefectoId);
+                if ($tercero && !isset($this->resultadosClientes[$clientePorDefectoId])) {
+                    $this->resultadosClientes[$clientePorDefectoId] = $tercero->nombre_comercial;
+                }
             }
         }
         
@@ -135,24 +145,37 @@ class CreateTicket extends CreateRecord
         $this->data['fecha'] = $this->fecha;
         $this->data['numero'] = $this->ticket->id;
         
-        // Cargar cliente si existe
-        $this->form->fill([
-            'customer_id' => $this->ticket->customer_id,
-        ]);
-        
-        // Si hay cliente asignado, mostrar su ID en el select; si no, vacío
-        $this->nuevoClienteNombre = $this->ticket->customer_id ?? '';
-        
-        // Si hay cliente, asegurarse de que esté en la lista de resultados
-        if ($this->ticket->customer_id) {
-            $cliente = \App\Models\Tercero::find($this->ticket->customer_id);
-            if ($cliente && !isset($this->resultadosClientes[$this->ticket->customer_id])) {
-                $this->resultadosClientes[$this->ticket->customer_id] = $cliente->nombre_comercial;
+        // IMPORTANTE: Si hay cliente, asegurarse de que esté en la lista de resultados PRIMERO
+        if ($this->ticket->tercero_id) {
+            $cliente = \App\Models\Tercero::find($this->ticket->tercero_id);
+            if ($cliente) {
+                // Asegurarse de que el cliente está en la lista
+                $this->resultadosClientes[$this->ticket->tercero_id] = $cliente->nombre_comercial;
+                // Asignar el valor al select (convertir a string para que Livewire lo reconozca)
+                $this->nuevoClienteNombre = (string) $this->ticket->tercero_id;
             }
+        } else {
+            $this->nuevoClienteNombre = '';
         }
+        
+        // Cargar cliente en el form
+        $this->form->fill([
+            'tercero_id' => $this->ticket->tercero_id,
+        ]);
         
         // Limpiar inputs entrada
         $this->limpiarInputs();
+    }
+    
+    public function cargarProductosIniciales()
+    {
+        // Cargar primeros 20 productos para mostrar en datalists
+        $productos = Product::orderBy('name')
+                            ->limit(20)
+                            ->get();
+        
+        $this->resultadosCodigo = $productos->pluck('sku', 'id')->toArray();
+        $this->resultadosNombre = $productos->pluck('name', 'id')->toArray();
     }
     
     public function cambiarTpv($slot)
@@ -172,7 +195,7 @@ class CreateTicket extends CreateRecord
         if (!$this->ticket) return;
         
         $datos = $this->form->getState();
-        $this->ticket->customer_id = $datos['customer_id'] ?? null;
+        $this->ticket->tercero_id = $datos['tercero_id'] ?? null;
         // $this->ticket->created_at = ...
         $this->ticket->save();
     }
@@ -186,7 +209,7 @@ class CreateTicket extends CreateRecord
             $tercero = Tercero::find($this->nuevoClienteNombre);
             if ($tercero) {
                 // Guardar el cliente en el ticket actual
-                $this->ticket->customer_id = $tercero->id;
+                $this->ticket->tercero_id = $tercero->id;
                 $this->ticket->save();
                 
                 // Asegurarse de que el cliente está en la lista
@@ -225,7 +248,7 @@ class CreateTicket extends CreateRecord
             
             if ($tercero) {
                 // Guardar el cliente en el ticket actual
-                $this->ticket->customer_id = $tercero->id;
+                $this->ticket->tercero_id = $tercero->id;
                 $this->ticket->save();
             } else {
                  if ($force) Notification::make()->title('Cliente no encontrado')->warning()->send();
@@ -288,8 +311,8 @@ class CreateTicket extends CreateRecord
             }
         }
 
-        // Solo notificar error si fue una acción forzada (Enter)
-        if ($force) {
+        // Solo notificar error si fue una acción forzada (Enter) Y había algo escrito
+        if ($force && (!empty($this->nuevoCodigo) || !empty($this->nuevoNombre))) {
             Notification::make()->title('Producto no encontrado')->warning()->send();
             $this->limpiarInputs();
         }
@@ -333,7 +356,15 @@ class CreateTicket extends CreateRecord
     
     public function anotarLinea()
     {
-        if (!$this->nuevoProducto && empty($this->nuevoCodigo)) return;
+        // Validación estricta: debe haber un producto cargado
+        if (!$this->nuevoProducto || !isset($this->nuevoProducto->id)) {
+            Notification::make()
+                ->title('Artículo no encontrado')
+                ->body('Busca y selecciona un artículo válido antes de añadirlo')
+                ->warning()
+                ->send();
+            return;
+        }
         
         // Si no hay ticket (después de grabar uno), crear nuevo ticket para este TPV
         if (!$this->ticket) {
@@ -439,7 +470,7 @@ class CreateTicket extends CreateRecord
         
         // IMPORTANTE: Guardar el cliente seleccionado antes de cerrar el ticket
         if (!empty($this->nuevoClienteNombre)) {
-            $this->ticket->customer_id = $this->nuevoClienteNombre;
+            $this->ticket->tercero_id = $this->nuevoClienteNombre;
         }
         
         // IMPORTANTE: Asegurar que todas las líneas están guardadas en la base de datos
@@ -527,11 +558,11 @@ class CreateTicket extends CreateRecord
         $this->data['numero'] = $ticket->id;
         
         // Cargar cliente si existe
-        if ($ticket->customer_id && $ticket->customer) {
-            $this->form->fill(['customer_id' => $ticket->customer_id]);
-            $this->nuevoClienteNombre = $ticket->customer_id;
-            if (!isset($this->resultadosClientes[$ticket->customer_id])) {
-                $this->resultadosClientes[$ticket->customer_id] = $ticket->customer->name;
+        if ($ticket->tercero_id && $ticket->customer) {
+            $this->form->fill(['tercero_id' => $ticket->tercero_id]);
+            $this->nuevoClienteNombre = $ticket->tercero_id;
+            if (!isset($this->resultadosClientes[$ticket->tercero_id])) {
+                $this->resultadosClientes[$ticket->tercero_id] = $ticket->customer->name;
             }
         }
         
