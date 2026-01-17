@@ -87,6 +87,10 @@ class CreateTicket extends CreateRecord
         $this->tpvActivo = $slot;
         
         // Buscar ticket abierto para este TPV SLOT
+        $ticketExistia = Ticket::where('tpv_slot', $slot)
+            ->where('status', 'open')
+            ->exists();
+            
         $this->ticket = Ticket::firstOrCreate(
             [
                 'tpv_slot' => $slot,
@@ -101,6 +105,15 @@ class CreateTicket extends CreateRecord
                 // TODO: Migrar relación de customers a terceros
             ]
         );
+        
+        // Si es un ticket nuevo (recién creado), asignar cliente por defecto
+        if (!$ticketExistia && !$this->ticket->customer_id) {
+            $clientePorDefectoId = \App\Models\Setting::get('pos_default_customer_id');
+            if ($clientePorDefectoId) {
+                $this->ticket->customer_id = $clientePorDefectoId;
+                $this->ticket->save();
+            }
+        }
         
         // Cargar líneas del ticket
         $this->lineas = $this->ticket->items()->get()->map(function($item) {
@@ -131,10 +144,10 @@ class CreateTicket extends CreateRecord
         $this->nuevoClienteNombre = $this->ticket->customer_id ?? '';
         
         // Si hay cliente, asegurarse de que esté en la lista de resultados
-        if ($this->ticket->customer_id && $this->ticket->customer) {
-            // Añadir el cliente actual a la lista si no está
-            if (!isset($this->resultadosClientes[$this->ticket->customer_id])) {
-                $this->resultadosClientes[$this->ticket->customer_id] = $this->ticket->customer->nombre_comercial;
+        if ($this->ticket->customer_id) {
+            $cliente = \App\Models\Tercero::find($this->ticket->customer_id);
+            if ($cliente && !isset($this->resultadosClientes[$this->ticket->customer_id])) {
+                $this->resultadosClientes[$this->ticket->customer_id] = $cliente->nombre_comercial;
             }
         }
         
@@ -191,8 +204,9 @@ class CreateTicket extends CreateRecord
             $tercero = Tercero::find($this->nuevoClienteNombre);
             
             if ($tercero) {
-                // No es necesario guardar en customer_id por ahora
-                // debido a incompatibilidad de FK
+                // Guardar el cliente en el ticket actual
+                $this->ticket->customer_id = $tercero->id;
+                $this->ticket->save();
             } else {
                  if ($force) Notification::make()->title('Cliente no encontrado')->warning()->send();
             }
@@ -396,6 +410,11 @@ class CreateTicket extends CreateRecord
                 ->warning()
                 ->send();
             return;
+        }
+        
+        // IMPORTANTE: Guardar el cliente seleccionado antes de cerrar el ticket
+        if (!empty($this->nuevoClienteNombre)) {
+            $this->ticket->customer_id = $this->nuevoClienteNombre;
         }
         
         // IMPORTANTE: Asegurar que todas las líneas están guardadas en la base de datos
