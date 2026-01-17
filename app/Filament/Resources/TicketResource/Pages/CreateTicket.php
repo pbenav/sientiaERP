@@ -349,7 +349,15 @@ class CreateTicket extends CreateRecord
     
     public function anotarLinea()
     {
-        if (!$this->nuevoProducto && empty($this->nuevoCodigo)) return;
+        // Validación estricta: debe haber un producto cargado
+        if (!$this->nuevoProducto || !isset($this->nuevoProducto->id)) {
+            Notification::make()
+                ->title('Artículo no encontrado')
+                ->body('Busca y selecciona un artículo válido antes de añadirlo')
+                ->warning()
+                ->send();
+            return;
+        }
         
         // Si no hay ticket (después de grabar uno), crear nuevo ticket para este TPV
         if (!$this->ticket) {
