@@ -332,6 +332,11 @@ class CreateTicket extends CreateRecord
     {
         if (!$this->nuevoProducto && empty($this->nuevoCodigo)) return;
         
+        // Si no hay ticket (después de grabar uno), crear nuevo ticket para este TPV
+        if (!$this->ticket) {
+            $this->cargarTpv($this->tpvActivo);
+        }
+        
         // Añadir a memoria
         $linea = [
             'product_id' => $this->nuevoProducto->id,
@@ -475,13 +480,15 @@ class CreateTicket extends CreateRecord
             ->success()
             ->send();
         
-        // Limpiar todo y crear nuevo ticket
+        // Limpiar todo para la siguiente venta
         $this->lineas = [];
         $this->total = 0;
         $this->limpiarInputs();
         
-        // Cargar nuevo ticket para este TPV
-        $this->cargarTpv($this->tpvActivo);
+        // Resetear el ticket actual a null
+        // Se creará uno nuevo automáticamente cuando se añada el primer artículo
+        // o cuando se cambie de TPV
+        $this->ticket = null;
         
         // Enfocar código para empezar de nuevo
         $this->dispatch('focus-codigo');
