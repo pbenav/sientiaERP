@@ -111,6 +111,12 @@ class CreateTicket extends CreateRecord
             if ($clientePorDefectoId) {
                 $this->ticket->tercero_id = $clientePorDefectoId;
                 $this->ticket->save();
+                
+                // Asegurarse de que el cliente por defecto esté en la lista de resultados
+                $tercero = \App\Models\Tercero::find($clientePorDefectoId);
+                if ($tercero && !isset($this->resultadosClientes[$clientePorDefectoId])) {
+                    $this->resultadosClientes[$clientePorDefectoId] = $tercero->nombre_comercial;
+                }
             }
         }
         
@@ -139,7 +145,7 @@ class CreateTicket extends CreateRecord
             'tercero_id' => $this->ticket->tercero_id,
         ]);
         
-        // Si hay cliente asignado, mostrar su ID en el select; si no, vacío
+        // IMPORTANTE: Asignar nuevoClienteNombre AQUÍ para que se muestre en el select
         $this->nuevoClienteNombre = $this->ticket->tercero_id ?? '';
         
         // Si hay cliente, asegurarse de que esté en la lista de resultados
