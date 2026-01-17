@@ -87,6 +87,10 @@ class CreateTicket extends CreateRecord
         $this->tpvActivo = $slot;
         
         // Buscar ticket abierto para este TPV SLOT
+        $ticketExistia = Ticket::where('tpv_slot', $slot)
+            ->where('status', 'open')
+            ->exists();
+            
         $this->ticket = Ticket::firstOrCreate(
             [
                 'tpv_slot' => $slot,
@@ -101,6 +105,15 @@ class CreateTicket extends CreateRecord
                 // TODO: Migrar relación de customers a terceros
             ]
         );
+        
+        // Si es un ticket nuevo (recién creado), asignar cliente por defecto
+        if (!$ticketExistia && !$this->ticket->customer_id) {
+            $clientePorDefectoId = \App\Models\Setting::get('pos_default_customer_id');
+            if ($clientePorDefectoId) {
+                $this->ticket->customer_id = $clientePorDefectoId;
+                $this->ticket->save();
+            }
+        }
         
         // Cargar líneas del ticket
         $this->lineas = $this->ticket->items()->get()->map(function($item) {
@@ -131,10 +144,10 @@ class CreateTicket extends CreateRecord
         $this->nuevoClienteNombre = $this->ticket->customer_id ?? '';
         
         // Si hay cliente, asegurarse de que esté en la lista de resultados
-        if ($this->ticket->customer_id && $this->ticket->customer) {
-            // Añadir el cliente actual a la lista si no está
-            if (!isset($this->resultadosClientes[$this->ticket->customer_id])) {
-                $this->resultadosClientes[$this->ticket->customer_id] = $this->ticket->customer->nombre_comercial;
+        if ($this->ticket->customer_id) {
+            $cliente = \App\Models\Tercero::find($this->ticket->customer_id);
+            if ($cliente && !isset($this->resultadosClientes[$this->ticket->customer_id])) {
+                $this->resultadosClientes[$this->ticket->customer_id] = $cliente->nombre_comercial;
             }
         }
         
@@ -146,15 +159,18 @@ class CreateTicket extends CreateRecord
     {
         if ($this->tpvActivo === $slot) return;
         
-        // Guardar estado actual antes de cambiar (aunque ya se guarda al anotar)
-        // Lo hacemos por si ha cambiado cliente o fecha
-        $this->guardarCabecera();
+        // Guardar estado actual antes de cambiar (si hay ticket activo)
+        if ($this->ticket) {
+            $this->guardarCabecera();
+        }
         
         $this->cargarTpv($slot);
     }
     
     public function guardarCabecera()
     {
+        if (!$this->ticket) return;
+        
         $datos = $this->form->getState();
         $this->ticket->customer_id = $datos['customer_id'] ?? null;
         // $this->ticket->created_at = ...
@@ -164,6 +180,23 @@ class CreateTicket extends CreateRecord
     // Buscador de Clientes
     public function updatedNuevoClienteNombre() 
     { 
+        // Si es un ID numérico (cliente seleccionado), no hacer búsqueda
+        // Solo guardar el cliente en el ticket
+        if (is_numeric($this->nuevoClienteNombre) && $this->nuevoClienteNombre > 0) {
+            $tercero = Tercero::find($this->nuevoClienteNombre);
+            if ($tercero) {
+                // Guardar el cliente en el ticket actual
+                $this->ticket->customer_id = $tercero->id;
+                $this->ticket->save();
+                
+                // Asegurarse de que el cliente está en la lista
+                if (!isset($this->resultadosClientes[$tercero->id])) {
+                    $this->resultadosClientes[$tercero->id] = $tercero->nombre_comercial;
+                }
+            }
+            return;
+        }
+        
         // Si está vacío, mostrar los primeros 10 ordenados
         if (empty($this->nuevoClienteNombre)) {
             $this->resultadosClientes = Tercero::clientes()
@@ -191,8 +224,9 @@ class CreateTicket extends CreateRecord
             $tercero = Tercero::find($this->nuevoClienteNombre);
             
             if ($tercero) {
-                // No es necesario guardar en customer_id por ahora
-                // debido a incompatibilidad de FK
+                // Guardar el cliente en el ticket actual
+                $this->ticket->customer_id = $tercero->id;
+                $this->ticket->save();
             } else {
                  if ($force) Notification::make()->title('Cliente no encontrado')->warning()->send();
             }
@@ -301,6 +335,11 @@ class CreateTicket extends CreateRecord
     {
         if (!$this->nuevoProducto && empty($this->nuevoCodigo)) return;
         
+        // Si no hay ticket (después de grabar uno), crear nuevo ticket para este TPV
+        if (!$this->ticket) {
+            $this->cargarTpv($this->tpvActivo);
+        }
+        
         // Añadir a memoria
         $linea = [
             'product_id' => $this->nuevoProducto->id,
@@ -398,6 +437,11 @@ class CreateTicket extends CreateRecord
             return;
         }
         
+        // IMPORTANTE: Guardar el cliente seleccionado antes de cerrar el ticket
+        if (!empty($this->nuevoClienteNombre)) {
+            $this->ticket->customer_id = $this->nuevoClienteNombre;
+        }
+        
         // IMPORTANTE: Asegurar que todas las líneas están guardadas en la base de datos
         // Borrar todas las líneas existentes y recrearlas (para evitar inconsistencias)
         $this->ticket->items()->delete();
@@ -439,13 +483,15 @@ class CreateTicket extends CreateRecord
             ->success()
             ->send();
         
-        // Limpiar todo y crear nuevo ticket
+        // Limpiar todo para la siguiente venta
         $this->lineas = [];
         $this->total = 0;
         $this->limpiarInputs();
         
-        // Cargar nuevo ticket para este TPV
-        $this->cargarTpv($this->tpvActivo);
+        // Resetear el ticket actual a null
+        // Se creará uno nuevo automáticamente cuando se añada el primer artículo
+        // o cuando se cambie de TPV
+        $this->ticket = null;
         
         // Enfocar código para empezar de nuevo
         $this->dispatch('focus-codigo');

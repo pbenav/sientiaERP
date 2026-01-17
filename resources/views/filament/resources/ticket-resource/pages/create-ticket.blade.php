@@ -56,7 +56,6 @@
                 <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Cliente</label>
                 <div class="relative">
                    <select wire:model.live="nuevoClienteNombre" 
-                           wire:change="seleccionarCliente"
                            id="pos-cliente"
                           class="w-full h-9 border-gray-300 rounded px-2 pl-8 text-sm font-bold focus:ring-primary-500 focus:border-primary-500 appearance-none">
                        <option value="">Selecciona un cliente...</option>
