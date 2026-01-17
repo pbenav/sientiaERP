@@ -114,12 +114,12 @@
                     <input type="text" 
                            wire:model.live.debounce.300ms="nuevoCodigo" 
                            wire:blur="buscarProducto(true)" 
+                           wire:keydown.enter="buscarProducto(true); $nextTick(() => document.getElementById('pos-descripcion').focus());"
                            @focus="$wire.cargarProductosIniciales()"
-                           @input="$el.value = $el.value.toUpperCase()"
                            list="codigos-list"
                            id="pos-codigo"
                            class="pos-input w-full h-9 border-gray-300 rounded px-2 font-mono text-sm focus:ring-primary-500 focus:border-primary-500 uppercase" 
-                           placeholder="Escribe SKU..." 
+                           placeholder="SKU" 
                            autofocus />
                     <datalist id="codigos-list">
                         @foreach($resultadosCodigo as $id => $sku)
@@ -133,6 +133,7 @@
                     <input type="text" 
                            wire:model.live.debounce.300ms="nuevoNombre" 
                            wire:blur="buscarProducto(true)" 
+                           wire:keydown.enter="document.getElementById('pos-cantidad').focus()"
                            @focus="$wire.cargarProductosIniciales()"
                            list="productos-list"
                            id="pos-descripcion"
@@ -149,7 +150,7 @@
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Cant</label>
                     <input type="number" 
                            wire:model.live="nuevoCantidad"
-                           wire:keydown.enter="$dispatch('focus-precio')"
+                           wire:keydown.enter="document.getElementById('pos-precio').focus()"
                            id="pos-cantidad"
                            class="pos-input w-full h-9 border-gray-300 rounded px-2 text-right font-bold text-gray-800 focus:ring-primary-500 focus:border-primary-500" />
                 </div>
@@ -158,18 +159,20 @@
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Precio</label>
                     <input type="number" 
                            wire:model.live="nuevoPrecio"
-                           wire:keydown.enter="$dispatch('focus-descuento')"
+                           wire:keydown.enter="document.getElementById('pos-descuento').focus()"
+                           step="0.01"
                            id="pos-precio"
-                           class="pos-input w-full h-9 border-gray-300 rounded px-2 text-right text-gray-800 focus:ring-primary-500 focus:border-primary-500" />
+                           class="pos-input w-full h-9 border-gray-300 rounded px-2 text-right text-sm focus:ring-primary-500 focus:border-primary-500" />
                 </div>
                 
                 <div class="w-16">
-                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Dto%</label>
+                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Dto %</label>
                     <input type="number" 
                            wire:model.live="nuevoDescuento"
-                           wire:keydown.enter="anotarLinea(); $dispatch('focus-codigo')"
+                           wire:keydown.enter="document.getElementById('btn-anadir-producto').click()"
+                           step="0.01"
                            id="pos-descuento"
-                           class="pos-input w-full h-9 border-gray-300 rounded px-2 text-right text-gray-600 focus:ring-primary-500 focus:border-primary-500" />
+                           class="pos-input w-full h-9 border-gray-300 rounded px-2 text-right text-sm focus:ring-primary-500 focus:border-primary-500" />
                 </div>
                 
                 <div class="w-32 bg-gray-50 rounded p-1 flex flex-col items-end justify-center border border-gray-200 h-10 px-6 mt-4" style="margin-top: 20px;"> 
