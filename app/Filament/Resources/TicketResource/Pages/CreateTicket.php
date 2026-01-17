@@ -140,21 +140,29 @@ class CreateTicket extends CreateRecord
         $this->data['fecha'] = $this->fecha;
         $this->data['numero'] = $this->ticket->id;
         
-        // Cargar cliente si existe
+        // IMPORTANTE: Si hay cliente, asegurarse de que esté en la lista de resultados PRIMERO
+        if ($this->ticket->tercero_id) {
+            $cliente = \App\Models\Tercero::find($this->ticket->tercero_id);
+            if ($cliente) {
+                // Asegurarse de que el cliente está en la lista
+                $this->resultadosClientes[$this->ticket->tercero_id] = $cliente->nombre_comercial;
+                // Asignar el valor al select
+                $this->nuevoClienteNombre = (string) $this->ticket->tercero_id;
+                
+                \Illuminate\Support\Facades\Log::info('POS: Cliente cargado', [
+                    'tercero_id' => $this->ticket->tercero_id,
+                    'nombre' => $cliente->nombre_comercial,
+                    'nuevoClienteNombre' => $this->nuevoClienteNombre
+                ]);
+            }
+        } else {
+            $this->nuevoClienteNombre = '';
+        }
+        
+        // Cargar cliente en el form
         $this->form->fill([
             'tercero_id' => $this->ticket->tercero_id,
         ]);
-        
-        // IMPORTANTE: Asignar nuevoClienteNombre AQUÍ para que se muestre en el select
-        $this->nuevoClienteNombre = $this->ticket->tercero_id ?? '';
-        
-        // Si hay cliente, asegurarse de que esté en la lista de resultados
-        if ($this->ticket->tercero_id) {
-            $cliente = \App\Models\Tercero::find($this->ticket->tercero_id);
-            if ($cliente && !isset($this->resultadosClientes[$this->ticket->tercero_id])) {
-                $this->resultadosClientes[$this->ticket->tercero_id] = $cliente->nombre_comercial;
-            }
-        }
         
         // Limpiar inputs entrada
         $this->limpiarInputs();
