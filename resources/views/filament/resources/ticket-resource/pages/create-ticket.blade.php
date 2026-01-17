@@ -107,8 +107,7 @@
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Código</label>
                     <input type="text" 
                            wire:model.live.debounce.300ms="nuevoCodigo" 
-                           wire:keydown.enter="buscarProducto(true)" 
-                           wire:change="buscarProducto"
+                           wire:blur="buscarProducto(true)" 
                            list="codigos-list"
                            id="pos-codigo"
                            class="pos-input w-full h-9 border-gray-300 rounded px-2 font-mono text-sm focus:ring-primary-500 focus:border-primary-500 uppercase" 
@@ -125,8 +124,7 @@
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Descripción</label>
                     <input type="text" 
                            wire:model.live.debounce.300ms="nuevoNombre" 
-                           wire:keydown.enter="buscarProducto(true)" 
-                           wire:change="buscarProducto"
+                           wire:blur="buscarProducto(true)" 
                            list="productos-list"
                            id="pos-descripcion"
                            class="pos-input w-full h-9 border-gray-300 rounded px-2 text-sm focus:ring-primary-500 focus:border-primary-500"
