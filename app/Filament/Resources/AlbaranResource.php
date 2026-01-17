@@ -158,7 +158,7 @@ class AlbaranResource extends Resource
                     ->toggle(),
             ])
             ->actions([
-                Tables\Actions\EditAction::make()
+                Tables\Actions\EditAction::make()->tooltip('Editar')->label('')
                     ->visible(fn($record) => $record->puedeEditarse())
                     ->tooltip(fn($record) => !$record->puedeEditarse() ? $record->getMensajeBloqueo() : null),
                 

@@ -113,7 +113,7 @@ class BillingSerieResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()->tooltip('Editar')->label(''),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

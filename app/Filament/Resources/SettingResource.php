@@ -82,7 +82,7 @@ class SettingResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()->tooltip('Editar')->label(''),
             ])
             ->bulkActions([
                 // Bloqueado

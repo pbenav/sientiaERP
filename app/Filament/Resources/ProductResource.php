@@ -161,10 +161,10 @@ class ProductResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
-                Tables\Actions\ForceDeleteAction::make(),
-                Tables\Actions\RestoreAction::make(),
+                Tables\Actions\EditAction::make()->tooltip('Editar')->label(''),
+                Tables\Actions\DeleteAction::make()->tooltip('Borrar')->label(''),
+                Tables\Actions\ForceDeleteAction::make()->tooltip('Eliminar Permanentemente')->label('')->tooltip('Borrar')->label(''),
+                Tables\Actions\RestoreAction::make()->tooltip('Restaurar')->label(''),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

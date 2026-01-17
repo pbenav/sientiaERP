@@ -145,6 +145,15 @@ class CreateTicket extends Page
         $this->data['fecha'] = $this->fecha;
         $this->data['numero'] = $this->ticket->id;
         
+        // IMPORTANTE: Recargar todos los clientes activos para el dropdown (no solo los 10 iniciales)
+        // Esto permite cambiar el cliente en cualquier momento
+        $this->resultadosClientes = Tercero::clientes()
+                                    ->activos()
+                                    ->orderBy('nombre_comercial')
+                                    ->limit(50)  // Aumentado a 50 para tener más opciones
+                                    ->pluck('nombre_comercial', 'id')
+                                    ->toArray();
+        
         // IMPORTANTE: Si hay cliente, asegurarse de que esté en la lista de resultados PRIMERO
         if ($this->ticket->tercero_id) {
             $cliente = \App\Models\Tercero::find($this->ticket->tercero_id);
@@ -212,6 +221,14 @@ class CreateTicket extends Page
                 $this->ticket->tercero_id = $tercero->id;
                 $this->ticket->save();
                 
+                // Notificación de feedback
+                Notification::make()
+                    ->title('Cliente actualizado')
+                    ->body($tercero->nombre_comercial)
+                    ->success()
+                    ->duration(2000)
+                    ->send();
+                
                 // Asegurarse de que el cliente está en la lista
                 if (!isset($this->resultadosClientes[$tercero->id])) {
                     $this->resultadosClientes[$tercero->id] = $tercero->nombre_comercial;
@@ -264,8 +281,8 @@ class CreateTicket extends Page
         // Convertir a mayúsculas
         $this->nuevoCodigo = strtoupper($value);
         
-        // Autocompletar SKU si tiene al menos 2 caracteres
-        if (strlen($this->nuevoCodigo) >= 2) {
+        // Autocompletar SKU si tiene al menos 1 carácter
+        if (strlen($this->nuevoCodigo) >= 1) {
             $this->resultadosCodigo = Product::where('sku', 'like', "%{$this->nuevoCodigo}%")
                                         ->orWhere('barcode', 'like', "%{$this->nuevoCodigo}%")
                                         ->limit(20)
@@ -339,12 +356,12 @@ class CreateTicket extends Page
 
     public function updatedNuevoNombre() 
     { 
-        // Solo buscar si hay al menos 2 caracteres
-        if (strlen($this->nuevoNombre) >= 2) {
-            $this->resultadosNombre = Product::where('name', 'like', "%{$this->nuevoNombre}%")
-                                        ->limit(20)
-                                        ->pluck('name', 'id')
-                                        ->toArray();
+        // Autocompletar nombre si tiene al menos 1 carácter
+        if (strlen($this->nuevoNombre) >= 1) {
+            $results = Product::where('name', 'like', "%{$this->nuevoNombre}%")
+                                ->limit(20)
+                                ->get();
+            $this->resultadosNombre = $results->pluck('name', 'id')->toArray();
         } else {
             $this->resultadosNombre = [];
         }
@@ -354,10 +371,12 @@ class CreateTicket extends Page
     public function updatedNuevoPrecio() { $this->calcularImporteLinea(); }
     public function updatedNuevoDescuento() { $this->calcularImporteLinea(); }
     
-    public function anotarLinea()
-    {
-        // Validación estricta: debe haber un producto cargado
-        if (!$this->nuevoProducto || !isset($this->nuevoProducto->id)) {
+public function anotarLinea()
+{
+    // Si no hay producto cargado, intentar buscarlo primero usando los campos actuales
+    if (!$this->nuevoProducto || !isset($this->nuevoProducto->id)) {
+        // Si ambos campos están vacíos, no intentar buscar
+        if (empty($this->nuevoCodigo) && empty($this->nuevoNombre)) {
             Notification::make()
                 ->title('Artículo no encontrado')
                 ->body('Busca y selecciona un artículo válido antes de añadirlo')
@@ -366,33 +385,62 @@ class CreateTicket extends Page
             return;
         }
         
-        // Si no hay ticket (después de grabar uno), crear nuevo ticket para este TPV
-        if (!$this->ticket) {
-            $this->cargarTpv($this->tpvActivo);
+        // Intentar buscar por SKU primero
+        if (!empty($this->nuevoCodigo)) {
+            $producto = Product::where('sku', $this->nuevoCodigo)
+                               ->orWhere('barcode', $this->nuevoCodigo)
+                               ->first();
+            if ($producto) {
+                $this->cargarProducto($producto);
+            }
         }
         
-        // Añadir a memoria
-        $linea = [
-            'product_id' => $this->nuevoProducto->id,
-            'codigo' => $this->nuevoProducto->sku,
-            'nombre' => $this->nuevoProducto->name,
-            'cantidad' => $this->nuevoCantidad,
-            'precio' => $this->nuevoPrecio,
-            'descuento' => $this->nuevoDescuento,
-            'importe' => $this->nuevoImporte,
-        ];
-        
-        $this->lineas[] = $linea;
-        
-        // Persistir en BDD
-        $this->persistirLinea($linea);
-        
-        $this->recalcularTotales();
-        $this->limpiarInputs();
-        
-        // Volver foco a código
-        $this->dispatch('focus-codigo');
+        // Si aún no hay producto, intentar por nombre
+        if ((!$this->nuevoProducto || !isset($this->nuevoProducto->id)) && !empty($this->nuevoNombre)) {
+            $producto = Product::where('name', $this->nuevoNombre)
+                               ->orWhere('name', 'like', "%{$this->nuevoNombre}%")
+                               ->first();
+            if ($producto) {
+                $this->cargarProducto($producto);
+            }
+        }
     }
+    
+    // Validación final: debe haber un producto cargado
+    if (!$this->nuevoProducto || !isset($this->nuevoProducto->id)) {
+        Notification::make()
+            ->title('Artículo no encontrado')
+            ->body('Busca y selecciona un artículo válido antes de añadirlo')
+            ->warning()
+            ->send();
+        return;
+    }
+    
+    // Si no hay ticket (después de grabar uno), crear nuevo ticket para este TPV
+    if (!$this->ticket) {
+        $this->cargarTpv($this->tpvActivo);
+    }
+    
+    // Añadir a memoria
+    $linea = [
+        'product_id' => $this->nuevoProducto->id,
+        'codigo' => $this->nuevoProducto->sku,
+        'nombre' => $this->nuevoProducto->name,
+        'cantidad' => $this->nuevoCantidad,
+        'precio' => $this->nuevoPrecio,
+        'descuento' => $this->nuevoDescuento,
+        'importe' => $this->nuevoImporte,
+    ];
+    
+    $this->lineas[] = $linea;
+    
+    // Persistir en BDD
+    $this->persistirLinea($linea);
+    
+    $this->recalcularTotales();
+    $this->limpiarInputs();
+    
+}
     
     protected function persistirLinea($linea)
     {
@@ -447,11 +495,14 @@ class CreateTicket extends Page
     {
         $this->nuevoCodigo = '';
         $this->nuevoNombre = '';
+        $this->nuevoProducto = null;
         $this->nuevoCantidad = 1;
         $this->nuevoPrecio = 0;
         $this->nuevoDescuento = 0;
         $this->nuevoImporte = 0;
-        $this->nuevoProducto = null;
+        
+        // Devolver foco al campo SKU para continuar añadiendo productos
+        $this->dispatch('focus-codigo');
     }
     
     /**
@@ -468,12 +519,7 @@ class CreateTicket extends Page
             return;
         }
         
-        // IMPORTANTE: Guardar el cliente seleccionado antes de cerrar el ticket
-        if (!empty($this->nuevoClienteNombre)) {
-            $this->ticket->tercero_id = $this->nuevoClienteNombre;
-        }
-        
-        // IMPORTANTE: Asegurar que todas las líneas están guardadas en la base de datos
+        // PASO 1: Asegurar que todas las líneas están guardadas en la base de datos
         // Borrar todas las líneas existentes y recrearlas (para evitar inconsistencias)
         $this->ticket->items()->delete();
         
@@ -489,13 +535,25 @@ class CreateTicket extends Page
             ]);
         }
         
-        // Recalcular totales finales
+        // PASO 2: Recalcular totales finales
         $this->ticket->recalculateTotals();
         
-        // Cambiar estado del ticket
+        // PASO 3: IMPORTANTE - Guardar el cliente seleccionado ANTES de cambiar el estado
+        // Convertir a entero si es numérico, ya que puede venir como string del select
+        if (!empty($this->nuevoClienteNombre)) {
+            $terceroId = is_numeric($this->nuevoClienteNombre) 
+                ? (int)$this->nuevoClienteNombre 
+                : null;
+            
+            if ($terceroId) {
+                $this->ticket->tercero_id = $terceroId;
+            }
+        }
+        
+        // PASO 4: Cambiar estado del ticket
         $this->ticket->status = 'completed';
         
-        // Asignar número definitivo si aún es BORRADOR
+        // PASO 5: Asignar número definitivo si aún es BORRADOR
         if ($this->ticket->numero === 'BORRADOR') {
             // Generar número secuencial
             $ultimoNumero = Ticket::where('status', '!=', 'open')
@@ -503,7 +561,7 @@ class CreateTicket extends Page
             $this->ticket->numero = 'TKT-' . str_pad($ultimoNumero + 1, 6, '0', STR_PAD_LEFT);
         }
         
-        // Guardar ticket
+        // PASO 6: Guardar ticket con TODOS los cambios de una vez
         $this->ticket->save();
         
         // Notificación de éxito
@@ -558,11 +616,11 @@ class CreateTicket extends Page
         $this->data['numero'] = $ticket->id;
         
         // Cargar cliente si existe
-        if ($ticket->tercero_id && $ticket->customer) {
+        if ($ticket->tercero_id && $ticket->tercero) {
             $this->form->fill(['tercero_id' => $ticket->tercero_id]);
             $this->nuevoClienteNombre = $ticket->tercero_id;
             if (!isset($this->resultadosClientes[$ticket->tercero_id])) {
-                $this->resultadosClientes[$ticket->tercero_id] = $ticket->customer->name;
+                $this->resultadosClientes[$ticket->tercero_id] = $ticket->tercero->nombre_comercial;
             }
         }
         

@@ -112,14 +112,13 @@
                 <div class="w-32">
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Código</label>
                     <input type="text" 
-                           wire:model.live.debounce.300ms="nuevoCodigo" 
+                           wire:model.live="nuevoCodigo" 
                            wire:blur="buscarProducto(true)" 
-                           @focus="$wire.cargarProductosIniciales()"
-                           @input="$el.value = $el.value.toUpperCase()"
+                           wire:keydown.enter.prevent="buscarProducto(true)"
                            list="codigos-list"
                            id="pos-codigo"
                            class="pos-input w-full h-9 border-gray-300 rounded px-2 font-mono text-sm focus:ring-primary-500 focus:border-primary-500 uppercase" 
-                           placeholder="Escribe SKU..." 
+                           placeholder="SKU" 
                            autofocus />
                     <datalist id="codigos-list">
                         @foreach($resultadosCodigo as $id => $sku)
@@ -131,9 +130,9 @@
                 <div class="flex-1 min-w-[200px]">
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Descripción</label>
                     <input type="text" 
-                           wire:model.live.debounce.300ms="nuevoNombre" 
+                           wire:model.live="nuevoNombre" 
                            wire:blur="buscarProducto(true)" 
-                           @focus="$wire.cargarProductosIniciales()"
+                           wire:keydown.enter.prevent="buscarProducto(true)"
                            list="productos-list"
                            id="pos-descripcion"
                            class="pos-input w-full h-9 border-gray-300 rounded px-2 text-sm focus:ring-primary-500 focus:border-primary-500"
@@ -149,7 +148,7 @@
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Cant</label>
                     <input type="number" 
                            wire:model.live="nuevoCantidad"
-                           wire:keydown.enter="$dispatch('focus-precio')"
+                           x-on:keydown.enter.prevent="document.getElementById('pos-precio').focus()"
                            id="pos-cantidad"
                            class="pos-input w-full h-9 border-gray-300 rounded px-2 text-right font-bold text-gray-800 focus:ring-primary-500 focus:border-primary-500" />
                 </div>
@@ -158,25 +157,31 @@
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Precio</label>
                     <input type="number" 
                            wire:model.live="nuevoPrecio"
-                           wire:keydown.enter="$dispatch('focus-descuento')"
+                           x-on:keydown.enter.prevent="document.getElementById('pos-descuento').focus()"
+                           step="0.01"
                            id="pos-precio"
-                           class="pos-input w-full h-9 border-gray-300 rounded px-2 text-right text-gray-800 focus:ring-primary-500 focus:border-primary-500" />
+                           class="pos-input w-full h-9 border-gray-300 rounded px-2 text-right text-sm focus:ring-primary-500 focus:border-primary-500" />
                 </div>
                 
                 <div class="w-16">
-                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Dto%</label>
+                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Dto %</label>
                     <input type="number" 
                            wire:model.live="nuevoDescuento"
-                           wire:keydown.enter="anotarLinea(); $dispatch('focus-codigo')"
+                           x-on:keydown.enter.prevent="document.getElementById('btn-anadir-producto').focus()"
+                           step="0.01"
                            id="pos-descuento"
-                           class="pos-input w-full h-9 border-gray-300 rounded px-2 text-right text-gray-600 focus:ring-primary-500 focus:border-primary-500" />
+                           class="pos-input w-full h-9 border-gray-300 rounded px-2 text-right text-sm focus:ring-primary-500 focus:border-primary-500" />
                 </div>
                 
                 <div class="w-32 bg-gray-50 rounded p-1 flex flex-col items-end justify-center border border-gray-200 h-10 px-6 mt-4" style="margin-top: 20px;"> 
                     <span class="font-bold text-lg leading-none text-primary-600">{{ number_format($nuevoImporte, 2) }}</span>
                 </div>
                 
-                <button wire:click="anotarLinea" class="pos-action mt-4 h-9 w-12 bg-primary-600 hover:bg-primary-500 text-white rounded shadow-sm flex items-center justify-center transition focus:ring-2 focus:ring-offset-1 focus:ring-primary-600" style="margin-top: 20px;">
+                <button wire:click="anotarLinea" 
+                        wire:keydown.enter="anotarLinea"
+                        id="btn-anadir-producto"
+                        tabindex="0"
+                        class="pos-action mt-4 h-9 w-12 bg-primary-600 hover:bg-primary-500 text-white rounded shadow-sm flex items-center justify-center transition focus:ring-2 focus:ring-offset-1 focus:ring-primary-600" style="margin-top: 20px;">
                     <x-heroicon-m-plus class="w-5 h-5"/>
                 </button>
             </div>

@@ -82,8 +82,8 @@ class DescuentoResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\EditAction::make()->tooltip('Editar')->label(''),
+                Tables\Actions\DeleteAction::make()->tooltip('Borrar')->label(''),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

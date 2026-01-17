@@ -109,7 +109,7 @@ class PedidoCompraResource extends Resource
             Tables\Filters\SelectFilter::make('estado'),
             Tables\Filters\Filter::make('bloqueados')->label('Solo bloqueados')->query(fn ($query) => $query->whereHas('documentosDerivados'))->toggle(),
         ])->actions([
-            Tables\Actions\EditAction::make()->visible(fn($record) => $record->puedeEditarse()),
+            Tables\Actions\EditAction::make()->tooltip('Editar')->label('')->visible(fn($record) => $record->puedeEditarse()),
             Tables\Actions\Action::make('pdf')->label('PDF')->icon('heroicon-o-document-arrow-down')->color('info')->url(fn($record) => route('documentos.pdf', $record))->openUrlInNewTab(),
             Tables\Actions\Action::make('convertir_albaran')->label('Convertir a Albarán')->icon('heroicon-o-truck')->color('success')
                 ->visible(fn($record) => in_array($record->estado, ['confirmado', 'parcial']))

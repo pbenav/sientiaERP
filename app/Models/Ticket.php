@@ -17,6 +17,7 @@ class Ticket extends Model
         'tercero_id',
         'session_id', // UUID
         'tpv_slot',   // TPV Slot ID (1-4)
+        'numero',     // Ticket number
         'status',
         'subtotal',
         'tax',

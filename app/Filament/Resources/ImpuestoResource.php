@@ -97,7 +97,7 @@ class ImpuestoResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()->tooltip('Editar')->label(''),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
