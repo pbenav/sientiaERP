@@ -159,15 +159,18 @@ class CreateTicket extends CreateRecord
     {
         if ($this->tpvActivo === $slot) return;
         
-        // Guardar estado actual antes de cambiar (aunque ya se guarda al anotar)
-        // Lo hacemos por si ha cambiado cliente o fecha
-        $this->guardarCabecera();
+        // Guardar estado actual antes de cambiar (si hay ticket activo)
+        if ($this->ticket) {
+            $this->guardarCabecera();
+        }
         
         $this->cargarTpv($slot);
     }
     
     public function guardarCabecera()
     {
+        if (!$this->ticket) return;
+        
         $datos = $this->form->getState();
         $this->ticket->customer_id = $datos['customer_id'] ?? null;
         // $this->ticket->created_at = ...
