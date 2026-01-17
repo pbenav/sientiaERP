@@ -14,14 +14,14 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            SettingSeeder::class,
             ImpuestoSeeder::class,
             DescuentoSeeder::class,
             BillingSerieSeeder::class,
             FormaPagoSeeder::class,
             UserSeeder::class,
             ProductSeeder::class,
-            TerceroSeeder::class,
+            TerceroSeeder::class,      // ANTES de SettingSeeder para que CLIPOS exista
+            SettingSeeder::class,      // DESPUÉS de TerceroSeeder
             DocumentoSeeder::class,
         ]);
     }
