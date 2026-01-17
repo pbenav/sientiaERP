@@ -33,70 +33,67 @@
     class="flex flex-col bg-white border border-gray-200 shadow-sm font-sans text-sm text-gray-900 min-h-screen md:h-[85vh] overflow-hidden md:rounded-lg">
         
         {{-- Header Compacto --}}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:flex lg:items-center gap-2 md:gap-4 lg:gap-6 bg-white border-b border-gray-200 px-3 md:px-4 py-2 shrink-0 shadow-sm">
-            
-            {{-- Número y Fecha en móvil juntos --}}
-            <div class="flex gap-2 md:contents">
+        <div class="bg-white border-b border-gray-200 px-3 md:px-4 py-2 shrink-0 shadow-sm">
+            {{-- Fila 1: Datos del ticket y cliente --}}
+            <div class="flex items-center gap-2 md:gap-4 mb-2">
                 {{-- Número --}}
-                <div class="flex-1 md:w-32">
+                <div class="w-24 md:w-32">
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Número</label>
                     <input type="text" value="{{ $this->data['numero'] ?? 'AUTO' }}" readonly
                            class="w-full h-9 bg-gray-50 border border-gray-300 rounded px-2 text-sm font-mono font-medium text-gray-700" />
                 </div>
                 
                 {{-- Fecha --}}
-                <div class="flex-1 md:w-40">
+                <div class="w-32 md:w-40">
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Fecha</label>
                     <input type="date" 
                            wire:model="fecha"
                            id="pos-fecha"
                            class="w-full h-9 border-gray-300 rounded px-2 text-sm font-medium focus:ring-primary-500 focus:border-primary-500" />
                 </div>
-            </div>
 
-            {{-- Cliente --}}
-            <div class="md:col-span-2 lg:flex-1">
-                <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Cliente</label>
-                <div class="relative">
-                   <select wire:model.live="nuevoClienteNombre" 
-                           id="pos-cliente"
-                          class="w-full h-9 border-gray-300 rounded px-2 pl-8 text-sm font-bold focus:ring-primary-500 focus:border-primary-500 appearance-none">
-                       <option value="">Selecciona un cliente...</option>
-                       @foreach($resultadosClientes as $id => $nombre)
-                           <option value="{{ $id }}">{{ $nombre }}</option>
-                       @endforeach
-                   </select>
-                   <x-heroicon-o-magnifying-glass class="w-4 h-4 text-gray-400 absolute left-2 top-2.5 pointer-events-none" />
-                   <x-heroicon-o-chevron-down class="w-4 h-4 text-gray-400 absolute right-2 top-2.5 pointer-events-none" />
+                {{-- Cliente --}}
+                <div class="flex-1">
+                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Cliente</label>
+                    <div class="relative">
+                       <select wire:model.live="nuevoClienteNombre" 
+                               id="pos-cliente"
+                              class="w-full h-9 border-gray-300 rounded px-2 pl-8 text-sm font-bold focus:ring-primary-500 focus:border-primary-500 appearance-none">
+                           <option value="">Selecciona un cliente...</option>
+                           @foreach($resultadosClientes as $id => $nombre)
+                               <option value="{{ $id }}">{{ $nombre }}</option>
+                           @endforeach
+                       </select>
+                       <x-heroicon-o-magnifying-glass class="w-4 h-4 text-gray-400 absolute left-2 top-2.5 pointer-events-none" />
+                       <x-heroicon-o-chevron-down class="w-4 h-4 text-gray-400 absolute right-2 top-2.5 pointer-events-none" />
+                    </div>
+                </div>
+                
+                {{-- Teléfono oculto en móvil --}}
+                <div class="hidden lg:block w-40">
+                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Teléfono</label>
+                    <input type="text" readonly
+                           class="w-full h-9 bg-gray-50 border border-gray-300 rounded px-2 text-sm text-gray-600" 
+                           placeholder="-" />
                 </div>
             </div>
             
-            {{-- Teléfono oculto en móvil --}}
-            <div class="hidden lg:block w-40">
-                <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Teléfono</label>
-                <input type="text" readonly
-                       class="w-full h-9 bg-gray-50 border border-gray-300 rounded px-2 text-sm text-gray-600" 
-                       placeholder="-" />
-            </div>
-
-            {{-- TPV Buttons --}}
-            <div class="flex flex-col gap-1 md:col-span-2 lg:col-span-1">
-                <div class="grid grid-cols-4 gap-1">
-                    @foreach(range(1,4) as $tpv)
-                        <button wire:click="cambiarTpv({{ $tpv }})" 
-                                type="button"
-                                class="px-2 md:px-3 py-1.5 rounded text-xs font-bold transition-all duration-200 shadow-md active:scale-95
-                                       {{ $tpvActivo === $tpv 
-                                          ? 'bg-primary-600 text-white shadow-lg ring-2 ring-primary-300' 
-                                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:shadow-lg' }}"
-                                wire:loading.class="opacity-50 cursor-wait"
-                                wire:target="cambiarTpv">
-                            TPV{{ $tpv }}
-                        </button>
-                    @endforeach
-                </div>
+            {{-- Fila 2: TPV Buttons - SIEMPRE HORIZONTAL --}}
+            <div class="flex gap-1">
+                @foreach(range(1,4) as $tpv)
+                    <button wire:click="cambiarTpv({{ $tpv }})" 
+                            type="button"
+                            class="flex-1 px-2 md:px-3 py-1.5 rounded text-xs font-bold transition-all duration-200 shadow-md active:scale-95
+                                   {{ $tpvActivo === $tpv 
+                                      ? 'bg-primary-600 text-white shadow-lg ring-2 ring-primary-300' 
+                                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:shadow-lg' }}"
+                            wire:loading.class="opacity-50 cursor-wait"
+                            wire:target="cambiarTpv">
+                        TPV {{ $tpv }}
+                    </button>
+                @endforeach
                 <button type="button" 
-                        class="hidden md:flex px-3 py-1 bg-gray-100 border border-gray-300 hover:bg-gray-200 rounded text-xs items-center justify-center text-gray-700 font-bold shadow-sm transition active:scale-95">
+                        class="hidden md:flex px-3 py-1.5 bg-gray-100 border border-gray-300 hover:bg-gray-200 rounded text-xs items-center justify-center text-gray-700 font-bold shadow-sm transition active:scale-95">
                     <x-heroicon-o-ticket class="w-3 h-3 mr-1 text-primary-500"/> VALE
                 </button>
             </div>
