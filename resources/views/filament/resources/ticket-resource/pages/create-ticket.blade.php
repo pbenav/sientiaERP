@@ -112,7 +112,7 @@
                 <div class="w-32">
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Código</label>
                     <input type="text" 
-                           wire:model.live.debounce.150ms="nuevoCodigo" 
+                           wire:model.live="nuevoCodigo" 
                            wire:blur="buscarProducto(true)" 
                            wire:keydown.enter.prevent="buscarProducto(true)"
                            list="codigos-list"
@@ -130,7 +130,7 @@
                 <div class="flex-1 min-w-[200px]">
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Descripción</label>
                     <input type="text" 
-                           wire:model.live.debounce.150ms="nuevoNombre" 
+                           wire:model.live="nuevoNombre" 
                            wire:blur="buscarProducto(true)" 
                            wire:keydown.enter.prevent="buscarProducto(true)"
                            list="productos-list"
