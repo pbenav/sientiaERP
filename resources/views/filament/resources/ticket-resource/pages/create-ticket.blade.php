@@ -157,7 +157,7 @@
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Precio</label>
                     <input type="number" 
                            wire:model.live="nuevoPrecio"
-                           wire:keydown.enter="document.getElementById('pos-descuento').focus()"
+                           x-on:keydown.enter.prevent="document.getElementById('pos-descuento').focus()"
                            step="0.01"
                            id="pos-precio"
                            class="pos-input w-full h-9 border-gray-300 rounded px-2 text-right text-sm focus:ring-primary-500 focus:border-primary-500" />
@@ -167,7 +167,7 @@
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Dto %</label>
                     <input type="number" 
                            wire:model.live="nuevoDescuento"
-                           wire:keydown.enter="document.getElementById('btn-anadir-producto').focus()"
+                           x-on:keydown.enter.prevent="document.getElementById('btn-anadir-producto').click()"
                            step="0.01"
                            id="pos-descuento"
                            class="pos-input w-full h-9 border-gray-300 rounded px-2 text-right text-sm focus:ring-primary-500 focus:border-primary-500" />
