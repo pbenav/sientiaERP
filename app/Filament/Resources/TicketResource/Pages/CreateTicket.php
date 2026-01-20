@@ -373,50 +373,64 @@ class CreateTicket extends Page
     
 public function anotarLinea()
 {
-    // Si no hay producto cargado, intentar buscarlo primero usando los campos actuales
-    if (!$this->nuevoProducto || !isset($this->nuevoProducto->id)) {
-        // Si ambos campos están vacíos, no intentar buscar
-        if (empty($this->nuevoCodigo) && empty($this->nuevoNombre)) {
-            Notification::make()
-                ->title('Artículo no encontrado')
-                ->body('Busca y selecciona un artículo válido antes de añadirlo')
-                ->warning()
-                ->send();
-            return;
-        }
-        
-        // Intentar buscar por SKU primero
-        if (!empty($this->nuevoCodigo)) {
-            $producto = Product::where('sku', $this->nuevoCodigo)
-                               ->orWhere('barcode', $this->nuevoCodigo)
-                               ->first();
-            if ($producto) {
-                $this->cargarProducto($producto);
-            }
-        }
-        
-        // Si aún no hay producto, intentar por nombre
-        if ((!$this->nuevoProducto || !isset($this->nuevoProducto->id)) && !empty($this->nuevoNombre)) {
-            $producto = Product::where('name', $this->nuevoNombre)
-                               ->orWhere('name', 'like', "%{$this->nuevoNombre}%")
-                               ->first();
-            if ($producto) {
-                $this->cargarProducto($producto);
-            }
-        }
-    }
-    
-    // Validación final: debe haber un producto cargado
-    if (!$this->nuevoProducto || !isset($this->nuevoProducto->id)) {
-        Notification::make()
-            ->title('Artículo no encontrado')
-            ->body('Busca y selecciona un artículo válido antes de añadirlo')
-            ->warning()
-            ->send();
+    // VALIDACIÓN 1: Si ya hay producto cargado, usar ese directamente
+    if ($this->nuevoProducto && isset($this->nuevoProducto->id)) {
+        // Ya tenemos el producto, continuar con la lógica de añadir
+        $this->procesarLineaProducto();
         return;
     }
     
-    // Si no hay ticket (después de grabar uno), crear nuevo ticket para este TPV
+    // VALIDACIÓN 2: Si NO hay producto cargado, verificar si hay algo que buscar
+    // Trimear y verificar que no estén vacíos
+    $codigoTrimmed = trim($this->nuevoCodigo ?? '');
+    $nombreTrimmed = trim($this->nuevoNombre ?? '');
+    
+    // Si AMBOS campos están vacíos, no hacer nada (return silencioso)
+    if (empty($codigoTrimmed) && empty($nombreTrimmed)) {
+        return; // Silencioso, no molestar al usuario
+    }
+    
+    // VALIDACIÓN 3: Intentar buscar el producto SOLO si hay datos válidos
+    $producto = null;
+    
+    // Buscar por código si hay algo válido
+    if (!empty($codigoTrimmed)) {
+        $producto = Product::where('sku', $codigoTrimmed)
+                           ->orWhere('barcode', $codigoTrimmed)
+                           ->first();
+    }
+    
+    // Si no se encontró por código, buscar por nombre si hay algo válido
+    if (!$producto && !empty($nombreTrimmed)) {
+        $producto = Product::where('name', $nombreTrimmed)
+                           ->orWhere('name', 'like', "%{$nombreTrimmed}%")
+                           ->first();
+    }
+    
+    // Si se encontró, cargarlo y procesar
+    if ($producto) {
+        $this->cargarProducto($producto);
+        $this->procesarLineaProducto();
+        return;
+    }
+    
+    // Si llegamos aquí, no se encontró el producto
+    Notification::make()
+        ->title('Producto no encontrado')
+        ->body('No se encontró ningún producto con: ' . ($codigoTrimmed ?: $nombreTrimmed))
+        ->warning()
+        ->send();
+}
+
+// Método auxiliar para procesar la línea cuando ya tenemos el producto
+protected function procesarLineaProducto()
+{
+    // Verificación final de seguridad
+    if (!$this->nuevoProducto || !isset($this->nuevoProducto->id)) {
+        return;
+    }
+    
+    // Si no hay ticket, crear uno nuevo para este TPV
     if (!$this->ticket) {
         $this->cargarTpv($this->tpvActivo);
     }
@@ -439,7 +453,6 @@ public function anotarLinea()
     
     $this->recalcularTotales();
     $this->limpiarInputs();
-    
 }
     
     protected function persistirLinea($linea)
