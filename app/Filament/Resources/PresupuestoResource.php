@@ -204,7 +204,7 @@ class PresupuestoResource extends Resource
                     }),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()->tooltip('Editar')->label(''),
                 Tables\Actions\Action::make('pdf')
                     ->label('PDF')
                     ->icon('heroicon-o-document-arrow-down')
@@ -220,7 +220,7 @@ class PresupuestoResource extends Resource
                         $pedido = $record->convertirA('pedido');
                         return redirect()->route('filament.admin.resources.pedidos.edit', $pedido);
                     }),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\DeleteAction::make()->tooltip('Borrar')->label(''),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

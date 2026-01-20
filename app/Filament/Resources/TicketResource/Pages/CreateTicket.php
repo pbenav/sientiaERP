@@ -145,6 +145,15 @@ class CreateTicket extends Page
         $this->data['fecha'] = $this->fecha;
         $this->data['numero'] = $this->ticket->id;
         
+        // IMPORTANTE: Recargar todos los clientes activos para el dropdown (no solo los 10 iniciales)
+        // Esto permite cambiar el cliente en cualquier momento
+        $this->resultadosClientes = Tercero::clientes()
+                                    ->activos()
+                                    ->orderBy('nombre_comercial')
+                                    ->limit(50)  // Aumentado a 50 para tener más opciones
+                                    ->pluck('nombre_comercial', 'id')
+                                    ->toArray();
+        
         // IMPORTANTE: Si hay cliente, asegurarse de que esté en la lista de resultados PRIMERO
         if ($this->ticket->tercero_id) {
             $cliente = \App\Models\Tercero::find($this->ticket->tercero_id);
@@ -211,6 +220,14 @@ class CreateTicket extends Page
                 // Guardar el cliente en el ticket actual
                 $this->ticket->tercero_id = $tercero->id;
                 $this->ticket->save();
+                
+                // Notificación de feedback
+                Notification::make()
+                    ->title('Cliente actualizado')
+                    ->body($tercero->nombre_comercial)
+                    ->success()
+                    ->duration(2000)
+                    ->send();
                 
                 // Asegurarse de que el cliente está en la lista
                 if (!isset($this->resultadosClientes[$tercero->id])) {

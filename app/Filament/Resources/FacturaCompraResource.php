@@ -108,7 +108,7 @@ class FacturaCompraResource extends Resource
             Tables\Filters\Filter::make('sin_recibos')->label('Sin recibos')
                 ->query(fn ($query) => $query->whereDoesntHave('documentosDerivados', fn($q) => $q->where('tipo', 'recibo')))->toggle(),
         ])->actions([
-            Tables\Actions\EditAction::make()->visible(fn($record) => $record->puedeEditarse()),
+            Tables\Actions\EditAction::make()->tooltip('Editar')->label('')->visible(fn($record) => $record->puedeEditarse()),
             Tables\Actions\Action::make('pdf')->label('PDF')->icon('heroicon-o-document-arrow-down')->color('info')->url(fn($record) => route('documentos.pdf', $record))->openUrlInNewTab(),
             Tables\Actions\Action::make('generar_recibos')->label('Generar Recibos')->icon('heroicon-o-banknotes')->color('success')
                 ->visible(function ($record) {

@@ -134,7 +134,7 @@ class ReciboCompraResource extends Resource
                 Tables\Filters\SelectFilter::make('estado'),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()->tooltip('Editar')->label(''),
                 Tables\Actions\Action::make('pdf')
                     ->label('PDF')
                     ->icon('heroicon-o-document-arrow-down')

@@ -244,9 +244,9 @@ class FacturaResource extends Resource
                     ->toggle(),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
+                Tables\Actions\ViewAction::make()->tooltip('Ver')->label(''),
 
-                Tables\Actions\EditAction::make()
+                Tables\Actions\EditAction::make()->tooltip('Editar')->label('')
                     ->visible(fn($record) => $record->puedeEditarse()),
                 
                 Tables\Actions\Action::make('pdf')

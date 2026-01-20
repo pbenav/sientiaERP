@@ -142,7 +142,8 @@ class TicketResource extends Resource
             ])
             ->actions([
                 Tables\Actions\Action::make('generarFactura')
-                    ->label('Generar Factura')
+                    ->label('')
+                    ->tooltip('Generar Factura')
                     ->icon('heroicon-o-document-text')
                     ->color('success')
                     ->requiresConfirmation()
@@ -212,13 +213,14 @@ class TicketResource extends Resource
                             ->send();
                     }),
                 Tables\Actions\Action::make('mostrarEnPOS')
-                    ->label('Mostrar en POS')
+                    ->label('')
+                    ->tooltip('Mostrar en POS')
                     ->icon('heroicon-o-computer-desktop')
                     ->color('warning')
                     ->url(fn ($record) => TicketResource::getUrl('create', ['ticket_id' => $record->id])),
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ViewAction::make()->tooltip('Ver')->label('')->tooltip('Ver')->label(''),
+                Tables\Actions\EditAction::make()->tooltip('Editar')->label('')->tooltip('Editar')->label(''),
+                Tables\Actions\DeleteAction::make()->tooltip('Borrar')->label('')->tooltip('Borrar')->label(''),
             ])
             ->defaultSort('created_at', 'desc');
     }
