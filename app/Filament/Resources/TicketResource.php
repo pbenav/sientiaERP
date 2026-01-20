@@ -36,9 +36,9 @@ class TicketResource extends Resource
                     ->required()
                     ->disabled(),
                 
-                Forms\Components\Select::make('customer_id')
+                Forms\Components\Select::make('tercero_id')
                     ->label('Cliente')
-                    ->relationship('customer', 'name')
+                    ->relationship('tercero', 'nombre_comercial')
                     ->searchable(),
                 
                 Forms\Components\TextInput::make('session_id')
@@ -70,7 +70,7 @@ class TicketResource extends Resource
                     ->searchable()
                     ->sortable(),
                 
-                Tables\Columns\TextColumn::make('customer.name')
+                Tables\Columns\TextColumn::make('tercero.nombre_comercial')
                     ->label('Cliente')
                     ->searchable()
                     ->toggleable(),
@@ -161,10 +161,10 @@ class TicketResource extends Resource
                         
                         
                         // Determinar el tercero para la factura
-                        $terceroId = $record->customer_id;
+                        $terceroId = $record->tercero_id;
                         if (!$terceroId) {
                             // Si el ticket no tiene cliente, usar el cliente POS por defecto
-                            $terceroId = \App\Models\Setting::get('pos_default_customer_id');
+                            $terceroId = \App\Models\Setting::get('pos_default_tercero_id');
                         }
                         
                         if (!$terceroId) {
@@ -232,7 +232,7 @@ class TicketResource extends Resource
                         Infolists\Components\TextEntry::make('id')->label('ID'),
                         Infolists\Components\TextEntry::make('session_id')->label('ID de Sesión'),
                         Infolists\Components\TextEntry::make('user.name')->label('Operador'),
-                        Infolists\Components\TextEntry::make('customer.name')->label('Cliente'),
+                        Infolists\Components\TextEntry::make('tercero.nombre_comercial')->label('Cliente'),
                         Infolists\Components\TextEntry::make('status')
                             ->label('Estado')
                             ->badge()

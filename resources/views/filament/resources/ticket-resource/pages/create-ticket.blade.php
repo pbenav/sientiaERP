@@ -148,7 +148,7 @@
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Cant</label>
                     <input type="number" 
                            wire:model.live="nuevoCantidad"
-                           wire:keydown.enter.prevent="document.getElementById('pos-precio').focus()"
+                           wire:keydown.enter.prevent="$nextTick(() => document.getElementById('pos-precio').focus())"
                            id="pos-cantidad"
                            class="pos-input w-full h-9 border-gray-300 rounded px-2 text-right font-bold text-gray-800 focus:ring-primary-500 focus:border-primary-500" />
                 </div>

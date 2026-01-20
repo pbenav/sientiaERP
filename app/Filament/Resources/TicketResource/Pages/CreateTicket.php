@@ -466,12 +466,7 @@ class CreateTicket extends Page
             return;
         }
         
-        // IMPORTANTE: Guardar el cliente seleccionado antes de cerrar el ticket
-        if (!empty($this->nuevoClienteNombre)) {
-            $this->ticket->tercero_id = $this->nuevoClienteNombre;
-        }
-        
-        // IMPORTANTE: Asegurar que todas las líneas están guardadas en la base de datos
+        // PASO 1: Asegurar que todas las líneas están guardadas en la base de datos
         // Borrar todas las líneas existentes y recrearlas (para evitar inconsistencias)
         $this->ticket->items()->delete();
         
@@ -487,13 +482,25 @@ class CreateTicket extends Page
             ]);
         }
         
-        // Recalcular totales finales
+        // PASO 2: Recalcular totales finales
         $this->ticket->recalculateTotals();
         
-        // Cambiar estado del ticket
+        // PASO 3: IMPORTANTE - Guardar el cliente seleccionado ANTES de cambiar el estado
+        // Convertir a entero si es numérico, ya que puede venir como string del select
+        if (!empty($this->nuevoClienteNombre)) {
+            $terceroId = is_numeric($this->nuevoClienteNombre) 
+                ? (int)$this->nuevoClienteNombre 
+                : null;
+            
+            if ($terceroId) {
+                $this->ticket->tercero_id = $terceroId;
+            }
+        }
+        
+        // PASO 4: Cambiar estado del ticket
         $this->ticket->status = 'completed';
         
-        // Asignar número definitivo si aún es BORRADOR
+        // PASO 5: Asignar número definitivo si aún es BORRADOR
         if ($this->ticket->numero === 'BORRADOR') {
             // Generar número secuencial
             $ultimoNumero = Ticket::where('status', '!=', 'open')
@@ -501,7 +508,7 @@ class CreateTicket extends Page
             $this->ticket->numero = 'TKT-' . str_pad($ultimoNumero + 1, 6, '0', STR_PAD_LEFT);
         }
         
-        // Guardar ticket
+        // PASO 6: Guardar ticket con TODOS los cambios de una vez
         $this->ticket->save();
         
         // Notificación de éxito
@@ -556,11 +563,11 @@ class CreateTicket extends Page
         $this->data['numero'] = $ticket->id;
         
         // Cargar cliente si existe
-        if ($ticket->tercero_id && $ticket->customer) {
+        if ($ticket->tercero_id && $ticket->tercero) {
             $this->form->fill(['tercero_id' => $ticket->tercero_id]);
             $this->nuevoClienteNombre = $ticket->tercero_id;
             if (!isset($this->resultadosClientes[$ticket->tercero_id])) {
-                $this->resultadosClientes[$ticket->tercero_id] = $ticket->customer->name;
+                $this->resultadosClientes[$ticket->tercero_id] = $ticket->tercero->nombre_comercial;
             }
         }
         
