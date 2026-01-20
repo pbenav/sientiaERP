@@ -38,7 +38,13 @@ class TicketResource extends Resource
                 
                 Forms\Components\Select::make('tercero_id')
                     ->label('Cliente')
-                    ->relationship('tercero', 'nombre_comercial')
+                    ->options(function () {
+                        return \App\Models\Tercero::clientes()
+                            ->activos()
+                            ->orderBy('nombre_comercial')
+                            ->limit(100)
+                            ->pluck('nombre_comercial', 'id');
+                    })
                     ->searchable(),
                 
                 Forms\Components\TextInput::make('session_id')
