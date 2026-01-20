@@ -500,6 +500,9 @@ public function anotarLinea()
         $this->nuevoPrecio = 0;
         $this->nuevoDescuento = 0;
         $this->nuevoImporte = 0;
+        
+        // Devolver foco al campo SKU para continuar añadiendo productos
+        $this->dispatch('focus-codigo');
     }
     
     /**
