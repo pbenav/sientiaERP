@@ -132,7 +132,7 @@
                     <input type="text" 
                            wire:model.live.debounce.150ms="nuevoNombre" 
                            wire:blur="buscarProducto(true)" 
-                           wire:keydown.enter="document.getElementById('pos-cantidad').focus()"
+                           wire:keydown.enter="buscarProducto(true); $nextTick(() => document.getElementById('pos-cantidad').focus());"
                            list="productos-list"
                            id="pos-descripcion"
                            class="pos-input w-full h-9 border-gray-300 rounded px-2 text-sm focus:ring-primary-500 focus:border-primary-500"
