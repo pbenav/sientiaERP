@@ -153,6 +153,7 @@ class TicketResource extends Resource
                     ->icon('heroicon-o-document-text')
                     ->color('success')
                     ->requiresConfirmation()
+                    ->visible(fn (Ticket $record) => $record->status !== 'completed')
                     ->action(function (Ticket $record) {
                         // Cargar items del ticket
                         $items = $record->items()->get();
@@ -196,12 +197,16 @@ class TicketResource extends Resource
                         // Copiar líneas del ticket a la factura
                         $orden = 1;
                         foreach ($items as $item) {
+                            // Obtener el nombre del producto, con fallback si no existe
+                            $productoNombre = $item->product ? $item->product->name : 'Producto eliminado';
+                            $productoCodigo = $item->product ? $item->product->sku : '';
+                            
                             $linea = \App\Models\DocumentoLinea::create([
                                 'documento_id' => $factura->id,
                                 'producto_id' => $item->product_id,
                                 'orden' => $orden++,
-                                'codigo' => $item->product->sku ?? '',
-                                'descripcion' => $item->product->name ?? 'Producto',
+                                'codigo' => $productoCodigo,
+                                'descripcion' => $productoNombre,
                                 'cantidad' => $item->quantity,
                                 'precio_unitario' => $item->unit_price,
                                 'descuento' => 0,
@@ -212,9 +217,13 @@ class TicketResource extends Resource
                         // Recalcular totales
                         $factura->recalcularTotales();
                         
+                        // Marcar ticket como completado
+                        $record->status = 'completed';
+                        $record->save();
+                        
                         \Filament\Notifications\Notification::make()
-                            ->title('Factura creada')
-                            ->body("Factura #{$factura->id} con {$items->count()} líneas")
+                            ->title('Factura creada correctamente')
+                            ->body("Factura en borrador creada para {$record->tercero->nombre_comercial}. Total: " . number_format($factura->total, 2, ',', '.') . " €. Recuerda confirmarla para asignar número oficial.")
                             ->success()
                             ->send();
                     }),
@@ -225,7 +234,7 @@ class TicketResource extends Resource
                     ->color('warning')
                     ->url(fn ($record) => TicketResource::getUrl('create', ['ticket_id' => $record->id])),
                 Tables\Actions\ViewAction::make()->tooltip('Ver')->label('')->tooltip('Ver')->label(''),
-                Tables\Actions\EditAction::make()->tooltip('Editar')->label('')->tooltip('Editar')->label(''),
+                Tables\Actions\EditAction::make()->tooltip('Editar')->label('')->visible(fn (Ticket $record) => $record->status !== 'completed'),
                 Tables\Actions\DeleteAction::make()->tooltip('Borrar')->label('')->tooltip('Borrar')->label(''),
             ])
             ->defaultSort('created_at', 'desc');
@@ -253,15 +262,9 @@ class TicketResource extends Resource
                 
                 Infolists\Components\Section::make('Productos')
                     ->schema([
-                        Infolists\Components\RepeatableEntry::make('items')
+                        Infolists\Components\ViewEntry::make('items')
                             ->label('')
-                            ->schema([
-                                Infolists\Components\TextEntry::make('product.name')->label('Producto'),
-                                Infolists\Components\TextEntry::make('quantity')->label('Cantidad'),
-                                Infolists\Components\TextEntry::make('unit_price')->label('Precio Unit.')->money('EUR'),
-                                Infolists\Components\TextEntry::make('total')->label('Total')->money('EUR'),
-                            ])
-                            ->columns(4),
+                            ->view('filament.infolists.ticket-items-table'),
                     ]),
                 
                 Infolists\Components\Section::make('Totales')
