@@ -212,9 +212,13 @@ class TicketResource extends Resource
                         // Recalcular totales
                         $factura->recalcularTotales();
                         
+                        // Marcar ticket como completado
+                        $record->status = 'completed';
+                        $record->save();
+                        
                         \Filament\Notifications\Notification::make()
-                            ->title('Factura creada')
-                            ->body("Factura #{$factura->id} con {$items->count()} líneas")
+                            ->title('Factura creada correctamente')
+                            ->body("Factura en borrador creada para {$record->tercero->nombre_comercial}. Total: " . number_format($factura->total, 2, ',', '.') . " €. Recuerda confirmarla para asignar número oficial.")
                             ->success()
                             ->send();
                     }),
