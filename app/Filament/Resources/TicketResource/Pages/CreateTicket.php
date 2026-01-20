@@ -375,6 +375,16 @@ public function anotarLinea()
 {
     // Si no hay producto cargado, intentar buscarlo primero usando los campos actuales
     if (!$this->nuevoProducto || !isset($this->nuevoProducto->id)) {
+        // Si ambos campos están vacíos, no intentar buscar
+        if (empty($this->nuevoCodigo) && empty($this->nuevoNombre)) {
+            Notification::make()
+                ->title('Artículo no encontrado')
+                ->body('Busca y selecciona un artículo válido antes de añadirlo')
+                ->warning()
+                ->send();
+            return;
+        }
+        
         // Intentar buscar por SKU primero
         if (!empty($this->nuevoCodigo)) {
             $producto = Product::where('sku', $this->nuevoCodigo)
