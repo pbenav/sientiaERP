@@ -371,43 +371,66 @@ class CreateTicket extends Page
     public function updatedNuevoPrecio() { $this->calcularImporteLinea(); }
     public function updatedNuevoDescuento() { $this->calcularImporteLinea(); }
     
-    public function anotarLinea()
-    {
-        // Validación estricta: debe haber un producto cargado
-        if (!$this->nuevoProducto || !isset($this->nuevoProducto->id)) {
-            Notification::make()
-                ->title('Artículo no encontrado')
-                ->body('Busca y selecciona un artículo válido antes de añadirlo')
-                ->warning()
-                ->send();
-            return;
+public function anotarLinea()
+{
+    // Si no hay producto cargado, intentar buscarlo primero usando los campos actuales
+    if (!$this->nuevoProducto || !isset($this->nuevoProducto->id)) {
+        // Intentar buscar por SKU primero
+        if (!empty($this->nuevoCodigo)) {
+            $producto = Product::where('sku', $this->nuevoCodigo)
+                               ->orWhere('barcode', $this->nuevoCodigo)
+                               ->first();
+            if ($producto) {
+                $this->cargarProducto($producto);
+            }
         }
         
-        // Si no hay ticket (después de grabar uno), crear nuevo ticket para este TPV
-        if (!$this->ticket) {
-            $this->cargarTpv($this->tpvActivo);
+        // Si aún no hay producto, intentar por nombre
+        if ((!$this->nuevoProducto || !isset($this->nuevoProducto->id)) && !empty($this->nuevoNombre)) {
+            $producto = Product::where('name', $this->nuevoNombre)
+                               ->orWhere('name', 'like', "%{$this->nuevoNombre}%")
+                               ->first();
+            if ($producto) {
+                $this->cargarProducto($producto);
+            }
         }
-        
-        // Añadir a memoria
-        $linea = [
-            'product_id' => $this->nuevoProducto->id,
-            'codigo' => $this->nuevoProducto->sku,
-            'nombre' => $this->nuevoProducto->name,
-            'cantidad' => $this->nuevoCantidad,
-            'precio' => $this->nuevoPrecio,
-            'descuento' => $this->nuevoDescuento,
-            'importe' => $this->nuevoImporte,
-        ];
-        
-        $this->lineas[] = $linea;
-        
-        // Persistir en BDD
-        $this->persistirLinea($linea);
-        
-        $this->recalcularTotales();
-        $this->limpiarInputs();
-        
     }
+    
+    // Validación final: debe haber un producto cargado
+    if (!$this->nuevoProducto || !isset($this->nuevoProducto->id)) {
+        Notification::make()
+            ->title('Artículo no encontrado')
+            ->body('Busca y selecciona un artículo válido antes de añadirlo')
+            ->warning()
+            ->send();
+        return;
+    }
+    
+    // Si no hay ticket (después de grabar uno), crear nuevo ticket para este TPV
+    if (!$this->ticket) {
+        $this->cargarTpv($this->tpvActivo);
+    }
+    
+    // Añadir a memoria
+    $linea = [
+        'product_id' => $this->nuevoProducto->id,
+        'codigo' => $this->nuevoProducto->sku,
+        'nombre' => $this->nuevoProducto->name,
+        'cantidad' => $this->nuevoCantidad,
+        'precio' => $this->nuevoPrecio,
+        'descuento' => $this->nuevoDescuento,
+        'importe' => $this->nuevoImporte,
+    ];
+    
+    $this->lineas[] = $linea;
+    
+    // Persistir en BDD
+    $this->persistirLinea($linea);
+    
+    $this->recalcularTotales();
+    $this->limpiarInputs();
+    
+}
     
     protected function persistirLinea($linea)
     {
