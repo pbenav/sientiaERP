@@ -36,6 +36,12 @@ class SettingsPage extends Page
             'pdf_logo_image' => Setting::get('pdf_logo_image'),
             'pdf_header_html' => Setting::get('pdf_header_html', '<strong>Sientia SL</strong><br>NIF: B12345678<br>Calle Falsa 123, 28001 Madrid'),
             'pdf_footer_text' => Setting::get('pdf_footer_text', 'nexERP System'),
+            'currency_symbol' => Setting::get('currency_symbol', '€'),
+            'currency_position' => Setting::get('currency_position', 'suffix'),
+            'decimal_separator' => Setting::get('decimal_separator', ','),
+            'thousands_separator' => Setting::get('thousands_separator', '.'),
+            'locale' => Setting::get('locale', 'es'),
+            'timezone' => Setting::get('timezone', 'Europe/Madrid'),
             'pos_default_tercero_id' => Setting::get('pos_default_tercero_id'),
         ]);
     }
@@ -100,6 +106,78 @@ class SettingsPage extends Page
                             ->columnSpanFull(),
                     ]),
 
+                Section::make('Moneda y Formato de Números')
+                    ->description('Cómo se muestran los importes en toda la aplicación')
+                    ->schema([
+                        TextInput::make('currency_symbol')
+                            ->label('Símbolo de Moneda')
+                            ->default('€')
+                            ->maxLength(5)
+                            ->placeholder('€')
+                            ->columnSpan(1),
+
+                        Forms\Components\Select::make('currency_position')
+                            ->label('Posición del Símbolo')
+                            ->options([
+                                'suffix' => 'Después del importe (100,00 €)',
+                                'prefix' => 'Antes del importe (€ 100,00)',
+                            ])
+                            ->default('suffix')
+                            ->columnSpan(1),
+
+                        Forms\Components\Select::make('decimal_separator')
+                            ->label('Separador Decimal')
+                            ->options([
+                                ',' => 'Coma (100,50)',
+                                '.' => 'Punto (100.50)',
+                            ])
+                            ->default(',')
+                            ->columnSpan(1),
+
+                        Forms\Components\Select::make('thousands_separator')
+                            ->label('Separador de Miles')
+                            ->options([
+                                '.' => 'Punto (1.000,00)',
+                                ',' => 'Coma (1,000.00)',
+                                ' ' => 'Espacio (1 000,00)',
+                                '' => 'Ninguno (1000,00)',
+                            ])
+                            ->default('.')
+                            ->columnSpan(1),
+                    ])
+                    ->columns(2)
+                    ->collapsible(),
+
+                Section::make('Idioma y Localización')
+                    ->description('Configuración regional de la aplicación')
+                    ->schema([
+                        Forms\Components\Select::make('locale')
+                            ->label('Idioma')
+                            ->options([
+                                'es' => 'Español',
+                                'en' => 'English',
+                                'ca' => 'Català',
+                            ])
+                            ->default('es')
+                            ->helperText('Idioma de la interfaz de usuario')
+                            ->columnSpan(1),
+
+                        Forms\Components\Select::make('timezone')
+                            ->label('Zona Horaria')
+                            ->options([
+                                'Europe/Madrid' => 'Madrid (UTC+1/+2)',
+                                'Europe/London' => 'Londres (UTC+0/+1)',
+                                'America/New_York' => 'Nueva York (UTC-5/-4)',
+                                'America/Los_Angeles' => 'Los Ángeles (UTC-8/-7)',
+                            ])
+                            ->default('Europe/Madrid')
+                            ->searchable()
+                            ->helperText('Zona horaria para fechas y horas')
+                            ->columnSpan(1),
+                    ])
+                    ->columns(2)
+                    ->collapsible(),
+
                 Section::make('Punto de Venta (POS)')
                     ->description('Configuración del sistema de punto de venta')
                     ->schema([
@@ -126,6 +204,12 @@ class SettingsPage extends Page
                 'pdf_logo_image' => 'Imagen del Logo',
                 'pdf_header_html' => 'HTML de Cabecera PDF',
                 'pdf_footer_text' => 'Texto de Pie de Página PDF',
+                'currency_symbol' => 'Símbolo de Moneda',
+                'currency_position' => 'Posición del Símbolo',
+                'decimal_separator' => 'Separador Decimal',
+                'thousands_separator' => 'Separador de Miles',
+                'locale' => 'Idioma',
+                'timezone' => 'Zona Horaria',
                 'pos_default_tercero_id' => 'Cliente por Defecto POS',
             ];
             
@@ -135,6 +219,12 @@ class SettingsPage extends Page
                 'pdf_logo_image' => 'PDF',
                 'pdf_header_html' => 'PDF',
                 'pdf_footer_text' => 'PDF',
+                'currency_symbol' => 'Moneda',
+                'currency_position' => 'Moneda',
+                'decimal_separator' => 'Formato',
+                'thousands_separator' => 'Formato',
+                'locale' => 'Localización',
+                'timezone' => 'Localización',
                 'pos_default_tercero_id' => 'POS',
             ];
 

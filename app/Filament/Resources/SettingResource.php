@@ -28,6 +28,8 @@ class SettingResource extends Resource
     protected static ?string $navigationGroup = 'Sistema';
     
     protected static ?int $navigationSort = 100;
+    
+    protected static bool $shouldRegisterNavigation = false;
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
