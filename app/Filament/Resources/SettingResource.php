@@ -29,6 +29,16 @@ class SettingResource extends Resource
     
     protected static ?int $navigationSort = 100;
 
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()
+            ->whereNotIn('key', [
+                'pdf_logo_type',
+                'pdf_logo_text',
+                'pdf_logo_image',
+            ]);
+    }
+
     public static function form(Form $form): Form
     {
         return $form
