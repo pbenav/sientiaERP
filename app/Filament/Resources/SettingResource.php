@@ -19,11 +19,15 @@ class SettingResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
     
-    protected static ?string $navigationLabel = 'Preferencias';
+    protected static ?string $navigationLabel = 'Ajustes Avanzados';
     
-    protected static ?string $modelLabel = 'Preferencia';
+    protected static ?string $modelLabel = 'Ajuste';
     
-    protected static ?string $pluralModelLabel = 'Preferencias';
+    protected static ?string $pluralModelLabel = 'Ajustes Avanzados';
+    
+    protected static ?string $navigationGroup = 'Sistema';
+    
+    protected static ?int $navigationSort = 100;
 
     public static function form(Form $form): Form
     {
