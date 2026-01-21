@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Models\Setting;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\FileUpload;
@@ -116,7 +117,7 @@ class SettingsPage extends Page
                             ->placeholder('€')
                             ->columnSpan(1),
 
-                        Forms\Components\Select::make('currency_position')
+                        Select::make('currency_position')
                             ->label('Posición del Símbolo')
                             ->options([
                                 'suffix' => 'Después del importe (100,00 €)',
@@ -125,7 +126,7 @@ class SettingsPage extends Page
                             ->default('suffix')
                             ->columnSpan(1),
 
-                        Forms\Components\Select::make('decimal_separator')
+                        Select::make('decimal_separator')
                             ->label('Separador Decimal')
                             ->options([
                                 ',' => 'Coma (100,50)',
@@ -134,7 +135,7 @@ class SettingsPage extends Page
                             ->default(',')
                             ->columnSpan(1),
 
-                        Forms\Components\Select::make('thousands_separator')
+                        Select::make('thousands_separator')
                             ->label('Separador de Miles')
                             ->options([
                                 '.' => 'Punto (1.000,00)',
@@ -151,7 +152,7 @@ class SettingsPage extends Page
                 Section::make('Idioma y Localización')
                     ->description('Configuración regional de la aplicación')
                     ->schema([
-                        Forms\Components\Select::make('locale')
+                        Select::make('locale')
                             ->label('Idioma')
                             ->options([
                                 'es' => 'Español',
@@ -162,7 +163,7 @@ class SettingsPage extends Page
                             ->helperText('Idioma de la interfaz de usuario')
                             ->columnSpan(1),
 
-                        Forms\Components\Select::make('timezone')
+                        Select::make('timezone')
                             ->label('Zona Horaria')
                             ->options([
                                 'Europe/Madrid' => 'Madrid (UTC+1/+2)',
@@ -181,7 +182,7 @@ class SettingsPage extends Page
                 Section::make('Punto de Venta (POS)')
                     ->description('Configuración del sistema de punto de venta')
                     ->schema([
-                        \Filament\Forms\Components\Select::make('pos_default_tercero_id')
+                        Select::make('pos_default_tercero_id')
                             ->label('Cliente por Defecto')
                             ->options(fn() => \App\Models\Tercero::clientes()->pluck('nombre_comercial', 'id'))
                             ->searchable()
