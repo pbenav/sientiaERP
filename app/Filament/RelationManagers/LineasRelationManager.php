@@ -191,81 +191,37 @@ class LineasRelationManager extends RelationManager
                     ->sortable()
                     ->limit(30),
                 
-                Tables\Columns\TextInputColumn::make('cantidad')
+                Tables\Columns\TextColumn::make('cantidad')
                     ->label('Cant.')
-                    ->type('text')
-                    ->inputMode('decimal')
                     ->extraHeaderAttributes(['style' => 'width: 100px; min-width: 100px; max-width: 100px'])
                     ->extraAttributes(['style' => 'width: 100px; min-width: 100px; max-width: 100px'])
-                    ->extraInputAttributes([
-                        'style' => 'text-align: center; padding: 4px;',
-                        'onkeydown' => 'if(event.key === "Enter") { event.preventDefault(); }', // Prevenir submit del formulario principal
-                        'onfocus' => 'this.select()',
-                    ])
                     ->sortable()
-                    ->disabled(fn($livewire) => $livewire->getOwnerRecord()->estado !== 'borrador')
-                    ->rules(['required', 'min:0', 'max:9999999'])
-                    ->afterStateUpdated(function ($record, $livewire) {
-                        $record->documento->recalcularTotales();
-                        $livewire->dispatch('refresh-document-totals');
-                    }),
+                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 0))
+                    ->alignCenter(),
                 
-                Tables\Columns\TextInputColumn::make('precio_unitario')
+                Tables\Columns\TextColumn::make('precio_unitario')
                     ->label('Precio')
-                    ->type('text')
-                    ->inputMode('decimal')
                     ->extraHeaderAttributes(['style' => 'width: 110px; min-width: 110px; max-width: 110px'])
                     ->extraAttributes(['style' => 'width: 110px; min-width: 110px; max-width: 110px'])
-                    ->extraInputAttributes([
-                        'style' => 'text-align: right; padding: 4px;',
-                        'onkeydown' => 'if(event.key === "Enter") { event.preventDefault(); }',
-                        'onfocus' => 'this.select()',
-                    ])
                     ->sortable()
-                    ->disabled(fn($livewire) => $livewire->getOwnerRecord()->estado !== 'borrador')
-                    ->rules(['required', 'min:0', 'max:9999999999'])
-                    ->afterStateUpdated(function ($record, $livewire) {
-                        $record->documento->recalcularTotales();
-                        $livewire->dispatch('refresh-document-totals');
-                    }),
+                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
+                    ->alignRight(),
                 
-                Tables\Columns\TextInputColumn::make('descuento')
+                Tables\Columns\TextColumn::make('descuento')
                     ->label('Dto.%')
-                    ->type('text')
-                    ->inputMode('decimal')
                     ->extraHeaderAttributes(['style' => 'width: 70px; min-width: 70px; max-width: 70px'])
                     ->extraAttributes(['style' => 'width: 70px; min-width: 70px; max-width: 70px'])
-                    ->extraInputAttributes([
-                        'style' => 'text-align: center; padding: 4px;',
-                        'onkeydown' => 'if(event.key === "Enter") { event.preventDefault(); }',
-                        'onfocus' => 'this.select()',
-                    ])
                     ->sortable()
-                    ->disabled(fn($livewire) => $livewire->getOwnerRecord()->estado !== 'borrador')
-                    ->rules(['min:0', 'max:100'])
-                    ->afterStateUpdated(function ($record, $livewire) {
-                        $record->documento->recalcularTotales();
-                        $livewire->dispatch('refresh-document-totals');
-                    }),
+                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
+                    ->alignCenter(),
                 
-                Tables\Columns\TextInputColumn::make('iva')
+                Tables\Columns\TextColumn::make('iva')
                     ->label('IVA%')
-                    ->type('text')
-                    ->inputMode('decimal')
                     ->extraHeaderAttributes(['style' => 'width: 90px; min-width: 90px; max-width: 90px'])
                     ->extraAttributes(['style' => 'width: 90px; min-width: 90px; max-width: 90px'])
-                    ->extraInputAttributes([
-                        'style' => 'text-align: center; padding: 4px;',
-                        'onkeydown' => 'if(event.key === "Enter") { event.preventDefault(); }',
-                        'onfocus' => 'this.select()',
-                    ])
                     ->sortable()
-                    ->disabled(fn($livewire) => $livewire->getOwnerRecord()->estado !== 'borrador')
-                    ->rules(['required', 'min:0', 'max:100'])
-                    ->afterStateUpdated(function ($record, $livewire) {
-                        $record->documento->recalcularTotales();
-                        $livewire->dispatch('refresh-document-totals');
-                    }),
+                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
+                    ->alignCenter(),
                     
                 Tables\Columns\TextColumn::make('total')
                     ->label('Total')
