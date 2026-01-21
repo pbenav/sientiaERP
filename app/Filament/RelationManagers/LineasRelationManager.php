@@ -84,13 +84,14 @@ class LineasRelationManager extends RelationManager
                         ->label('Cant.')
                         ->type('text')
                         ->inputMode('decimal')
-                        ->numeric()
                         ->maxValue(9999999)
                         ->required()
                         ->default(1)
                         ->columnSpan(1)
                         ->live(onBlur: true)
                         ->extraInputAttributes(['style' => 'width: 120px'])
+                        ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 0))
+                        ->dehydrateStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::parseNumber($state))
                         ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
                             self::calcularLinea($set, $get);
                         }),
@@ -99,12 +100,13 @@ class LineasRelationManager extends RelationManager
                         ->label('Precio')
                         ->type('text')
                         ->inputMode('decimal')
-                        ->numeric()
                         ->maxValue(9999999999)
                         ->required()
                         ->live()
                         ->columnSpan(1)
                         ->extraInputAttributes(['style' => 'width: 110px'])
+                        ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
+                        ->dehydrateStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::parseNumber($state))
                         ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                             self::calcularLinea($set, $get)),
                     
@@ -112,12 +114,13 @@ class LineasRelationManager extends RelationManager
                         ->label('Dto.')
                         ->type('text')
                         ->inputMode('decimal')
-                        ->numeric()
                         ->maxValue(100)
                         ->default(fn() => \App\Models\Descuento::where('es_predeterminado', true)->where('activo', true)->first()?->valor ?? 0)
                         ->live()
                         ->columnSpan(1)
                         ->extraInputAttributes(['style' => 'width: 110px'])
+                        ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
+                        ->dehydrateStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::parseNumber($state))
                         ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                             self::calcularLinea($set, $get)),
                     
@@ -143,11 +146,11 @@ class LineasRelationManager extends RelationManager
 
                     Forms\Components\TextInput::make('total')
                         ->label('Total')
-                        ->numeric()
                         ->disabled()
                         ->dehydrated()
                         ->columnSpan(1)
-                        ->extraInputAttributes(['style' => 'width: 140px']),
+                        ->extraInputAttributes(['style' => 'width: 140px'])
+                        ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2)),
                 ]),
         ];
     }
@@ -201,7 +204,7 @@ class LineasRelationManager extends RelationManager
                     ])
                     ->sortable()
                     ->disabled(fn($livewire) => $livewire->getOwnerRecord()->estado !== 'borrador')
-                    ->rules(['required', 'numeric', 'min:0', 'max:9999999'])
+                    ->rules(['required', 'min:0', 'max:9999999'])
                     ->afterStateUpdated(function ($record, $livewire) {
                         $record->documento->recalcularTotales();
                         $livewire->dispatch('refresh-document-totals');
@@ -220,7 +223,7 @@ class LineasRelationManager extends RelationManager
                     ])
                     ->sortable()
                     ->disabled(fn($livewire) => $livewire->getOwnerRecord()->estado !== 'borrador')
-                    ->rules(['required', 'numeric', 'min:0', 'max:9999999999'])
+                    ->rules(['required', 'min:0', 'max:9999999999'])
                     ->afterStateUpdated(function ($record, $livewire) {
                         $record->documento->recalcularTotales();
                         $livewire->dispatch('refresh-document-totals');
@@ -239,7 +242,7 @@ class LineasRelationManager extends RelationManager
                     ])
                     ->sortable()
                     ->disabled(fn($livewire) => $livewire->getOwnerRecord()->estado !== 'borrador')
-                    ->rules(['numeric', 'min:0', 'max:100'])
+                    ->rules(['min:0', 'max:100'])
                     ->afterStateUpdated(function ($record, $livewire) {
                         $record->documento->recalcularTotales();
                         $livewire->dispatch('refresh-document-totals');
@@ -258,7 +261,7 @@ class LineasRelationManager extends RelationManager
                     ])
                     ->sortable()
                     ->disabled(fn($livewire) => $livewire->getOwnerRecord()->estado !== 'borrador')
-                    ->rules(['required', 'numeric', 'min:0', 'max:100'])
+                    ->rules(['required', 'min:0', 'max:100'])
                     ->afterStateUpdated(function ($record, $livewire) {
                         $record->documento->recalcularTotales();
                         $livewire->dispatch('refresh-document-totals');
@@ -271,10 +274,7 @@ class LineasRelationManager extends RelationManager
                     ->alignRight()
                     ->getStateUsing(fn ($record) => $record->total)
                     ->formatStateUsing(function ($state) {
-                        $symbol = \App\Models\Setting::get('currency_symbol', '€');
-                        $position = \App\Models\Setting::get('currency_position', 'suffix');
-                        $formatted = number_format($state, 2, ',', '.');
-                        return $position === 'suffix' ? "$formatted $symbol" : "$symbol $formatted";
+                        return \App\Helpers\NumberFormatHelper::formatCurrency($state);
                     })
                     ->sortable(),
             ])
