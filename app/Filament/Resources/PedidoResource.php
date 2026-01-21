@@ -120,6 +120,7 @@ class PedidoResource extends Resource
                             ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
                             ->searchable()
                             ->preload()
+                            ->default(1)
                             ->createOptionForm([
                                 Forms\Components\TextInput::make('nombre')
                                     ->required()
