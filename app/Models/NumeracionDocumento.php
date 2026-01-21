@@ -29,7 +29,7 @@ class NumeracionDocumento extends Model
     /**
      * Generar siguiente número para un tipo y serie
      */
-    public static function generarNumero(string $tipo, string $serie = null): string
+    public static function generarNumero(string $tipo, ?string $serie = null): string
     {
         $anio = date('Y');
 
