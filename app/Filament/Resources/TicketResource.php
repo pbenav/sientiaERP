@@ -217,14 +217,17 @@ class TicketResource extends Resource
                         // Recalcular totales
                         $factura->recalcularTotales();
                         
+                        // CONFIRMAR FACTURA AUTOMÁTICAMENTE (asignar número)
+                        $factura->confirmar();
+                        
                         // Guardar referencia a factura en el ticket
                         $record->documento_id = $factura->id;
                         $record->status = 'completed';
                         $record->save();
                         
                         \Filament\Notifications\Notification::make()
-                            ->title('Factura creada correctamente')
-                            ->body("Factura en borrador creada para {$record->tercero->nombre_comercial}. Total: " . number_format($factura->total, 2, ',', '.') . " €. Recuerda confirmarla para asignar número oficial.")
+                            ->title('Factura creada y confirmada')
+                            ->body("Factura {$factura->numero} creada para {$record->tercero->nombre_comercial}. Total: " . number_format($factura->total, 2, ',', '.') . " €.")
                             ->success()
                             ->send();
                     }),
