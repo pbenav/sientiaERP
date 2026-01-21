@@ -1,9 +1,9 @@
-<div>
+<x-filament-panels::page>
     <form wire:submit="save">
         {{ $this->form }}
         
-        <div class="mt-6">
-            <x-filament-actions::actions :actions="$this->getCachedFormActions()" />
-        </div>
+        <x-filament::button type="submit" class="mt-6">
+            Guardar Configuración
+        </x-filament::button>
     </form>
-</div>
+</x-filament-panels::page>

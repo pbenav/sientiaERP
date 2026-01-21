@@ -115,15 +115,6 @@ class SettingsPage extends Page
             ->statePath('data');
     }
 
-    protected function getFormActions(): array
-    {
-        return [
-            \Filament\Actions\Action::make('save')
-                ->label('Guardar Configuración')
-                ->action('save'),
-        ];
-    }
-
     public function save(): void
     {
         $data = $this->form->getState();
