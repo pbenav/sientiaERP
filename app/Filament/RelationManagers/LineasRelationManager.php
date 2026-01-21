@@ -30,10 +30,47 @@ class LineasRelationManager extends RelationManager
         return [
             Forms\Components\Grid::make(6)
                 ->schema([
-                    Forms\Components\TextInput::make('descripcion')
+                    Forms\Components\Select::make('descripcion')
                         ->label('Descripción')
                         ->required()
-                        ->maxLength(255)
+                        ->searchable()
+                        ->options(function () {
+                            return \App\Models\Product::query()
+                                ->orderBy('name')
+                                ->pluck('name', 'name');
+                        })
+                        ->getSearchResultsUsing(function (string $search) {
+                            return \App\Models\Product::where('name', 'like', "%{$search}%")
+                                ->orWhere('sku', 'like', "%{$search}%")
+                                ->limit(50)
+                                ->pluck('name', 'name');
+                        })
+                        ->live()
+                        ->afterStateUpdated(function ($state, Forms\Set $set) {
+                            if ($state) {
+                                // Buscar producto por nombre
+                                $producto = \App\Models\Product::where('name', $state)->first();
+                                if ($producto) {
+                                    $set('product_id', $producto->id);
+                                    $set('codigo', $producto->sku);
+                                    $set('precio_unitario', $producto->price);
+                                    
+                                    // IVA del producto o por defecto
+                                    $taxRate = number_format($producto->tax_rate, 2, '.', '');
+                                    $ivaExists = \App\Models\Impuesto::where('valor', $taxRate)->where('tipo', 'iva')->exists();
+                                    
+                                    if ($ivaExists) {
+                                        $set('iva', $taxRate);
+                                    } else {
+                                        $globalDefault = \App\Models\Impuesto::where('tipo', 'iva')
+                                            ->where('es_predeterminado', true)
+                                            ->where('activo', true)
+                                            ->first()?->valor ?? 21.00;
+                                        $set('iva', number_format($globalDefault, 2, '.', ''));
+                                    }
+                                }
+                            }
+                        })
                         ->columnSpan(4),
                     
                     Forms\Components\TextInput::make('codigo')
