@@ -3,7 +3,7 @@
         {{ $this->form }}
         
         <div class="mt-6">
-            {{ $this->getFormActions() }}
+            <x-filament-actions::actions :actions="$this->getCachedFormActions()" />
         </div>
     </form>
 </div>
