@@ -199,7 +199,7 @@
             <td class="footer-cell" style="text-align: center;">
                 <div class="signature-box">
                     Firma y Sello<br>
-                    <strong>{{ $empresaNombre }}</strong>
+                    <strong>{{ $doc->tipo === 'recibo_compra' ? ($doc->tercero->nombre_razon_social ?? $doc->tercero->nombre_comercial) : $empresaNombre }}</strong>
                 </div>
             </td>
         </tr>
