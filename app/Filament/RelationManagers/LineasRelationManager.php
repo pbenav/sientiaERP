@@ -224,7 +224,6 @@ class LineasRelationManager extends RelationManager
                     ->sortable()
                     ->disabled(fn($livewire) => $livewire->getOwnerRecord()->estado !== 'borrador')
                     ->rules(['required', 'min:0', 'max:9999999999'])
-                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
                     ->afterStateUpdated(function ($record, $livewire) {
                         $record->documento->recalcularTotales();
                         $livewire->dispatch('refresh-document-totals');
@@ -244,7 +243,6 @@ class LineasRelationManager extends RelationManager
                     ->sortable()
                     ->disabled(fn($livewire) => $livewire->getOwnerRecord()->estado !== 'borrador')
                     ->rules(['min:0', 'max:100'])
-                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
                     ->afterStateUpdated(function ($record, $livewire) {
                         $record->documento->recalcularTotales();
                         $livewire->dispatch('refresh-document-totals');
@@ -264,7 +262,6 @@ class LineasRelationManager extends RelationManager
                     ->sortable()
                     ->disabled(fn($livewire) => $livewire->getOwnerRecord()->estado !== 'borrador')
                     ->rules(['required', 'min:0', 'max:100'])
-                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
                     ->afterStateUpdated(function ($record, $livewire) {
                         $record->documento->recalcularTotales();
                         $livewire->dispatch('refresh-document-totals');
