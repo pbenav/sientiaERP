@@ -250,40 +250,13 @@ class FacturaResource extends Resource
                     ->visible(fn($record) => $record->puedeEditarse()),
                 
                 Tables\Actions\Action::make('pdf')
-                    ->label('PDF')
+                    ->label('')
+                    ->tooltip('Descargar PDF')
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('info')
                     ->url(fn($record) => route('documentos.pdf', $record))
                     ->openUrlInNewTab(),
                 
-                Tables\Actions\Action::make('generar_recibos')
-                    ->label('Generar Recibos')
-                    ->icon('heroicon-o-banknotes')
-                    ->color('success')
-                    ->visible(function ($record) {
-                        return $record->estado === 'confirmado' && 
-                               !Documento::where('documento_origen_id', $record->id)
-                                   ->where('tipo', 'recibo')->exists();
-                    })
-                    ->requiresConfirmation()
-                    ->action(function ($record) {
-                        try {
-                            $service = new RecibosService();
-                            $recibos = $service->generarRecibosDesdeFactura($record);
-                            
-                            Notification::make()
-                                ->title('Recibos generados')
-                                ->success()
-                                ->body("Se han generado {$recibos->count()} recibo(s)")
-                                ->send();
-                        } catch (\Exception $e) {
-                            Notification::make()
-                                ->title('Error al generar recibos')
-                                ->danger()
-                                ->body($e->getMessage())
-                                ->send();
-                        }
-                    }),
                 
                 // TODO: Descomentar cuando se cree ReciboResource
                 // Tables\Actions\Action::make('ver_recibos')
@@ -296,7 +269,8 @@ class FacturaResource extends Resource
                 //     })
                 //     ->url(function ($record) {
                          Tables\Actions\Action::make('ver_recibos')
-                             ->label('Ver Recibos')
+                             ->label('')
+                             ->tooltip('Ver Recibos')
                              ->icon('heroicon-o-eye')
                              ->color('info')
                              ->visible(function ($record) {
@@ -308,7 +282,8 @@ class FacturaResource extends Resource
                              ])),
 
                 Tables\Actions\Action::make('anular')
-                    ->label('Anular')
+                    ->label('')
+                    ->tooltip('Anular')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->requiresConfirmation()
