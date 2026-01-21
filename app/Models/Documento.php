@@ -260,6 +260,26 @@ class Documento extends Model
             }
 
             $this->update($data);
+
+            // Generar recibos automáticamente si es factura
+            if (in_array($this->tipo, ['factura', 'factura_compra'])) {
+                try {
+                    $service = new \App\Services\RecibosService();
+                    // Verificar si ya tiene recibos antes de intentar generar
+                    $tipoRecibo = $this->tipo === 'factura_compra' ? 'recibo_compra' : 'recibo';
+                    $tieneRecibos = self::where('documento_origen_id', $this->id)
+                        ->where('tipo', $tipoRecibo)
+                        ->exists();
+
+                    if (!$tieneRecibos && $this->forma_pago_id) {
+                        $service->generarRecibosDesdeFactura($this);
+                    }
+                } catch (\Exception $e) {
+                    // Log error o continuar silenciosamente. 
+                    // No queremos romper la confirmación si falla la generación automática de recibos.
+                    \Illuminate\Support\Facades\Log::error('Error generando recibos automáticos al confirmar factura ' . $this->id . ': ' . $e->getMessage());
+                }
+            }
         }
     }
 

@@ -31,9 +31,11 @@ class RecibosService
             throw new \InvalidArgumentException('La factura debe tener una forma de pago asignada');
         }
 
+        $tipoReciboTarget = $factura->tipo === 'factura_compra' ? 'recibo_compra' : 'recibo';
+
         // Verificar si ya tiene recibos generados
         $recibosExistentes = Documento::where('documento_origen_id', $factura->id)
-            ->where('tipo', 'recibo')
+            ->where('tipo', $tipoReciboTarget)
             ->count();
 
         if ($recibosExistentes > 0) {
@@ -45,7 +47,7 @@ class RecibosService
             $recibos = collect();
             
             // Determinar el tipo de recibo según el tipo de factura
-            $tipoRecibo = $factura->tipo === 'factura_compra' ? 'recibo_compra' : 'recibo';
+            // (Ya calculado arriba como $tipoReciboTarget)
             
             // Calcular vencimientos usando la forma de pago
             $fechaBase = $factura->fecha ?? now();
@@ -53,14 +55,14 @@ class RecibosService
 
             foreach ($vencimientos as $index => $vencimiento) {
                 $recibo = new Documento([
-                    'tipo' => $tipoRecibo,
+                    'tipo' => $tipoReciboTarget,
                     'serie' => $factura->serie,
                     'fecha' => $fechaBase,
                     'fecha_vencimiento' => $vencimiento['fecha_vencimiento'],
                     'tercero_id' => $factura->tercero_id,
                     'user_id' => auth()->id() ?? $factura->user_id,
                     'documento_origen_id' => $factura->id,
-                    'estado' => 'pendiente', // Estado para recibos: pendiente, cobrado/pagado, anulado
+                    'estado' => $factura->tipo === 'factura_compra' ? 'pendiente' : 'borrador', // Estado inicial
                     'subtotal' => $vencimiento['importe'],
                     'base_imponible' => $vencimiento['importe'],
                     'total' => $vencimiento['importe'],
@@ -118,12 +120,13 @@ class RecibosService
             throw new \InvalidArgumentException('Solo se pueden regenerar recibos desde facturas');
         }
 
+        $tipoReciboTarget = $factura->tipo === 'factura_compra' ? 'recibo_compra' : 'recibo';
 
         DB::beginTransaction();
         try {
             // Eliminar recibos existentes (soft delete)
             Documento::where('documento_origen_id', $factura->id)
-                ->where('tipo', 'recibo')
+                ->where('tipo', $tipoReciboTarget)
                 ->delete();
 
             // Generar nuevos recibos
@@ -139,7 +142,7 @@ class RecibosService
     }
 
     /**
-     * Marcar un recibo como cobrado
+     * Marcar un recibo como cobrado/pagado
      * 
      * @param Documento $recibo
      * @param Carbon|null $fechaCobro
@@ -147,13 +150,15 @@ class RecibosService
      */
     public function marcarComoCobrado(Documento $recibo, ?Carbon $fechaCobro = null): bool
     {
-        if ($recibo->tipo !== 'recibo') {
-            throw new \InvalidArgumentException('Solo se pueden marcar recibos como cobrados');
+        if (!in_array($recibo->tipo, ['recibo', 'recibo_compra'])) {
+            throw new \InvalidArgumentException('Solo se pueden marcar recibos como cobrados/pagados');
         }
 
+        $estadoFinal = $recibo->tipo === 'recibo_compra' ? 'pagado' : 'cobrado';
+
         $recibo->update([
-            'estado' => 'cobrado',
-            'fecha_vencimiento' => $fechaCobro ?? now(),
+            'estado' => $estadoFinal,
+            'fecha_vencimiento' => $fechaCobro ?? now(), // Quizás fecha_cobro si existe columna
         ]);
 
         return true;
