@@ -150,6 +150,20 @@
     </div>
 
     <div class="receipt-body">
+        @if($doc->tipo === 'recibo_compra')
+        <p>
+            El proveedor <span class="highlight">{{ $doc->tercero->nombre_razon_social ?? $doc->tercero->nombre_comercial }}</span>
+            con NIF/CIF {{ $doc->tercero->nif_cif ?? '___________' }},
+        </p>
+        <p>
+            certifica que ha recibido la cantidad de <span class="highlight">{{ $importeLetras }}</span>
+        </p>
+        <p>
+            por la entrega del material referenciado en la factura nº <span class="highlight">{{ $doc->documentoOrigen->numero ?? '___________' }}</span>
+            de fecha {{ $doc->documentoOrigen && $doc->documentoOrigen->fecha ? $doc->documentoOrigen->fecha->format('d/m/Y') : '___________' }}
+            por medio de este recibo.
+        </p>
+        @else
         <p>
             He recibido de <span class="highlight">{{ $doc->tercero->nombre_razon_social ?? $doc->tercero->nombre_comercial }}</span>
             con NIF/CIF {{ $doc->tercero->nif_cif ?? '___________' }},
@@ -158,11 +172,11 @@
             la cantidad de <span class="highlight">{{ $importeLetras }}</span>
         </p>
         <p>
-            correspondiente al pago de la 
-            <strong>{{ $doc->tipo === 'recibo_compra' ? 'Factura de Compra' : 'Factura' }}</strong>
+            correspondiente al pago de la Factura
             número <span class="highlight">{{ $doc->documentoOrigen->numero ?? '___________' }}</span>
             de fecha {{ $doc->documentoOrigen && $doc->documentoOrigen->fecha ? $doc->documentoOrigen->fecha->format('d/m/Y') : '___________' }}.
         </p>
+        @endif
         
         @if($doc->observaciones)
         <p style="margin-top: 20px; font-size: 14px; color: #555;">
