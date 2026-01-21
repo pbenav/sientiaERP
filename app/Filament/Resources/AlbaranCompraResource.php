@@ -100,8 +100,18 @@ class AlbaranCompraResource extends Resource
             Tables\Filters\Filter::make('bloqueados')->label('Solo bloqueados')->query(fn ($query) => $query->whereHas('documentosDerivados'))->toggle(),
         ])->actions([
             Tables\Actions\EditAction::make()->tooltip('Editar')->label('')->visible(fn($record) => $record->puedeEditarse()),
-            Tables\Actions\Action::make('pdf')->label('PDF')->icon('heroicon-o-document-arrow-down')->color('info')->url(fn($record) => route('documentos.pdf', $record))->openUrlInNewTab(),
-            Tables\Actions\Action::make('convertir_factura')->label('Facturar')->icon('heroicon-o-document-currency-euro')->color('success')
+            Tables\Actions\Action::make('pdf')
+                ->label('')
+                ->tooltip('Descargar PDF')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('info')
+                ->url(fn($record) => route('documentos.pdf', $record))
+                ->openUrlInNewTab(),
+            Tables\Actions\Action::make('convertir_factura')
+                ->label('')
+                ->tooltip('Generar Factura')
+                ->icon('heroicon-o-document-currency-euro')
+                ->color('success')
                 ->visible(fn($record) => $record->estado === 'confirmado')
                 ->requiresConfirmation()
                 ->action(function ($record) {

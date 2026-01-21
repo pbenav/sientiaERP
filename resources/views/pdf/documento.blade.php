@@ -55,7 +55,20 @@
     
     <div class="header">
         <div class="company-info">
-            <h1>nexERP System</h1>
+            @php
+                $logoType = App\Models\Setting::get('pdf_logo_type', 'text');
+                $logoText = App\Models\Setting::get('pdf_logo_text', 'nexERP System');
+                $logoImage = App\Models\Setting::get('pdf_logo_image');
+            @endphp
+            
+            @if($logoType === 'image' && $logoImage)
+                <img src="{{ public_path('storage/' . $logoImage) }}" 
+                     alt="Logo" 
+                     style="max-width: 300px; height: auto; max-height: 80px; margin-bottom: 10px;">
+            @else
+                <h1>{{ $logoText }}</h1>
+            @endif
+            
             <p>
                 {!! App\Models\Setting::get('pdf_header_html', '<strong>Sientia SL</strong><br>NIF: B12345678<br>Calle Falsa 123, 28001 Madrid') !!}
             </p>

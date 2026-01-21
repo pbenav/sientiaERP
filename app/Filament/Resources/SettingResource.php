@@ -19,11 +19,29 @@ class SettingResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
     
-    protected static ?string $navigationLabel = 'Preferencias';
+    protected static ?string $navigationLabel = 'Ajustes Avanzados';
     
-    protected static ?string $modelLabel = 'Preferencia';
+    protected static ?string $modelLabel = 'Ajuste';
     
-    protected static ?string $pluralModelLabel = 'Preferencias';
+    protected static ?string $pluralModelLabel = 'Ajustes Avanzados';
+    
+    protected static ?string $navigationGroup = 'Sistema';
+    
+    protected static ?int $navigationSort = 100;
+    
+    protected static bool $shouldRegisterNavigation = false;
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()
+            ->whereNotIn('key', [
+                'pdf_logo_type',
+                'pdf_logo_text',
+                'pdf_logo_image',
+                'pdf_header_html',
+                'pdf_footer_text',
+            ]);
+    }
 
     public static function form(Form $form): Form
     {
