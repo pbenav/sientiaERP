@@ -56,7 +56,7 @@ class FacturaCompraResource extends Resource
                 
                 Forms\Components\Select::make('forma_pago_id')->label('Forma de Pago')
                     ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
-                    ->searchable()->preload()->required()
+                    ->searchable()->preload()->default(1)->required()
                     ->columnSpan(2),
                 
                 Forms\Components\Select::make('estado')->label('Estado')->options([

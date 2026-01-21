@@ -140,6 +140,7 @@ class FacturaResource extends Resource
                                             ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
                                             ->searchable()
                                             ->preload()
+                                            ->default(1)
                                             ->required()
                                             ->columnSpan(1),
                                     ]),
