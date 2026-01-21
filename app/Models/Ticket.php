@@ -15,6 +15,7 @@ class Ticket extends Model
     protected $fillable = [
         'user_id',
         'tercero_id',
+        'documento_id',
         'session_id', // UUID
         'tpv_slot',   // TPV Slot ID (1-4)
         'numero',     // Ticket number
@@ -56,6 +57,11 @@ class Ticket extends Model
     public function tercero(): BelongsTo
     {
         return $this->belongsTo(Tercero::class);
+    }
+
+    public function documento(): BelongsTo
+    {
+        return $this->belongsTo(Documento::class);
     }
 
     public function items(): HasMany
@@ -102,5 +108,13 @@ class Ticket extends Model
     public function scopeOpen($query)
     {
         return $query->where('status', 'open');
+    }
+
+    /**
+     * Verificar si el ticket ya tiene factura generada
+     */
+    public function hasInvoice(): bool
+    {
+        return $this->documento_id !== null;
     }
 }

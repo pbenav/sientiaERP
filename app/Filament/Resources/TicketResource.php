@@ -153,7 +153,7 @@ class TicketResource extends Resource
                     ->icon('heroicon-o-document-text')
                     ->color('success')
                     ->requiresConfirmation()
-                    ->visible(fn (Ticket $record) => $record->status !== 'completed')
+                    ->visible(fn (Ticket $record) => $record->status === 'completed' && !$record->hasInvoice())
                     ->action(function (Ticket $record) {
                         // Cargar items del ticket
                         $items = $record->items()->get();
@@ -217,7 +217,8 @@ class TicketResource extends Resource
                         // Recalcular totales
                         $factura->recalcularTotales();
                         
-                        // Marcar ticket como completado
+                        // Guardar referencia a factura en el ticket
+                        $record->documento_id = $factura->id;
                         $record->status = 'completed';
                         $record->save();
                         
@@ -234,7 +235,7 @@ class TicketResource extends Resource
                     ->color('warning')
                     ->url(fn ($record) => TicketResource::getUrl('create', ['ticket_id' => $record->id])),
                 Tables\Actions\ViewAction::make()->tooltip('Ver')->label('')->tooltip('Ver')->label(''),
-                Tables\Actions\EditAction::make()->tooltip('Editar')->label('')->visible(fn (Ticket $record) => $record->status !== 'completed'),
+                Tables\Actions\EditAction::make()->tooltip('Editar')->label('')->visible(fn (Ticket $record) => !$record->hasInvoice()),
                 Tables\Actions\DeleteAction::make()->tooltip('Borrar')->label('')->tooltip('Borrar')->label(''),
             ])
             ->defaultSort('created_at', 'desc');
