@@ -237,9 +237,9 @@ class TicketResource extends Resource
                     ->icon('heroicon-o-computer-desktop')
                     ->color('warning')
                     ->url(fn ($record) => TicketResource::getUrl('create', ['ticket_id' => $record->id])),
-                Tables\Actions\ViewAction::make()->tooltip('Ver')->label('')->tooltip('Ver')->label(''),
-                Tables\Actions\EditAction::make()->tooltip('Editar')->label('')->visible(fn (Ticket $record) => !$record->hasInvoice()),
-                Tables\Actions\DeleteAction::make()->tooltip('Borrar')->label('')->tooltip('Borrar')->label(''),
+                Tables\Actions\ViewAction::make()->label('')->tooltip('Ver'),
+                Tables\Actions\EditAction::make()->label('')->tooltip('Editar')->visible(fn (Ticket $record) => !$record->hasInvoice()),
+                Tables\Actions\DeleteAction::make()->label('')->tooltip('Borrar'),
             ])
             ->defaultSort('created_at', 'desc');
     }
