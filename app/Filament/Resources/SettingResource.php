@@ -36,6 +36,8 @@ class SettingResource extends Resource
                 'pdf_logo_type',
                 'pdf_logo_text',
                 'pdf_logo_image',
+                'pdf_header_html',
+                'pdf_footer_text',
             ]);
     }
 
