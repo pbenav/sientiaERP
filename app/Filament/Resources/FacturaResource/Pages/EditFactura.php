@@ -41,6 +41,38 @@ class EditFactura extends EditRecord
                     }
                 }),
             
+            // Botón especial para facturas confirmadas sin número (edge case)
+            Actions\Action::make('asignar_numero')
+                ->label('Asignar Número')
+                ->icon('heroicon-o-hashtag')
+                ->color('warning')
+                ->visible(fn() => $this->record->estado === 'confirmado' && empty($this->record->numero))
+                ->requiresConfirmation()
+                ->modalHeading('Asignar Número de Factura')
+                ->modalDescription('Esta factura está confirmada pero sin número asignado. Se le asignará un número automático.')
+                ->action(function () {
+                    try {
+                        $this->record->numero = \App\Models\NumeracionDocumento::generarNumero(
+                            $this->record->tipo,
+                            $this->record->serie ?? 'A'
+                        );
+                        $this->record->save();
+                        $this->refreshFormData(['numero']);
+                        
+                        Notification::make()
+                            ->title('Número asignado')
+                            ->body("Se ha asignado el número {$this->record->numero}")
+                            ->success()
+                            ->send();
+                    } catch (\Exception $e) {
+                        Notification::make()
+                            ->title('Error al asignar número')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
+                }),
+            
             Actions\Action::make('anular')
                 ->label('Anular')
                 ->icon('heroicon-o-x-circle')

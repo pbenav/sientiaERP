@@ -268,6 +268,18 @@ class Documento extends Model
      */
     public function anular(): void
     {
+        // Validar recibos si es factura
+        if (in_array($this->tipo, ['factura', 'factura_compra'])) {
+            $recibosPagados = self::where('documento_origen_id', $this->id)
+                ->where('tipo', 'recibo')
+                ->whereIn('estado', ['pagado', 'parcialmente_pagado'])
+                ->count();
+                
+            if ($recibosPagados > 0) {
+                throw new \Exception('No se puede anular la factura porque tiene recibos pagados. Debe crear una factura rectificativa negativa.');
+            }
+        }
+        
         $this->update(['estado' => 'anulado']);
     }
 
