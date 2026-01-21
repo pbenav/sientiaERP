@@ -153,6 +153,7 @@ class TicketResource extends Resource
                     ->icon('heroicon-o-document-text')
                     ->color('success')
                     ->requiresConfirmation()
+                    ->visible(fn (Ticket $record) => $record->status !== 'completed')
                     ->action(function (Ticket $record) {
                         // Cargar items del ticket
                         $items = $record->items()->get();
@@ -233,7 +234,7 @@ class TicketResource extends Resource
                     ->color('warning')
                     ->url(fn ($record) => TicketResource::getUrl('create', ['ticket_id' => $record->id])),
                 Tables\Actions\ViewAction::make()->tooltip('Ver')->label('')->tooltip('Ver')->label(''),
-                Tables\Actions\EditAction::make()->tooltip('Editar')->label('')->tooltip('Editar')->label(''),
+                Tables\Actions\EditAction::make()->tooltip('Editar')->label('')->visible(fn (Ticket $record) => $record->status !== 'completed'),
                 Tables\Actions\DeleteAction::make()->tooltip('Borrar')->label('')->tooltip('Borrar')->label(''),
             ])
             ->defaultSort('created_at', 'desc');

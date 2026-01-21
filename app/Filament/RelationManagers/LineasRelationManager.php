@@ -30,48 +30,18 @@ class LineasRelationManager extends RelationManager
         return [
             Forms\Components\Grid::make(6)
                 ->schema([
-                    Forms\Components\Select::make('product_id')
-                        ->label('Producto')
-                        ->relationship('product', 'name')
-                        ->searchable()
-                        ->preload()
-                        ->live()
-                        ->columnSpan(4)
-                        ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                            if ($state) {
-                                $product = \App\Models\Product::find($state);
-                                if ($product) {
-                                    $set('codigo', $product->sku);
-                                    $set('descripcion', $product->name);
-                                    $set('precio_unitario', $product->price);
-                                    
-                                    // Seguridad para IVA: Verificar si existe el tipo, sinó usar default
-                                    $taxRate = number_format($product->tax_rate, 2, '.', '');
-                                    $ivaExists = \App\Models\Impuesto::where('valor', $taxRate)->where('tipo', 'iva')->exists();
-                                    
-                                    if ($ivaExists) {
-                                        $set('iva', $taxRate);
-                                    } else {
-                                        // Fallback al IVA por defecto (Global o de la serie)
-                                        $globalDefault = \App\Models\Impuesto::where('tipo', 'iva')->where('es_predeterminado', true)->where('activo', true)->first()?->valor ?? 21.00;
-                                        $set('iva', number_format($globalDefault, 2, '.', ''));
-                                    }
-                                    
-                                    // Recalcular la línea con los nuevos valores
-                                    self::calcularLinea($set, $get);
-                                }
-                            }
-                        }),
+                    Forms\Components\TextInput::make('descripcion')
+                        ->label('Descripción')
+                        ->required()
+                        ->maxLength(255)
+                        ->columnSpan(4),
                     
                     Forms\Components\TextInput::make('codigo')
                         ->label('Código')
                         ->maxLength(50)
                         ->columnSpan(2),
                     
-                    Forms\Components\TextInput::make('descripcion')
-                        ->label('Descripción')
-                        ->maxLength(255)
-                        ->columnSpan(6),
+                    Forms\Components\Hidden::make('product_id'),
                     
                     Forms\Components\TextInput::make('cantidad')
                         ->label('Cant.')
