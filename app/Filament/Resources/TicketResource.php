@@ -257,15 +257,9 @@ class TicketResource extends Resource
                 
                 Infolists\Components\Section::make('Productos')
                     ->schema([
-                        Infolists\Components\RepeatableEntry::make('items')
+                        Infolists\Components\ViewEntry::make('items')
                             ->label('')
-                            ->schema([
-                                Infolists\Components\TextEntry::make('product.name')->label('Producto'),
-                                Infolists\Components\TextEntry::make('quantity')->label('Cantidad'),
-                                Infolists\Components\TextEntry::make('unit_price')->label('Precio Unit.')->money('EUR'),
-                                Infolists\Components\TextEntry::make('total')->label('Total')->money('EUR'),
-                            ])
-                            ->columns(4),
+                            ->view('filament.infolists.ticket-items-table'),
                     ]),
                 
                 Infolists\Components\Section::make('Totales')
