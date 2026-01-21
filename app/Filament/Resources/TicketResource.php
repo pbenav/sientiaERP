@@ -196,12 +196,16 @@ class TicketResource extends Resource
                         // Copiar líneas del ticket a la factura
                         $orden = 1;
                         foreach ($items as $item) {
+                            // Obtener el nombre del producto, con fallback si no existe
+                            $productoNombre = $item->product ? $item->product->name : 'Producto eliminado';
+                            $productoCodigo = $item->product ? $item->product->sku : '';
+                            
                             $linea = \App\Models\DocumentoLinea::create([
                                 'documento_id' => $factura->id,
                                 'producto_id' => $item->product_id,
                                 'orden' => $orden++,
-                                'codigo' => $item->product->sku ?? '',
-                                'descripcion' => $item->product->name ?? 'Producto',
+                                'codigo' => $productoCodigo,
+                                'descripcion' => $productoNombre,
                                 'cantidad' => $item->quantity,
                                 'precio_unitario' => $item->unit_price,
                                 'descuento' => 0,

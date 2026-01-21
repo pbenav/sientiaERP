@@ -68,8 +68,10 @@ class LineasRelationManager extends RelationManager
                         ->maxLength(50)
                         ->columnSpan(2),
                     
-                    // Descripción oculta - se muestra en el tooltip del producto
-                    Forms\Components\Hidden::make('descripcion'),
+                    Forms\Components\TextInput::make('descripcion')
+                        ->label('Descripción')
+                        ->maxLength(255)
+                        ->columnSpan(6),
                     
                     Forms\Components\TextInput::make('cantidad')
                         ->label('Cant.')
@@ -173,7 +175,7 @@ class LineasRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('descripcion')
             ->columns([
-                Tables\Columns\TextColumn::make('product.name')
+                Tables\Columns\TextColumn::make('descripcion')
                     ->label('Producto')
                     ->searchable()
                     ->sortable()
