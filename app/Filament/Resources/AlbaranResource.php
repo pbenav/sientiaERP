@@ -163,7 +163,8 @@ class AlbaranResource extends Resource
                     ->tooltip(fn($record) => !$record->puedeEditarse() ? $record->getMensajeBloqueo() : null),
                 
                 Tables\Actions\Action::make('ver_bloqueante')
-                    ->label('Ver bloqueante')
+                    ->label('')
+                    ->tooltip('Ver bloqueante')
                     ->icon('heroicon-o-lock-closed')
                     ->color('warning')
                     ->visible(fn($record) => !$record->puedeEditarse() && $record->getDocumentosBloqueantes()->isNotEmpty())
@@ -176,14 +177,16 @@ class AlbaranResource extends Resource
                     ->openUrlInNewTab(),
                 
                 Tables\Actions\Action::make('pdf')
-                    ->label('PDF')
+                    ->label('')
+                    ->tooltip('Descargar PDF')
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('info')
                     ->url(fn($record) => route('documentos.pdf', $record))
                     ->openUrlInNewTab(),
                 
                 Tables\Actions\Action::make('convertir_factura')
-                    ->label('Facturar')
+                    ->label('')
+                    ->tooltip('Generar Factura')
                     ->icon('heroicon-o-document-currency-euro')
                     ->color('success')
                     ->visible(fn($record) => $record->estado === 'confirmado')

@@ -243,8 +243,10 @@ class PedidoResource extends Resource
                     ->tooltip(fn($record) => !$record->puedeEditarse() ? $record->getMensajeBloqueo() : null),
                 
                 // Ver documento bloqueante
+                // Ver documento bloqueante
                 Tables\Actions\Action::make('ver_bloqueante')
-                    ->label('Ver bloqueante')
+                    ->label('')
+                    ->tooltip('Ver bloqueante')
                     ->icon('heroicon-o-lock-closed')
                     ->color('warning')
                     ->visible(fn($record) => !$record->puedeEditarse() && $record->getDocumentosBloqueantes()->isNotEmpty())
@@ -263,7 +265,8 @@ class PedidoResource extends Resource
                 
                 // PDF
                 Tables\Actions\Action::make('pdf')
-                    ->label('PDF')
+                    ->label('')
+                    ->tooltip('Descargar PDF')
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('info')
                     ->url(fn($record) => route('documentos.pdf', $record))
@@ -271,7 +274,8 @@ class PedidoResource extends Resource
                 
                 // Convertir a Albarán
                 Tables\Actions\Action::make('convertir_albaran')
-                    ->label('Convertir a Albarán')
+                    ->label('')
+                    ->tooltip('Convertir a Albarán')
                     ->icon('heroicon-o-truck')
                     ->color('success')
                     ->visible(fn($record) => in_array($record->estado, ['confirmado', 'parcial']))

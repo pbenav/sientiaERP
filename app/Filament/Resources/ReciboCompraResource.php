@@ -136,7 +136,8 @@ class ReciboCompraResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make()->tooltip('Editar')->label(''),
                 Tables\Actions\Action::make('pdf')
-                    ->label('PDF')
+                    ->label('')
+                    ->tooltip('Descargar PDF')
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('info')
                     ->url(fn($record) => route('documentos.pdf', $record))

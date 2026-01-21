@@ -206,13 +206,15 @@ class PresupuestoResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make()->tooltip('Editar')->label(''),
                 Tables\Actions\Action::make('pdf')
-                    ->label('PDF')
+                    ->label('')
+                    ->tooltip('Descargar PDF')
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('info')
                     ->url(fn($record) => route('documentos.pdf', $record))
                     ->openUrlInNewTab(),
                 Tables\Actions\Action::make('convertir_pedido')
-                    ->label('Convertir a Pedido')
+                    ->label('')
+                    ->tooltip('Convertir a Pedido')
                     ->icon('heroicon-o-arrow-right')
                     ->color('success')
                     ->visible(fn($record) => $record->estado === 'confirmado')
