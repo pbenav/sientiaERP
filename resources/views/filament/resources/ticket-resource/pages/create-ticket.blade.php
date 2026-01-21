@@ -72,9 +72,10 @@
                 {{-- Teléfono oculto en móvil --}}
                 <div class="hidden lg:block w-40">
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Teléfono</label>
-                    <input type="text" readonly
-                           class="w-full h-9 bg-gray-50 border border-gray-300 rounded px-2 text-sm text-gray-600" 
-                           placeholder="-" />
+                    <input type="text" 
+                           value="{{ $this->clienteTelefono }}"
+                           readonly
+                           class="w-full h-9 bg-gray-50 border border-gray-300 rounded px-2 text-sm text-gray-600" />
                 </div>
             </div>
             

@@ -53,6 +53,16 @@ class CreateTicket extends Page
     public $payment_method = 'cash'; // Método de pago (cash, card)
     public $data = []; // Datos del formulario (necesario para Page)
 
+    // Computed property para el teléfono del cliente
+    public function getClienteTelefonoProperty()
+    {
+        if ($this->ticket && $this->ticket->tercero_id) {
+            $tercero = Tercero::find($this->ticket->tercero_id);
+            return $tercero?->telefono ?? '-';
+        }
+        return '-';
+    }
+
     public function mount(): void
     {
         // No llamamos parent::mount() porque gestionamos el registro manualmente
