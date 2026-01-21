@@ -54,6 +54,14 @@ class Documento extends Model
                 $documento->fecha = now();
             }
         });
+
+        static::deleting(function ($documento) {
+            // Si se elimina una factura generada desde un ticket, limpiar la referencia
+            if (in_array($documento->tipo, ['factura', 'factura_compra'])) {
+                \App\Models\Ticket::where('documento_id', $documento->id)
+                    ->update(['documento_id' => null]);
+            }
+        });
     }
 
     /**
