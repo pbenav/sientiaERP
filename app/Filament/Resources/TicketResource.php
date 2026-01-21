@@ -153,7 +153,7 @@ class TicketResource extends Resource
                     ->icon('heroicon-o-document-text')
                     ->color('success')
                     ->requiresConfirmation()
-                    ->visible(fn (Ticket $record) => $record->status !== 'completed')
+                    ->visible(fn (Ticket $record) => $record->status === 'completed' && !$record->hasInvoice())
                     ->action(function (Ticket $record) {
                         // Cargar items del ticket
                         $items = $record->items()->get();
@@ -217,13 +217,17 @@ class TicketResource extends Resource
                         // Recalcular totales
                         $factura->recalcularTotales();
                         
-                        // Marcar ticket como completado
+                        // CONFIRMAR FACTURA AUTOMÁTICAMENTE (asignar número)
+                        $factura->confirmar();
+                        
+                        // Guardar referencia a factura en el ticket
+                        $record->documento_id = $factura->id;
                         $record->status = 'completed';
                         $record->save();
                         
                         \Filament\Notifications\Notification::make()
-                            ->title('Factura creada correctamente')
-                            ->body("Factura en borrador creada para {$record->tercero->nombre_comercial}. Total: " . number_format($factura->total, 2, ',', '.') . " €. Recuerda confirmarla para asignar número oficial.")
+                            ->title('Factura creada y confirmada')
+                            ->body("Factura {$factura->numero} creada para {$record->tercero->nombre_comercial}. Total: " . number_format($factura->total, 2, ',', '.') . " €.")
                             ->success()
                             ->send();
                     }),
@@ -233,9 +237,9 @@ class TicketResource extends Resource
                     ->icon('heroicon-o-computer-desktop')
                     ->color('warning')
                     ->url(fn ($record) => TicketResource::getUrl('create', ['ticket_id' => $record->id])),
-                Tables\Actions\ViewAction::make()->tooltip('Ver')->label('')->tooltip('Ver')->label(''),
-                Tables\Actions\EditAction::make()->tooltip('Editar')->label('')->visible(fn (Ticket $record) => $record->status !== 'completed'),
-                Tables\Actions\DeleteAction::make()->tooltip('Borrar')->label('')->tooltip('Borrar')->label(''),
+                Tables\Actions\ViewAction::make()->label('')->tooltip('Ver'),
+                Tables\Actions\EditAction::make()->label('')->tooltip('Editar')->visible(fn (Ticket $record) => !$record->hasInvoice()),
+                Tables\Actions\DeleteAction::make()->label('')->tooltip('Borrar'),
             ])
             ->defaultSort('created_at', 'desc');
     }

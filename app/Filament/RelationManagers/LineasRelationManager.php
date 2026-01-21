@@ -30,10 +30,47 @@ class LineasRelationManager extends RelationManager
         return [
             Forms\Components\Grid::make(6)
                 ->schema([
-                    Forms\Components\TextInput::make('descripcion')
+                    Forms\Components\Select::make('descripcion')
                         ->label('Descripción')
                         ->required()
-                        ->maxLength(255)
+                        ->searchable()
+                        ->options(function () {
+                            return \App\Models\Product::query()
+                                ->orderBy('name')
+                                ->pluck('name', 'name');
+                        })
+                        ->getSearchResultsUsing(function (string $search) {
+                            return \App\Models\Product::where('name', 'like', "%{$search}%")
+                                ->orWhere('sku', 'like', "%{$search}%")
+                                ->limit(50)
+                                ->pluck('name', 'name');
+                        })
+                        ->live()
+                        ->afterStateUpdated(function ($state, Forms\Set $set) {
+                            if ($state) {
+                                // Buscar producto por nombre
+                                $producto = \App\Models\Product::where('name', $state)->first();
+                                if ($producto) {
+                                    $set('product_id', $producto->id);
+                                    $set('codigo', $producto->sku);
+                                    $set('precio_unitario', $producto->price);
+                                    
+                                    // IVA del producto o por defecto
+                                    $taxRate = number_format($producto->tax_rate, 2, '.', '');
+                                    $ivaExists = \App\Models\Impuesto::where('valor', $taxRate)->where('tipo', 'iva')->exists();
+                                    
+                                    if ($ivaExists) {
+                                        $set('iva', $taxRate);
+                                    } else {
+                                        $globalDefault = \App\Models\Impuesto::where('tipo', 'iva')
+                                            ->where('es_predeterminado', true)
+                                            ->where('activo', true)
+                                            ->first()?->valor ?? 21.00;
+                                        $set('iva', number_format($globalDefault, 2, '.', ''));
+                                    }
+                                }
+                            }
+                        })
                         ->columnSpan(4),
                     
                     Forms\Components\TextInput::make('codigo')
@@ -47,13 +84,14 @@ class LineasRelationManager extends RelationManager
                         ->label('Cant.')
                         ->type('text')
                         ->inputMode('decimal')
-                        ->numeric()
                         ->maxValue(9999999)
                         ->required()
                         ->default(1)
                         ->columnSpan(1)
                         ->live(onBlur: true)
                         ->extraInputAttributes(['style' => 'width: 120px'])
+                        ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 0))
+                        ->dehydrateStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::parseNumber($state))
                         ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
                             self::calcularLinea($set, $get);
                         }),
@@ -62,12 +100,13 @@ class LineasRelationManager extends RelationManager
                         ->label('Precio')
                         ->type('text')
                         ->inputMode('decimal')
-                        ->numeric()
                         ->maxValue(9999999999)
                         ->required()
                         ->live()
                         ->columnSpan(1)
                         ->extraInputAttributes(['style' => 'width: 110px'])
+                        ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
+                        ->dehydrateStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::parseNumber($state))
                         ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                             self::calcularLinea($set, $get)),
                     
@@ -75,12 +114,13 @@ class LineasRelationManager extends RelationManager
                         ->label('Dto.')
                         ->type('text')
                         ->inputMode('decimal')
-                        ->numeric()
                         ->maxValue(100)
                         ->default(fn() => \App\Models\Descuento::where('es_predeterminado', true)->where('activo', true)->first()?->valor ?? 0)
                         ->live()
                         ->columnSpan(1)
                         ->extraInputAttributes(['style' => 'width: 110px'])
+                        ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
+                        ->dehydrateStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::parseNumber($state))
                         ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                             self::calcularLinea($set, $get)),
                     
@@ -106,11 +146,11 @@ class LineasRelationManager extends RelationManager
 
                     Forms\Components\TextInput::make('total')
                         ->label('Total')
-                        ->numeric()
                         ->disabled()
                         ->dehydrated()
                         ->columnSpan(1)
-                        ->extraInputAttributes(['style' => 'width: 140px']),
+                        ->extraInputAttributes(['style' => 'width: 140px'])
+                        ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2)),
                 ]),
         ];
     }
@@ -151,81 +191,37 @@ class LineasRelationManager extends RelationManager
                     ->sortable()
                     ->limit(30),
                 
-                Tables\Columns\TextInputColumn::make('cantidad')
+                Tables\Columns\TextColumn::make('cantidad')
                     ->label('Cant.')
-                    ->type('text')
-                    ->inputMode('decimal')
                     ->extraHeaderAttributes(['style' => 'width: 100px; min-width: 100px; max-width: 100px'])
                     ->extraAttributes(['style' => 'width: 100px; min-width: 100px; max-width: 100px'])
-                    ->extraInputAttributes([
-                        'style' => 'text-align: center; padding: 4px;',
-                        'onkeydown' => 'if(event.key === "Enter") { event.preventDefault(); }', // Prevenir submit del formulario principal
-                        'onfocus' => 'this.select()',
-                    ])
                     ->sortable()
-                    ->disabled(fn($livewire) => $livewire->getOwnerRecord()->estado !== 'borrador')
-                    ->rules(['required', 'numeric', 'min:0', 'max:9999999'])
-                    ->afterStateUpdated(function ($record, $livewire) {
-                        $record->documento->recalcularTotales();
-                        $livewire->dispatch('refresh-document-totals');
-                    }),
+                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 0))
+                    ->alignCenter(),
                 
-                Tables\Columns\TextInputColumn::make('precio_unitario')
+                Tables\Columns\TextColumn::make('precio_unitario')
                     ->label('Precio')
-                    ->type('text')
-                    ->inputMode('decimal')
                     ->extraHeaderAttributes(['style' => 'width: 110px; min-width: 110px; max-width: 110px'])
                     ->extraAttributes(['style' => 'width: 110px; min-width: 110px; max-width: 110px'])
-                    ->extraInputAttributes([
-                        'style' => 'text-align: right; padding: 4px;',
-                        'onkeydown' => 'if(event.key === "Enter") { event.preventDefault(); }',
-                        'onfocus' => 'this.select()',
-                    ])
                     ->sortable()
-                    ->disabled(fn($livewire) => $livewire->getOwnerRecord()->estado !== 'borrador')
-                    ->rules(['required', 'numeric', 'min:0', 'max:9999999999'])
-                    ->afterStateUpdated(function ($record, $livewire) {
-                        $record->documento->recalcularTotales();
-                        $livewire->dispatch('refresh-document-totals');
-                    }),
+                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
+                    ->alignRight(),
                 
-                Tables\Columns\TextInputColumn::make('descuento')
+                Tables\Columns\TextColumn::make('descuento')
                     ->label('Dto.%')
-                    ->type('text')
-                    ->inputMode('decimal')
                     ->extraHeaderAttributes(['style' => 'width: 70px; min-width: 70px; max-width: 70px'])
                     ->extraAttributes(['style' => 'width: 70px; min-width: 70px; max-width: 70px'])
-                    ->extraInputAttributes([
-                        'style' => 'text-align: center; padding: 4px;',
-                        'onkeydown' => 'if(event.key === "Enter") { event.preventDefault(); }',
-                        'onfocus' => 'this.select()',
-                    ])
                     ->sortable()
-                    ->disabled(fn($livewire) => $livewire->getOwnerRecord()->estado !== 'borrador')
-                    ->rules(['numeric', 'min:0', 'max:100'])
-                    ->afterStateUpdated(function ($record, $livewire) {
-                        $record->documento->recalcularTotales();
-                        $livewire->dispatch('refresh-document-totals');
-                    }),
+                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
+                    ->alignCenter(),
                 
-                Tables\Columns\TextInputColumn::make('iva')
+                Tables\Columns\TextColumn::make('iva')
                     ->label('IVA%')
-                    ->type('text')
-                    ->inputMode('decimal')
                     ->extraHeaderAttributes(['style' => 'width: 90px; min-width: 90px; max-width: 90px'])
                     ->extraAttributes(['style' => 'width: 90px; min-width: 90px; max-width: 90px'])
-                    ->extraInputAttributes([
-                        'style' => 'text-align: center; padding: 4px;',
-                        'onkeydown' => 'if(event.key === "Enter") { event.preventDefault(); }',
-                        'onfocus' => 'this.select()',
-                    ])
                     ->sortable()
-                    ->disabled(fn($livewire) => $livewire->getOwnerRecord()->estado !== 'borrador')
-                    ->rules(['required', 'numeric', 'min:0', 'max:100'])
-                    ->afterStateUpdated(function ($record, $livewire) {
-                        $record->documento->recalcularTotales();
-                        $livewire->dispatch('refresh-document-totals');
-                    }),
+                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
+                    ->alignCenter(),
                     
                 Tables\Columns\TextColumn::make('total')
                     ->label('Total')
@@ -234,10 +230,7 @@ class LineasRelationManager extends RelationManager
                     ->alignRight()
                     ->getStateUsing(fn ($record) => $record->total)
                     ->formatStateUsing(function ($state) {
-                        $symbol = \App\Models\Setting::get('currency_symbol', '€');
-                        $position = \App\Models\Setting::get('currency_position', 'suffix');
-                        $formatted = number_format($state, 2, ',', '.');
-                        return $position === 'suffix' ? "$formatted $symbol" : "$symbol $formatted";
+                        return \App\Helpers\NumberFormatHelper::formatCurrency($state);
                     })
                     ->sortable(),
             ])

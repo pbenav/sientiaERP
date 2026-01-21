@@ -13,7 +13,7 @@
     <meta charset="utf-8">
     <title>{{ $doc->numero }}</title>
     <style>
-        body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 12px; color: #333; }
+        body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 12px; color: #333; position: relative; }
         .header { margin-bottom: 30px; }
         .company-info { float: left; width: 50%; }
         .doc-info { float: right; width: 40%; text-align: right; }
@@ -30,9 +30,29 @@
         .total-row { display: flex; justify-content: space-between; padding: 5px 0; }
         .grand-total { border-top: 2px solid #2563eb; margin-top: 10px; padding-top: 10px; font-weight: bold; font-size: 16px; color: #2563eb; }
         .footer { position: fixed; bottom: 0; width: 100%; font-size: 10px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+        /* Marca de agua para documentos anulados */
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 120px;
+            font-weight: bold;
+            color: rgba(239, 68, 68, 0.2);
+            text-transform: uppercase;
+            z-index: 1000;
+            pointer-events: none;
+            white-space: nowrap;
+            letter-spacing: 10px;
+        }
     </style>
 </head>
 <body>
+    {{-- Marca de agua para documentos anulados --}}
+    @if($doc->estado === 'anulado')
+    <div class="watermark">ANULADA</div>
+    @endif
+    
     <div class="header">
         <div class="company-info">
             <h1>nexERP System</h1>
