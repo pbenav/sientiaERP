@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             ProductSeeder::class,
             TerceroSeeder::class,      // ANTES de SettingSeeder para que CLIPOS exista
             SettingSeeder::class,      // DESPUÉS de TerceroSeeder
+            AiSettingsSeeder::class,   // Ajustes de IA
             DocumentoSeeder::class,
         ]);
     }
