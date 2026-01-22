@@ -21,6 +21,7 @@ class EditReciboCompra extends EditRecord
 
     protected function afterSave(): void
     {
+        $this->record->refresh();
         $this->record->recalcularTotales();
     }
 

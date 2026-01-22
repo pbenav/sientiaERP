@@ -96,9 +96,9 @@ class AlbaranResource extends Resource
                         
                     ])->columns(3)->compact(),
 
-                // SECCIÓN 3: PRODUCTOS
-                Forms\Components\View::make('filament.components.document-lines')
-                    ->columnSpanFull(),
+                // SECCIÓN 3: PRODUCTOS (Movido a RelationManager)
+                // Forms\Components\View::make('filament.components.document-lines')
+                //     ->columnSpanFull(),
 
                 // SECCIÓN 4: OBSERVACIONES
                 Forms\Components\Section::make('Observaciones')
@@ -241,7 +241,7 @@ class AlbaranResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            LineasRelationManager::class,
         ];
     }
 

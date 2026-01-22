@@ -16,7 +16,9 @@ class CreatePedido extends CreateRecord
             'estado' => 'borrador',
             'user_id' => auth()->id(),
             'fecha' => now(),
+            'fecha' => now(),
             'serie' => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A',
+            'forma_pago_id' => \App\Models\FormaPago::activas()->first()?->id,
         ];
 
         $record = static::getModel()::create($data);
