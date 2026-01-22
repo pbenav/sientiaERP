@@ -229,7 +229,7 @@ class Documento extends Model
         // El usuario dijo "En facturas rectificativas, todas las unidades y cuotas deben ser negativas".
         // Validaremos en el futuro o dejaremos que el usuario meta negativos.
         
-        $this->save();
+        $this->saveQuietly();
     }
 
     /**
