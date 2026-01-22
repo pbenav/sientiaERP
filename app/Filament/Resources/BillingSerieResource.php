@@ -25,7 +25,7 @@ class BillingSerieResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Series de Facturación';
 
-    protected static ?string $navigationGroup = 'Gestión';
+    protected static ?string $navigationGroup = 'Configuración';
 
     protected static ?int $navigationSort = 31;
 
