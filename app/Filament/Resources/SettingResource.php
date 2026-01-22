@@ -29,7 +29,7 @@ class SettingResource extends Resource
     
     protected static ?int $navigationSort = 100;
     
-    protected static bool $shouldRegisterNavigation = false;
+    protected static bool $shouldRegisterNavigation = true;
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
@@ -60,7 +60,15 @@ class SettingResource extends Resource
                         Forms\Components\Textarea::make('value')
                             ->label('Valor')
                             ->required()
-                            ->visible(fn ($get) => !in_array($get('key'), ['currency_position', 'ai_provider', 'ai_gemini_api_key', 'ai_openai_api_key']))
+                            ->visible(fn ($get) => !in_array($get('key'), [
+                                'currency_position', 
+                                'ai_provider', 
+                                'ai_backup_provider',
+                                'ai_gemini_api_key', 
+                                'ai_openai_api_key',
+                                'google_location',
+                                'google_application_credentials'
+                            ]))
                             ->columnSpanFull(),
                         
                         Forms\Components\Select::make('value')
@@ -74,21 +82,55 @@ class SettingResource extends Resource
                             ->columnSpanFull(),
 
                         Forms\Components\Select::make('value')
-                            ->label('Proveedor IA')
+                            ->label('Proveedor IA Principal')
                             ->options([
-                                'gemini' => 'Google Gemini',
+                                'google_doc_ai' => 'Google Cloud Document AI (Invoice Processor)',
+                                'gemini' => 'Google Gemini (GenAI)',
                                 'openai' => 'OpenAI (ChatGPT)',
                             ])
                             ->required()
                             ->visible(fn ($get) => $get('key') === 'ai_provider')
                             ->columnSpanFull(),
 
+                        Forms\Components\Select::make('value')
+                            ->label('Proveedor Backup (Fallo Principal)')
+                            ->options([
+                                'none' => 'Ninguno',
+                                'tesseract' => 'Tesseract OCR (Local)',
+                            ])
+                            ->required()
+                            ->visible(fn ($get) => $get('key') === 'ai_backup_provider')
+                            ->columnSpanFull(),
+
+                        Forms\Components\Select::make('value')
+                            ->label('Ubicación (Google Cloud)')
+                            ->options([
+                                'us' => 'US (Estados Unidos)',
+                                'eu' => 'EU (Unión Europea)',
+                            ])
+                            ->required()
+                            ->visible(fn ($get) => $get('key') === 'google_location')
+                            ->columnSpanFull(),
+
+                        Forms\Components\Textarea::make('value')
+                            ->label('Contenido JSON (Service Account Key)')
+                            ->rows(5)
+                            ->required()
+                            ->visible(fn ($get) => $get('key') === 'google_application_credentials')
+                            ->columnSpanFull(),
+
                         Forms\Components\TextInput::make('value')
-                            ->label('API Key')
+                            ->label('Configuración / API Key')
                             ->password()
                             ->revealable()
                             ->required()
-                            ->visible(fn ($get) => in_array($get('key'), ['ai_gemini_api_key', 'ai_openai_api_key']))
+                            ->visible(fn ($get) => in_array($get('key'), [
+                                'ai_gemini_api_key', 
+                                'ai_openai_api_key',
+                                'google_project_id',
+                                'google_processor_id',
+                                'tesseract_path'
+                            ]))
                             ->columnSpanFull(),
                     ])->columns(2)->compact(),
             ]);
