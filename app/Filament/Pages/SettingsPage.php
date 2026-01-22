@@ -19,7 +19,7 @@ class SettingsPage extends Page
 
     protected static string $view = 'filament.pages.settings-page';
     
-    protected static ?string $navigationLabel = 'Configuración';
+    protected static ?string $navigationLabel = 'Ajustes Generales';
     
     protected static ?string $title = 'Configuración del Sistema';
     
@@ -44,6 +44,16 @@ class SettingsPage extends Page
             'locale' => Setting::get('locale', 'es'),
             'timezone' => Setting::get('timezone', 'Europe/Madrid'),
             'pos_default_tercero_id' => Setting::get('pos_default_tercero_id'),
+            // AI Settings
+            'ai_provider' => Setting::get('ai_provider', 'google_doc_ai'),
+            'ai_backup_provider' => Setting::get('ai_backup_provider', 'none'),
+            'google_location' => Setting::get('google_location', 'eu'),
+            'google_project_id' => Setting::get('google_project_id'),
+            'google_processor_id' => Setting::get('google_processor_id'),
+            'google_application_credentials' => Setting::get('google_application_credentials'),
+            'ai_gemini_api_key' => Setting::get('ai_gemini_api_key'),
+            'ai_openai_api_key' => Setting::get('ai_openai_api_key'),
+            'tesseract_path' => Setting::get('tesseract_path', '/usr/bin/tesseract'),
         ]);
     }
 
@@ -190,6 +200,99 @@ class SettingsPage extends Page
                             ->helperText('Cliente que se selecciona automáticamente al crear un nuevo ticket')
                             ->columnSpanFull(),
                     ]),
+
+                Section::make('Orden y Tiempos')
+                    ->schema([
+                         // ... existing logic if any, or just close previous section
+                    ])->hidden(), // Placeholder if needed or just remove closing bracket issue
+
+                Section::make('Automatización e Inteligencia Artificial')
+                    ->description('Configura los proveedores de IA para procesar documentos automáticamente.')
+                    ->schema([
+                        Select::make('ai_provider')
+                            ->label('Proveedor IA Principal')
+                            ->options([
+                                'google_doc_ai' => 'Google Cloud Document AI (Invoice Processor)',
+                                'gemini' => 'Google Gemini (GenAI)',
+                                'openai' => 'OpenAI (ChatGPT)',
+                            ])
+                            ->default('google_doc_ai')
+                            ->required()
+                            ->columnSpanFull()
+                            ->live(),
+
+                        Select::make('ai_backup_provider')
+                            ->label('Proveedor Backup (Fallo Principal)')
+                            ->options([
+                                'none' => 'Ninguno',
+                                'tesseract' => 'Tesseract OCR (Local)',
+                            ])
+                            ->default('none')
+                            ->required()
+                            ->columnSpanFull(),
+
+                        // GROUP: Google Cloud Doc AI
+                        Section::make('Configuración Google Cloud')
+                            ->schema([
+                                Select::make('google_location')
+                                    ->label('Ubicación')
+                                    ->options(['us' => 'US (Estados Unidos)', 'eu' => 'EU (Unión Europea)'])
+                                    ->default('eu')
+                                    ->required(),
+                                
+                                TextInput::make('google_project_id')
+                                    ->label('Project ID')
+                                    ->required(),
+
+                                TextInput::make('google_processor_id')
+                                    ->label('Processor ID (Invoice)')
+                                    ->required(),
+
+                                Textarea::make('google_application_credentials')
+                                    ->label('Service Account JSON')
+                                    ->rows(5)
+                                    ->helperText('Pega aquí el contenido completo del archivo .json descargado de Google Cloud IAM.')
+                                    ->columnSpanFull(),
+                            ])
+                            ->visible(fn($get) => $get('ai_provider') === 'google_doc_ai')
+                            ->columns(2),
+
+                        // GROUP: Gemini
+                        Section::make('Configuración Gemini')
+                            ->schema([
+                                TextInput::make('ai_gemini_api_key')
+                                    ->label('Gemini API Key')
+                                    ->password()
+                                    ->revealable()
+                                    ->required()
+                                    ->columnSpanFull(),
+                            ])
+                            ->visible(fn($get) => $get('ai_provider') === 'gemini'),
+
+                        // GROUP: OpenAI
+                        Section::make('Configuración OpenAI')
+                            ->schema([
+                                TextInput::make('ai_openai_api_key')
+                                    ->label('OpenAI API Key')
+                                    ->password()
+                                    ->revealable()
+                                    ->required()
+                                    ->columnSpanFull(),
+                            ])
+                            ->visible(fn($get) => $get('ai_provider') === 'openai'),
+
+                        // GROUP: Tesseract
+                        Section::make('Configuración Tesseract')
+                            ->schema([
+                                TextInput::make('tesseract_path')
+                                    ->label('Ruta al Binario')
+                                    ->default('/usr/bin/tesseract')
+                                    ->required()
+                                    ->columnSpanFull(),
+                            ])
+                            ->visible(fn($get) => $get('ai_backup_provider') === 'tesseract'),
+
+                    ]),
             ])
             ->statePath('data');
     }
@@ -227,6 +330,16 @@ class SettingsPage extends Page
                 'locale' => 'Localización',
                 'timezone' => 'Localización',
                 'pos_default_tercero_id' => 'POS',
+                // AI Settings
+                'ai_provider' => 'IA',
+                'ai_backup_provider' => 'IA',
+                'google_location' => 'IA',
+                'google_project_id' => 'IA',
+                'google_processor_id' => 'IA',
+                'google_application_credentials' => 'IA',
+                'ai_gemini_api_key' => 'IA',
+                'ai_openai_api_key' => 'IA',
+                'tesseract_path' => 'IA',
             ];
 
             Setting::set($key, $value, $labels[$key] ?? $key, $groups[$key] ?? 'General');

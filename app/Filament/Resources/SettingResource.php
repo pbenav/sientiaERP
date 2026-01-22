@@ -29,7 +29,7 @@ class SettingResource extends Resource
     
     protected static ?int $navigationSort = 100;
     
-    protected static bool $shouldRegisterNavigation = true;
+    protected static bool $shouldRegisterNavigation = false;
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
