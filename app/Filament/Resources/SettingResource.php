@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\SettingResource\Pages;
 use App\Filament\Resources\SettingResource\RelationManagers;
+use App\Filament\Support\HasRoleAccess;
 use App\Models\Setting;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -15,6 +16,13 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class SettingResource extends Resource
 {
+    use HasRoleAccess;
+
+    protected static string $viewPermission   = 'configuracion.view';
+    protected static string $createPermission = 'configuracion.create';
+    protected static string $editPermission   = 'configuracion.edit';
+    protected static string $deletePermission = 'configuracion.delete';
+
     protected static ?string $model = Setting::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
@@ -25,7 +33,7 @@ class SettingResource extends Resource
     
     protected static ?string $pluralModelLabel = 'Ajustes Avanzados';
     
-    protected static ?string $navigationGroup = 'Sistema';
+    protected static ?string $navigationGroup = 'Configuración';
     
     protected static ?int $navigationSort = 100;
     
@@ -60,7 +68,17 @@ class SettingResource extends Resource
                         Forms\Components\Textarea::make('value')
                             ->label('Valor')
                             ->required()
-                            ->visible(fn ($get) => !in_array($get('key'), ['currency_position']))
+                            ->visible(fn ($get) => !in_array($get('key'), [
+                                'currency_position', 
+                                'ai_provider', 
+                                'ai_backup_provider',
+                                'ai_gemini_api_key', 
+                                'ai_openai_api_key',
+                                'google_location',
+                                'google_application_credentials',
+                                'intermediate_precision',
+                                'final_precision'
+                            ]))
                             ->columnSpanFull(),
                         
                         Forms\Components\Select::make('value')
@@ -71,6 +89,70 @@ class SettingResource extends Resource
                             ])
                             ->required()
                             ->visible(fn ($get) => $get('key') === 'currency_position')
+                            ->columnSpanFull(),
+
+                        Forms\Components\Select::make('value')
+                            ->label('Proveedor IA Principal')
+                            ->options([
+                                'google_doc_ai' => 'Google Cloud Document AI (Invoice Processor)',
+                                'gemini' => 'Google Gemini (GenAI)',
+                                'openai' => 'OpenAI (ChatGPT)',
+                            ])
+                            ->required()
+                            ->visible(fn ($get) => $get('key') === 'ai_provider')
+                            ->columnSpanFull(),
+
+                        Forms\Components\Select::make('value')
+                            ->label('Proveedor Backup (Fallo Principal)')
+                            ->options([
+                                'none' => 'Ninguno',
+                                'tesseract' => 'Tesseract OCR (Local)',
+                            ])
+                            ->required()
+                            ->visible(fn ($get) => $get('key') === 'ai_backup_provider')
+                            ->columnSpanFull(),
+
+                        Forms\Components\Select::make('value')
+                            ->label('Ubicación (Google Cloud)')
+                            ->options([
+                                'us' => 'US (Estados Unidos)',
+                                'eu' => 'EU (Unión Europea)',
+                            ])
+                            ->required()
+                            ->visible(fn ($get) => $get('key') === 'google_location')
+                            ->columnSpanFull(),
+
+                        Forms\Components\Textarea::make('value')
+                            ->label('Contenido JSON (Service Account Key)')
+                            ->rows(5)
+                            ->required()
+                            ->visible(fn ($get) => $get('key') === 'google_application_credentials')
+                            ->columnSpanFull(),
+
+                        Forms\Components\Select::make('value')
+                            ->label('Mostrar Todo en Mayúsculas')
+                            ->options([
+                                'true' => 'Sí',
+                                'false' => 'No',
+                            ])
+                            ->required()
+                            ->visible(fn ($get) => $get('key') === 'display_uppercase')
+                            ->columnSpanFull(),
+
+                        Forms\Components\TextInput::make('value')
+                            ->label('Configuración / API Key')
+                            ->password()
+                            ->revealable()
+                            ->required()
+                            ->visible(fn ($get) => in_array($get('key'), [
+                                'ai_gemini_api_key', 
+                                'ai_openai_api_key',
+                                'google_project_id',
+                                'google_processor_id',
+                                'tesseract_path',
+                                'intermediate_precision',
+                                'final_precision'
+                            ]))
                             ->columnSpanFull(),
                     ])->columns(2)->compact(),
             ]);

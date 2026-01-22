@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\FacturaResource\Pages;
 use App\Filament\RelationManagers\LineasRelationManager;
+use App\Filament\Support\HasRoleAccess;
 use App\Models\Documento;
 use App\Models\FormaPago;
 use App\Models\Tercero;
@@ -18,6 +19,13 @@ use Filament\Tables\Table;
 
 class FacturaResource extends Resource
 {
+    use HasRoleAccess;
+
+    protected static string $viewPermission   = 'ventas.view';
+    protected static string $createPermission = 'ventas.create';
+    protected static string $editPermission   = 'ventas.edit';
+    protected static string $deletePermission = 'ventas.delete';
+
     protected static ?string $model = Documento::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-document-currency-euro';
@@ -41,116 +49,72 @@ class FacturaResource extends Resource
     {
         return $form
             ->schema([
-                // SECCIÓN 1: CLIENTE Y DATOS
-                Forms\Components\Grid::make(3)
-                    ->schema([
+                \App\Filament\Support\DocumentFormFactory::terceroSection('Cliente', 'CLI')
+                    ->disabled(fn ($record) => $record && $record->estado !== 'borrador'),
+                
+                \App\Filament\Support\DocumentFormFactory::detailsSection('Datos de la Factura', [
+                    Forms\Components\Toggle::make('es_rectificativa')
+                        ->label('Es Rectificativa')
+                        ->inline(false)
+                        ->live()
+                        ->afterStateUpdated(fn ($state, Forms\Set $set) => $state ? null : $set('rectificada_id', null)),
 
-                        Forms\Components\Section::make('Cliente')
-                            ->schema([
-                                Forms\Components\Select::make('tercero_id')
-                                    ->label('Cliente')
-                                    ->options(fn() => \App\Models\Tercero::clientes()->pluck('nombre_comercial', 'id'))
-                                    ->searchable()
-                                    ->preload()
-                                    ->live()
-                                    ->required()
-                                    ->createOptionForm([
-                                        Forms\Components\TextInput::make('nombre_comercial')->required(),
-                                        Forms\Components\TextInput::make('nif_cif')->required(),
-                                        Forms\Components\TextInput::make('email')->email(),
-                                        Forms\Components\TextInput::make('telefono')->tel(),
-                                    ])
-                                    ->createOptionUsing(function (array $data) {
-                                        $tercero = Tercero::create($data);
-                                        $tercero->tipos()->attach(\App\Models\TipoTercero::where('codigo', 'CLI')->first());
-                                        return $tercero->id;
-                                    }),
-                            ])->columnSpan(1)->compact()
-                            ->disabled(fn ($record) => $record && $record->estado !== 'borrador'),
+                    Forms\Components\Select::make('rectificada_id')
+                        ->label('Factura que rectifica')
+                        ->relationship('facturaRectificada', 'numero', function ($query, Forms\Get $get) {
+                            $terceroId = $get('tercero_id');
+                            $query->where('tipo', 'factura')
+                                    ->where('estado', 'anulado');
+                            
+                            if ($terceroId) {
+                                $query->where('tercero_id', $terceroId);
+                            }
+                            return $query;
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->required(fn (Forms\Get $get) => $get('es_rectificativa'))
+                        ->visible(fn (Forms\Get $get) => $get('es_rectificativa'))
+                        ->columnSpan(2),
+                    
+                    Forms\Components\Select::make('porcentaje_irpf')
+                        ->label('IRPF %')
+                        ->options(\App\Models\Impuesto::where('tipo', 'irpf')->where('activo', true)->pluck('nombre', 'valor'))
+                        ->default(0)
+                        ->live()
+                        ->createOptionForm([
+                            Forms\Components\TextInput::make('nombre')->required(),
+                            Forms\Components\TextInput::make('valor')->numeric()->required()->suffix('%'),
+                        ])
+                        ->createOptionUsing(function (array $data) {
+                            return \App\Models\Impuesto::create([...$data, 'tipo' => 'irpf', 'activo' => true])->valor;
+                        })
+                        ->afterStateUpdated(fn ($record) => $record?->recalcularTotales()),
 
-                        Forms\Components\Section::make('Datos de la Factura')
-                            ->schema([
-                                Forms\Components\Grid::make(3)
-                                    ->schema([
-                                        Forms\Components\TextInput::make('numero')
-                                            ->label('Número')
-                                            ->disabled()
-                                            ->dehydrated(false)
-                                            ->placeholder('Automático'),
-                                        
-                                        Forms\Components\Select::make('serie')
-                                            ->label('Serie')
-                                            ->options(\App\Models\BillingSerie::where('activo', true)->pluck('nombre', 'codigo'))
-                                            ->default(fn() => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A')
-                                            ->required(),
+                    Forms\Components\Select::make('forma_pago_id')
+                        ->label('Forma de Pago')
+                        ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
+                        ->searchable()
+                        ->preload()
+                        ->default(fn() => \App\Models\FormaPago::activas()->first()?->id ?? 1)
+                        ->required()
+                        ->createOptionForm([
+                            Forms\Components\TextInput::make('codigo')->required()->maxLength(50),
+                            Forms\Components\TextInput::make('nombre')->required()->maxLength(100),
+                            Forms\Components\Select::make('tipo')->options(['transferencia' => 'Transferencia', 'contado' => 'Contado', 'recibo_bancario' => 'Recibo'])->required()->default('transferencia'),
+                        ])
+                        ->createOptionUsing(function (array $data) {
+                            $fp = \App\Models\FormaPago::create($data);
+                            $fp->tramos()->create(['dias' => 0, 'porcentaje' => 100]);
+                            return $fp->id;
+                        }),
+                ])->disabled(fn ($record) => $record && $record->estado !== 'borrador'),
 
-                                        Forms\Components\Toggle::make('es_rectificativa')
-                                            ->label('Es Rectificativa')
-                                            ->inline(false)
-                                            ->live()
-                                            ->afterStateUpdated(fn ($state, Forms\Set $set) => $state ? null : $set('rectificada_id', null)),
+                ...\App\Filament\Support\DocumentFormFactory::linesSection(),
 
-                                        Forms\Components\Select::make('rectificada_id')
-                                            ->label('Factura que rectifica')
-                                            ->relationship('facturaRectificada', 'numero', function ($query, Forms\Get $get) {
-                                                $terceroId = $get('tercero_id');
-                                                $query->where('tipo', 'factura')
-                                                      ->where('estado', 'anulado');
-                                                
-                                                if ($terceroId) {
-                                                    $query->where('tercero_id', $terceroId);
-                                                }
-                                                return $query;
-                                            })
-                                            ->searchable()
-                                            ->preload()
-                                            ->required(fn (Forms\Get $get) => $get('es_rectificativa'))
-                                            ->visible(fn (Forms\Get $get) => $get('es_rectificativa'))
-                                            ->columnSpan(2),
-                                        
-                                        Forms\Components\DatePicker::make('fecha')
-                                            ->label('Fecha')
-                                            ->default(now())
-                                            ->required()
-                                            ->live(),
-
-                                        Forms\Components\Select::make('porcentaje_irpf')
-                                            ->label('IRPF %')
-                                            ->options(\App\Models\Impuesto::where('tipo', 'irpf')->where('activo', true)->pluck('nombre', 'valor'))
-                                            ->default(0)
-                                            ->live()
-                                            ->afterStateUpdated(fn ($record) => $record?->recalcularTotales()),
-                                        
-                                        Forms\Components\Select::make('estado')
-                                            ->label('Estado')
-                                            ->options([
-                                                'borrador' => 'Borrador',
-                                                'confirmado' => 'Confirmado',
-                                                'cobrado' => 'Cobrado',
-                                                'anulado' => 'Anulado',
-                                            ])
-                                            ->default('borrador')
-                                            ->required()
-                                            ->disabled(fn ($record) => $record && $record->estado !== 'borrador')
-                                            ->dehydrated()
-                                            ->columnSpan(1),
-
-                                        Forms\Components\Select::make('forma_pago_id')
-                                            ->label('Forma de Pago')
-                                            ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
-                                            ->searchable()
-                                            ->preload()
-                                            ->default(1)
-                                            ->required()
-                                            ->columnSpan(1),
-                                    ]),
-                            ])->columnSpan(2)->compact()
-                            ->disabled(fn ($record) => $record && $record->estado !== 'borrador'),
-                    ]),
-
-                // SECCIÓN 3: PRODUCTOS - Manejadas por LineasRelationManager (tab abajo)
-                // Forms\Components\View::make('filament.components.document-lines')
-                //     ->columnSpanFull(),
+                \App\Filament\Support\DocumentFormFactory::totalsSection()
+                    ->visibleOn('edit')
+                    ->collapsible(),
 
                 Forms\Components\Section::make('Observaciones')
                     ->schema([
@@ -159,29 +123,6 @@ class FacturaResource extends Resource
                             ->rows(3)
                             ->columnSpanFull(),
                     ]),
-
-                Forms\Components\Section::make('Totales')
-                    ->schema([
-                        Forms\Components\Placeholder::make('subtotal_display')
-                            ->label('Subtotal')
-                            ->content(fn($record) => $record ? number_format($record->subtotal, 2, ',', '.') . ' €' : '0,00 €'),
-                        
-                        Forms\Components\Placeholder::make('iva_display')
-                            ->label('IVA')
-                            ->content(fn($record) => $record ? number_format($record->iva, 2, ',', '.') . ' €' : '0,00 €'),
-
-                        Forms\Components\Placeholder::make('irpf_display')
-                            ->label(fn($record) => 'IRPF (' . ($record->porcentaje_irpf ?? 0) . '%)')
-                            ->content(fn($record) => $record ? number_format($record->irpf, 2, ',', '.') . ' €' : '0,00 €')
-                            ->visible(fn($record) => $record && $record->porcentaje_irpf > 0),
-                        
-                        Forms\Components\Placeholder::make('total_display')
-                            ->label('TOTAL')
-                            ->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €')
-                            ->extraAttributes(['class' => 'text-xl font-bold text-primary-600']),
-                    ])->columns(4)
-                    ->visibleOn('edit')
-                    ->collapsible(),
             ]);
     }
 
@@ -214,12 +155,7 @@ class FacturaResource extends Resource
                 Tables\Columns\TextColumn::make('total')
                     ->label('Total')
                     ->getStateUsing(fn ($record) => $record->total)
-                    ->formatStateUsing(function ($state) {
-                        $symbol = \App\Models\Setting::get('currency_symbol', '€');
-                        $position = \App\Models\Setting::get('currency_position', 'suffix');
-                        $formatted = number_format($state, 2, ',', '.');
-                        return $position === 'suffix' ? "$formatted $symbol" : "$symbol $formatted";
-                    })
+                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatCurrency($state))
                     ->sortable(),
                 
                 Tables\Columns\BadgeColumn::make('estado')
@@ -258,29 +194,18 @@ class FacturaResource extends Resource
                     ->url(fn($record) => route('documentos.pdf', $record))
                     ->openUrlInNewTab(),
                 
-                
-                // TODO: Descomentar cuando se cree ReciboResource
-                // Tables\Actions\Action::make('ver_recibos')
-                //     ->label('Ver Recibos')
-                //     ->icon('heroicon-o-eye')
-                //     ->color('info')
-                //     ->visible(function ($record) {
-                //         return Documento::where('documento_origen_id', $record->id)
-                //             ->where('tipo', 'recibo')->exists();
-                //     })
-                //     ->url(function ($record) {
-                         Tables\Actions\Action::make('ver_recibos')
-                             ->label('')
-                             ->tooltip('Ver Recibos')
-                             ->icon('heroicon-o-eye')
-                             ->color('info')
-                             ->visible(function ($record) {
-                                 return Documento::where('documento_origen_id', $record->id)
-                                     ->where('tipo', 'recibo')->exists();
-                             })
-                             ->url(fn($record) => route('filament.admin.resources.recibos.index', [
-                                 'tableFilters[factura_id][value]' => $record->id
-                             ])),
+                 Tables\Actions\Action::make('ver_recibos')
+                     ->label('')
+                     ->tooltip('Ver Recibos')
+                     ->icon('heroicon-o-eye')
+                     ->color('info')
+                     ->visible(function ($record) {
+                         return Documento::where('documento_origen_id', $record->id)
+                             ->where('tipo', 'recibo')->exists();
+                     })
+                     ->url(fn($record) => route('filament.admin.resources.recibos.index', [
+                         'tableFilters[factura_id][value]' => $record->id
+                     ])),
 
                 Tables\Actions\Action::make('anular')
                     ->label('')
@@ -305,7 +230,7 @@ class FacturaResource extends Resource
     public static function getRelations(): array
     {
         return [
-            LineasRelationManager::class,
+            // LineasRelationManager::class,
         ];
     }
 

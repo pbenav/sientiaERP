@@ -21,3 +21,9 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+/IMG*.jpg
+
+# Local configuration overrides
+php-local.ini
+/public/.user.ini
+shop

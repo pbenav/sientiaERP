@@ -24,36 +24,33 @@ trait BloqueoDocumentos
      */
     public function puedeEditarse(): bool
     {
-        // Regla de Oro para Facturas: Si tiene número (está confirmada), NO se edita jamás
-        // EXCEPCIÓN: Las facturas de compra SIEMPRE se pueden editar para ajustar diferencias con el proveedor
-        if ($this->tipo === 'factura' && !empty($this->numero)) {
-            return false;
-        }
-
-        // Si tiene documentos derivados, no se puede editar
+        // 1. Si tiene documentos derivados activos, NO se puede editar nunca
         if ($this->tieneDocumentosDerivados()) {
             return false;
         }
-        
-        // Si no tiene documento origen (ni simple ni múltiple), sí se puede editar
-        if (!$this->documento_origen_id && $this->documentosOrigenMultiples->isEmpty()) {
+
+        // 2. Si el estado es borrador, SÍ se puede editar siempre (si no tiene derivados)
+        if (strtolower($this->estado) === 'borrador') {
             return true;
         }
+
+        // 3. Si el estado es procesado o anulado, NO se edita
+        if (in_array(strtolower($this->estado), ['procesado', 'anulado'])) {
+            return false;
+        }
+
+        // 4. Regla de Oro para Facturas: Si tiene número (está confirmada), NO se edita jamás
+        if ($this->tipo === 'factura' && !empty($this->numero)) {
+            return false;
+        }
         
-        // Excepción: Pedido procedente de Presupuesto
+        // 5. Excepciones para Pedidos procedentes de Presupuestos
         if ($this->tipo === 'pedido' && $this->documentoOrigen?->tipo === 'presupuesto') {
             return true;
         }
         
-        // Excepción: Documentos agrupados (múltiples orígenes)
-        if ($this->documentosOrigenMultiples->count() > 1) {
-            return true;
-        }
-        
-        // Si tiene un solo documento origen simple, verificar que no sea presupuesto
-        if ($this->documento_origen_id) {
-            // Si el documento origen es presupuesto y este es pedido, ya lo manejamos arriba
-            // Para otros casos, no se puede editar
+        // 6. Por defecto, si está confirmado y viene de un origen, bloqueamos
+        if ($this->documento_origen_id && $this->estado === 'confirmado') {
             return false;
         }
         
@@ -62,14 +59,15 @@ trait BloqueoDocumentos
 
     /**
      * Determinar si el documento puede eliminarse
-     * 
-     * Un documento solo puede eliminarse si no tiene documentos derivados.
-     * Las facturas confirmadas JAMÁS se eliminan.
      */
     public function puedeEliminarse(): bool
     {
-        // Regla de Oro para Facturas: Si tiene número (está confirmada), NO se elimina jamás
-        // EXCEPCIÓN: Las facturas de compra SÍ se pueden eliminar para revertir flujos
+        // No se elimina si está anulado o procesado
+        if (in_array(strtolower($this->estado), ['procesado', 'anulado'])) {
+            return false;
+        }
+
+        // Regla de Oro para Facturas
         if ($this->tipo === 'factura' && !empty($this->numero)) {
             return false;
         }
@@ -78,17 +76,50 @@ trait BloqueoDocumentos
     }
 
     /**
+     * Boot trait para manejar eliminación y desbloqueo
+     */
+    public static function bootBloqueoDocumentos()
+    {
+        static::deleting(function ($model) {
+            // REVERTIR STOCK al eliminar (si no estaba anulado ya)
+            if ($model->stock_actualizado && $model->estado !== 'anulado') {
+                $stockService = new \App\Services\StockService();
+                $stockService->actualizarStockDesdeDocumento($model, true);
+            }
+        });
+
+        static::deleted(function ($model) {
+            // DESBLOQUEAR EL ORIGEN
+            if ($model->documento_origen_id) {
+                $origen = $model->documentoOrigen;
+                if ($origen && $origen->estado === 'procesado') {
+                    // Solo si no hay otros derivados activos aparte de este que estamos borrando
+                    if (!$origen->tieneDocumentosDerivados()) {
+                        $origen->update(['estado' => 'confirmado']);
+                    }
+                }
+            }
+        });
+    }
+
+    /**
      * Verificar si tiene documentos derivados
      */
     public function tieneDocumentosDerivados(): bool
     {
-        // Verificar documentos derivados con relación simple
-        if ($this->documentosDerivados()->exists()) {
+        // Verificar documentos derivados con relación simple (ignorando etiquetas y anulados)
+        if ($this->documentosDerivados()
+            ->where('tipo', '!=', 'etiqueta')
+            ->where('estado', '!=', 'anulado')
+            ->exists()) {
             return true;
         }
         
-        // Verificar documentos derivados en relación múltiple
-        if ($this->documentosDerivadosMultiples()->exists()) {
+        // Verificar documentos derivados en relación múltiple (ignorando etiquetas y anulados)
+        if ($this->documentosDerivadosMultiples()
+            ->where('tipo', '!=', 'etiqueta')
+            ->where('estado', '!=', 'anulado')
+            ->exists()) {
             return true;
         }
         
@@ -106,8 +137,14 @@ trait BloqueoDocumentos
         
         // Si tiene documentos derivados, esos son los bloqueantes
         if ($this->tieneDocumentosDerivados()) {
-            $derivadosSimples = $this->documentosDerivados;
-            $derivadosMultiples = $this->documentosDerivadosMultiples;
+            $derivadosSimples = $this->documentosDerivados()
+                ->where('tipo', '!=', 'etiqueta')
+                ->where('estado', '!=', 'anulado')
+                ->get();
+            $derivadosMultiples = $this->documentosDerivadosMultiples()
+                ->where('tipo', '!=', 'etiqueta')
+                ->where('estado', '!=', 'anulado')
+                ->get();
             
             $bloqueantes = $derivadosSimples->merge($derivadosMultiples)->unique('id');
         }

@@ -19,11 +19,11 @@ class SettingsPage extends Page
 
     protected static string $view = 'filament.pages.settings-page';
     
-    protected static ?string $navigationLabel = 'Configuración';
+    protected static ?string $navigationLabel = 'Ajustes Generales';
     
     protected static ?string $title = 'Configuración del Sistema';
     
-    protected static ?string $navigationGroup = 'Sistema';
+    protected static ?string $navigationGroup = 'Configuración';
     
     protected static ?int $navigationSort = 99;
 
@@ -33,10 +33,10 @@ class SettingsPage extends Page
     {
         $this->form->fill([
             'pdf_logo_type' => Setting::get('pdf_logo_type', 'text'),
-            'pdf_logo_text' => Setting::get('pdf_logo_text', 'nexERP System'),
+            'pdf_logo_text' => Setting::get('pdf_logo_text', 'sienteERP System'),
             'pdf_logo_image' => Setting::get('pdf_logo_image'),
             'pdf_header_html' => Setting::get('pdf_header_html', '<strong>Sientia SL</strong><br>NIF: B12345678<br>Calle Falsa 123, 28001 Madrid'),
-            'pdf_footer_text' => Setting::get('pdf_footer_text', 'nexERP System'),
+            'pdf_footer_text' => Setting::get('pdf_footer_text', 'sienteERP System'),
             'currency_symbol' => Setting::get('currency_symbol', '€'),
             'currency_position' => Setting::get('currency_position', 'suffix'),
             'decimal_separator' => Setting::get('decimal_separator', ','),
@@ -44,6 +44,26 @@ class SettingsPage extends Page
             'locale' => Setting::get('locale', 'es'),
             'timezone' => Setting::get('timezone', 'Europe/Madrid'),
             'pos_default_tercero_id' => Setting::get('pos_default_tercero_id'),
+            'default_commercial_margin' => Setting::get('default_commercial_margin', 30),
+            'default_supplier_id' => Setting::get('default_supplier_id'),
+            'presupuesto_validez_dias' => Setting::get('presupuesto_validez_dias', 5),
+            'default_tax_rate' => Setting::get('default_tax_rate', 21),
+            'display_uppercase' => Setting::get('display_uppercase', 'false'),
+            'barcode_type' => Setting::get('barcode_type', 'code128'),
+            // AI Settings
+            'ai_provider' => Setting::get('ai_provider', 'gemini'),
+            'ai_backup_provider' => Setting::get('ai_backup_provider', 'none'),
+            'google_location' => Setting::get('google_location', 'eu'),
+            'google_project_id' => Setting::get('google_project_id'),
+            'google_processor_id' => Setting::get('google_processor_id'),
+            'google_application_credentials' => Setting::get('google_application_credentials'),
+            'ai_gemini_api_key' => Setting::get('ai_gemini_api_key', config('services.google.ai_api_key')),
+            'ai_openai_api_key' => Setting::get('ai_openai_api_key'),
+            'tesseract_path' => Setting::get('tesseract_path', '/usr/bin/tesseract'),
+            'profit_calculation_method' => Setting::get('profit_calculation_method', 'from_purchase'),
+            'default_profit_percentage' => Setting::get('default_profit_percentage', 60),
+            'intermediate_precision' => Setting::get('intermediate_precision', 3),
+            'final_precision' => Setting::get('final_precision', 2),
         ]);
     }
 
@@ -66,8 +86,8 @@ class SettingsPage extends Page
 
                         TextInput::make('pdf_logo_text')
                             ->label('Texto del Logo')
-                            ->placeholder('nexERP System')
-                            ->default('nexERP System')
+                            ->placeholder('sienteERP System')
+                            ->default('sienteERP System')
                             ->maxLength(100)
                             ->visible(fn($get) => $get('pdf_logo_type') === 'text')
                             ->columnSpanFull(),
@@ -102,7 +122,7 @@ class SettingsPage extends Page
 
                         TextInput::make('pdf_footer_text')
                             ->label('Texto del Pie de Página')
-                            ->placeholder('nexERP System')
+                            ->placeholder('sienteERP System')
                             ->maxLength(200)
                             ->columnSpanFull(),
                     ]),
@@ -145,6 +165,22 @@ class SettingsPage extends Page
                             ])
                             ->default('.')
                             ->columnSpan(1),
+
+                        TextInput::make('intermediate_precision')
+                            ->label('Decimales en cálculos intermedios (Precios)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(6)
+                            ->default(3)
+                            ->columnSpan(1),
+
+                        TextInput::make('final_precision')
+                            ->label('Decimales en documentos finales (Totales)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(3)
+                            ->default(2)
+                            ->columnSpan(1),
                     ])
                     ->columns(2)
                     ->collapsible(),
@@ -175,6 +211,28 @@ class SettingsPage extends Page
                             ->searchable()
                             ->helperText('Zona horaria para fechas y horas')
                             ->columnSpan(1),
+                        
+                        Select::make('display_uppercase')
+                            ->label('Mostrar Todo en Mayúsculas')
+                            ->options([
+                                'false' => 'No - Capitalización normal',
+                                'true' => 'Sí - Todo en MAYÚSCULAS',
+                            ])
+                            ->default('false')
+                            ->helperText('Si está activado, todos los textos (nombres, descripciones, etc.) se mostrarán en MAYÚSCULAS')
+                            ->columnSpanFull(),
+                        
+                        Select::make('barcode_type')
+                            ->label('Tipo de Código de Barras (Etiquetas)')
+                            ->options([
+                                'code128' => 'Code 128',
+                                'code39' => 'Code 39',
+                                'ean13' => 'EAN-13',
+                                'qr' => 'QR Code',
+                            ])
+                            ->default('code128')
+                            ->helperText('Formato de código de barras para imprimir en etiquetas de productos')
+                            ->columnSpanFull(),
                     ])
                     ->columns(2)
                     ->collapsible(),
@@ -189,13 +247,172 @@ class SettingsPage extends Page
                             ->preload()
                             ->helperText('Cliente que se selecciona automáticamente al crear un nuevo ticket')
                             ->columnSpanFull(),
+                        
+                        Select::make('default_supplier_id')
+                            ->label('Proveedor por Defecto (OCR)')
+                            ->options(fn() => \App\Models\Tercero::proveedores()->pluck('nombre_comercial', 'id'))
+                            ->searchable()
+                            ->preload()
+                            ->helperText('Proveedor que se selecciona automáticamente al importar un albarán vía OCR')
+                            ->columnSpanFull(),
+                    ]),
+
+                Section::make('Importación OCR')
+                    ->description('Configuración para la importación de documentos mediante OCR')
+                    ->schema([
+                        TextInput::make('default_commercial_margin')
+                            ->label('Margen Comercial por Defecto (%)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(1000)
+                            ->default(30)
+                            ->suffix('%')
+                            ->helperText('Margen que se aplicará automáticamente a los productos importados vía OCR para calcular el PVP')
+                            ->columnSpan(1),
+                        
+                        TextInput::make('default_tax_rate')
+                            ->label('IVA por Defecto (%)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(100)
+                            ->default(21)
+                            ->suffix('%')
+                            ->helperText('Tasa de IVA que se aplicará por defecto en los cálculos de precio de venta')
+                            ->columnSpan(1),
+                    ])
+                    ->columns(2),
+
+                Section::make('Configuración de Precios y Márgenes')
+                    ->description('Define cómo se calculan los precios y beneficios en el sistema')
+                    ->schema([
+                        Select::make('profit_calculation_method')
+                            ->label('Método de Cálculo de Margen')
+                            ->options([
+                                'from_purchase' => 'Sobre Precio de Compra (Margen = (Venta-Compra)/Compra)',
+                                'from_sale' => 'Sobre Precio de Venta (Margen = (Venta-Compra)/Venta)',
+                            ])
+                            ->default('from_purchase')
+                            ->helperText('Cambiar esta opción recalculará automáticamente el % de margen de todos los productos sin variar su precio de venta.')
+                            ->columnSpanFull(),
+
+                        TextInput::make('default_profit_percentage')
+                            ->label('Porcentaje de Beneficio por Defecto')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(1000)
+                            ->default(60)
+                            ->suffix('%')
+                            ->helperText('Porcentaje de beneficio inicial aplicado al importar productos o crear nuevos.')
+                            ->columnSpan(1),
+                    ])
+                    ->columns(2),
+
+                Section::make('Configuración de Ventas')
+                    ->schema([
+                         TextInput::make('presupuesto_validez_dias')
+                            ->label('Validez de Presupuestos (días)')
+                            ->numeric()
+                            ->minValue(1)
+                            ->maxValue(365)
+                            ->default(5)
+                            ->helperText('Días de validez por defecto al crear un nuevo presupuesto')
+                            ->columnSpanFull(),
+                    ]),
+
+                Section::make('Automatización e Inteligencia Artificial')
+                    ->description('Configura los proveedores de IA para procesar documentos automáticamente.')
+                    ->schema([
+                        Select::make('ai_provider')
+                            ->label('Proveedor IA Principal')
+                            ->options([
+                                'google_doc_ai' => 'Google Cloud Document AI (Invoice Processor)',
+                                'gemini' => 'Google Gemini (GenAI)',
+                                'openai' => 'OpenAI (ChatGPT)',
+                            ])
+                            ->default('gemini')
+                            ->required()
+                            ->columnSpanFull()
+                            ->live(),
+
+                        Select::make('ai_backup_provider')
+                            ->label('Proveedor Backup (Fallo Principal)')
+                            ->options([
+                                'none' => 'Ninguno',
+                                'tesseract' => 'Tesseract OCR (Local)',
+                            ])
+                            ->default('none')
+                            ->required()
+                            ->columnSpanFull(),
+
+                        // GROUP: Google Cloud Doc AI
+                        Section::make('Configuración Google Cloud')
+                            ->schema([
+                                Select::make('google_location')
+                                    ->label('Ubicación')
+                                    ->options(['us' => 'US (Estados Unidos)', 'eu' => 'EU (Unión Europea)'])
+                                    ->default('eu')
+                                    ->required(),
+                                
+                                TextInput::make('google_project_id')
+                                    ->label('Project ID')
+                                    ->required(),
+
+                                TextInput::make('google_processor_id')
+                                    ->label('Processor ID (Invoice)')
+                                    ->required(),
+
+                                Textarea::make('google_application_credentials')
+                                    ->label('Service Account JSON')
+                                    ->rows(5)
+                                    ->helperText('Pega aquí el contenido completo del archivo .json descargado de Google Cloud IAM.')
+                                    ->columnSpanFull(),
+                            ])
+                            ->visible(fn($get) => $get('ai_provider') === 'google_doc_ai')
+                            ->columns(2),
+
+                        // GROUP: Gemini
+                        Section::make('Configuración Gemini')
+                            ->schema([
+                                TextInput::make('ai_gemini_api_key')
+                                    ->label('Gemini API Key')
+                                    ->password()
+                                    ->revealable()
+                                    ->required()
+                                    ->columnSpanFull(),
+                            ])
+                            ->visible(fn($get) => $get('ai_provider') === 'gemini'),
+
+                        // GROUP: OpenAI
+                        Section::make('Configuración OpenAI')
+                            ->schema([
+                                TextInput::make('ai_openai_api_key')
+                                    ->label('OpenAI API Key')
+                                    ->password()
+                                    ->revealable()
+                                    ->required()
+                                    ->columnSpanFull(),
+                            ])
+                            ->visible(fn($get) => $get('ai_provider') === 'openai'),
+
+                        // GROUP: Tesseract
+                        Section::make('Configuración Tesseract')
+                            ->schema([
+                                TextInput::make('tesseract_path')
+                                    ->label('Ruta al Binario')
+                                    ->default('/usr/bin/tesseract')
+                                    ->required()
+                                    ->columnSpanFull(),
+                            ])
+                            ->visible(fn($get) => $get('ai_backup_provider') === 'tesseract'),
+
                     ]),
             ])
             ->statePath('data');
     }
 
-    public function save(): void
+    public function save()
     {
+        $oldMethod = Setting::get('profit_calculation_method', 'from_purchase');
         $data = $this->form->getState();
 
         foreach ($data as $key => $value) {
@@ -212,6 +429,12 @@ class SettingsPage extends Page
                 'locale' => 'Idioma',
                 'timezone' => 'Zona Horaria',
                 'pos_default_tercero_id' => 'Cliente por Defecto POS',
+                'presupuesto_validez_dias' => 'Días Validez Presupuesto',
+                'default_commercial_margin' => 'Margen Comercial por Defecto',
+                'profit_calculation_method' => 'Método de Cálculo de Margen',
+                'default_profit_percentage' => 'Porcentaje de Beneficio Defecto',
+                'intermediate_precision' => 'Decimales en cálculos intermedios',
+                'final_precision' => 'Decimales en documentos finales',
             ];
             
             $groups = [
@@ -227,14 +450,50 @@ class SettingsPage extends Page
                 'locale' => 'Localización',
                 'timezone' => 'Localización',
                 'pos_default_tercero_id' => 'POS',
+                'default_supplier_id' => 'POS',
+                'presupuesto_validez_dias' => 'Ventas',
+                'default_commercial_margin' => 'OCR',
+                'default_tax_rate' => 'OCR',
+                'display_uppercase' => 'Localización',
+                'barcode_type' => 'Localización',
+                // AI Settings
+                'ai_provider' => 'IA',
+                'ai_backup_provider' => 'IA',
+                'google_location' => 'IA',
+                'google_project_id' => 'IA',
+                'google_processor_id' => 'IA',
+                'google_application_credentials' => 'IA',
+                'ai_gemini_api_key' => 'IA',
+                'ai_openai_api_key' => 'IA',
+                'tesseract_path' => 'IA',
+                'profit_calculation_method' => 'Precios',
+                'default_profit_percentage' => 'Precios',
+                'intermediate_precision' => 'Formato',
+                'final_precision' => 'Formato',
             ];
 
             Setting::set($key, $value, $labels[$key] ?? $key, $groups[$key] ?? 'General');
+        }
+
+        $newMethod = $data['profit_calculation_method'] ?? $oldMethod;
+        if ($oldMethod !== $newMethod) {
+            \App\Models\Product::all()->each(function($product) {
+                $product->recalculateProfitMargin();
+                $product->save();
+            });
+            
+            Notification::make()
+                ->title('Márgenes actualizados')
+                ->body('Se han recalculado los márgenes de todos los productos según el nuevo método.')
+                ->info()
+                ->send();
         }
 
         Notification::make()
             ->title('Configuración guardada')
             ->success()
             ->send();
+
+        return redirect()->to(\Filament\Pages\Dashboard::getUrl());
     }
 }

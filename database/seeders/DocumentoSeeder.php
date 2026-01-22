@@ -26,17 +26,16 @@ class DocumentoSeeder extends Seeder
             return;
         }
 
-        // Evitar duplicados masivos si se ejecuta varias veces (solo ventas)
-        $ventasExistentes = Documento::whereIn('tipo', ['presupuesto', 'pedido', 'albaran', 'factura', 'recibo'])->count();
-        if ($ventasExistentes > 10) {
-            // Skip ventas pero continuar con compras
-            $skipVentas = true;
-        } else {
-            $skipVentas = false;
+        // Evitar duplicados masivos si se ejecuta varias veces
+        // Si hay más de 5 documentos, asumimos que ya se sembró y salimos.
+        if (Documento::count() > 5) {
+            return;
         }
 
-        if (!$skipVentas) {
-            $currentDate = now()->subDays(30);
+        // Variable para controlar flujo (aunque con el return de arriba ya no haría falta, lo dejo simplificado)
+        $currentDate = now()->subDays(30);
+
+        // 1. Algunos Presupuestos
 
             // 1. Algunos Presupuestos
             foreach ($clientes->take(2) as $cliente) {
@@ -65,7 +64,6 @@ class DocumentoSeeder extends Seeder
             // Se eliminó la creación manual para evitar desincronización de números.
             // $this->createDocument($clienteFactura, $user, 'recibo', $products->random(1), 'completado', $currentDate);
             // $currentDate->addDay();
-        }
 
         // 5. De proveedores (Documentos de compra)
         $currentDateCompra = now()->subDays(60); // Compras suelen ser anteriores

@@ -14,7 +14,7 @@ class SettingsSeeder extends Seeder
     {
         // Logo y PDFs
         \App\Models\Setting::set('pdf_logo_type', 'text', 'Tipo de Logo PDF', 'PDF');
-        \App\Models\Setting::set('pdf_logo_text', 'nexERP System', 'Texto del Logo', 'PDF');
+        \App\Models\Setting::set('pdf_logo_text', 'sienteERP System', 'Texto del Logo', 'PDF');
         \App\Models\Setting::set('pdf_logo_image', null, 'Imagen del Logo', 'PDF');
         
         // Moneda y formato
@@ -26,5 +26,8 @@ class SettingsSeeder extends Seeder
         // Localización
         \App\Models\Setting::set('locale', 'es', 'Idioma', 'Localización');
         \App\Models\Setting::set('timezone', 'Europe/Madrid', 'Zona Horaria', 'Localización');
+        
+        // Visualización
+        \App\Models\Setting::set('display_uppercase', 'false', 'Mostrar Todo en Mayúsculas', 'Visualización');
     }
 }
