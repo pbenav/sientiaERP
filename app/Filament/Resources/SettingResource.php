@@ -60,7 +60,7 @@ class SettingResource extends Resource
                         Forms\Components\Textarea::make('value')
                             ->label('Valor')
                             ->required()
-                            ->visible(fn ($get) => !in_array($get('key'), ['currency_position']))
+                            ->visible(fn ($get) => !in_array($get('key'), ['currency_position', 'ai_provider', 'ai_gemini_api_key', 'ai_openai_api_key']))
                             ->columnSpanFull(),
                         
                         Forms\Components\Select::make('value')
@@ -71,6 +71,24 @@ class SettingResource extends Resource
                             ])
                             ->required()
                             ->visible(fn ($get) => $get('key') === 'currency_position')
+                            ->columnSpanFull(),
+
+                        Forms\Components\Select::make('value')
+                            ->label('Proveedor IA')
+                            ->options([
+                                'gemini' => 'Google Gemini',
+                                'openai' => 'OpenAI (ChatGPT)',
+                            ])
+                            ->required()
+                            ->visible(fn ($get) => $get('key') === 'ai_provider')
+                            ->columnSpanFull(),
+
+                        Forms\Components\TextInput::make('value')
+                            ->label('API Key')
+                            ->password()
+                            ->revealable()
+                            ->required()
+                            ->visible(fn ($get) => in_array($get('key'), ['ai_gemini_api_key', 'ai_openai_api_key']))
                             ->columnSpanFull(),
                     ])->columns(2)->compact(),
             ]);

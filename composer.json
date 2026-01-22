@@ -12,10 +12,12 @@
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "^3.1",
         "filament/filament": "^3.2",
+        "google-gemini-php/laravel": "*",
         "guzzlehttp/guzzle": "^7.10",
         "laravel/framework": "^11.31",
         "laravel/sanctum": "^4.2",
         "laravel/tinker": "^2.9",
+        "openai-php/laravel": "^0.18.0",
         "predis/predis": "^3.3"
     },
     "require-dev": {
