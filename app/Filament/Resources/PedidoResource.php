@@ -121,34 +121,13 @@ class PedidoResource extends Resource
                             ->searchable()
                             ->preload()
                             ->default(1)
-                            ->createOptionForm([
-                                Forms\Components\TextInput::make('nombre')
-                                    ->required()
-                                    ->maxLength(100),
-                                
-                                Forms\Components\Select::make('tipo')
-                                    ->options([
-                                        'contado' => 'Contado',
-                                        'transferencia' => 'Transferencia',
-                                        'tarjeta' => 'Tarjeta',
-                                    ])
-                                    ->required(),
-                            ])
-                            ->createOptionUsing(function (array $data) {
-                                return FormaPago::create([
-                                    'codigo' => \Str::slug($data['nombre']),
-                                    'nombre' => $data['nombre'],
-                                    'tipo' => $data['tipo'],
-                                    'tramos' => [['dias' => 0, 'porcentaje' => 100]],
-                                    'activo' => true,
-                                ])->id;
-                            }),
+                            ->required(),
                         
                     ])->columns(3)->compact(),
 
-                // SECCIÓN 3: PRODUCTOS
-                Forms\Components\View::make('filament.components.document-lines')
-                    ->columnSpanFull(),
+                // SECCIÓN 3: PRODUCTOS (Movido a RelationManager)
+                // Forms\Components\View::make('filament.components.document-lines')
+                //    ->columnSpanFull(),
 
                 // SECCIÓN 4: OBSERVACIONES
                 Forms\Components\Section::make('Observaciones')
@@ -333,7 +312,7 @@ class PedidoResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            LineasRelationManager::class,
         ];
     }
 

@@ -11,6 +11,8 @@ class EditFactura extends EditRecord
 {
     protected static string $resource = FacturaResource::class;
 
+
+
     protected function getHeaderActions(): array
     {
         return [
@@ -100,6 +102,7 @@ class EditFactura extends EditRecord
 
     protected function afterSave(): void
     {
+        $this->record->refresh();
         $this->record->recalcularTotales();
     }
 

@@ -18,7 +18,10 @@ class EditPedido extends EditRecord
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
                 ->visible(fn() => $this->record->estado === 'borrador')
-                ->action(fn() => $this->record->confirmar()),
+                ->action(function () {
+                    $this->record->confirmar();
+                    $this->refreshFormData(['estado', 'numero']);
+                }),
             
             Actions\DeleteAction::make(),
         ];
@@ -28,6 +31,7 @@ class EditPedido extends EditRecord
 
     protected function afterSave(): void
     {
+        $this->record->refresh();
         $this->record->recalcularTotales();
     }
 

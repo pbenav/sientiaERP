@@ -61,9 +61,10 @@ class DocumentoSeeder extends Seeder
             $factura = $this->createDocument($clienteFactura, $user, 'factura', $products->random(2), 'confirmado', $currentDate);
             $currentDate->addDay();
             
-            // 4. Recibos
-            $this->createDocument($clienteFactura, $user, 'recibo', $products->random(1), 'completado', $currentDate);
-            $currentDate->addDay();
+            // 4. Recibos (Generados automáticamente al confirmar facturas, no es necesario crear manuales si ya creamos facturas arriba)
+            // Se eliminó la creación manual para evitar desincronización de números.
+            // $this->createDocument($clienteFactura, $user, 'recibo', $products->random(1), 'completado', $currentDate);
+            // $currentDate->addDay();
         }
 
         // 5. De proveedores (Documentos de compra)
@@ -140,6 +141,7 @@ class DocumentoSeeder extends Seeder
         // Si se pidió un estado distinto de borrador, lo confirmamos
         // Esto es vital para facturas, para que se genere el número vía ->confirmar()
         if ($estado !== 'borrador') {
+            $doc->refresh(); // Asegurar que tenemos todos los campos (incluida serie si viene de default)
             $doc->confirmar();
             if ($estado === 'completado' || $estado === 'cobrado') {
                 $doc->update(['estado' => $estado]);

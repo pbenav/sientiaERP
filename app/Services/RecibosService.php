@@ -14,6 +14,21 @@ use Illuminate\Support\Facades\DB;
 class RecibosService
 {
     /**
+     * Map of document types to their prefixes
+     */
+    private const PREFIXES = [
+        'presupuesto' => 'PRE',
+        'pedido' => 'PED',
+        'albaran' => 'ALB',
+        'factura' => 'FAC',
+        'recibo' => 'REC',
+        'pedido_compra' => 'PCO',
+        'albaran_compra' => 'ACO',
+        'factura_compra' => 'FCO',
+        'recibo_compra' => 'RCO',
+    ];
+
+    /**
      * Generar recibos automáticamente desde una factura
      * 
      * @param Documento $factura La factura desde la que generar recibos
@@ -49,20 +64,44 @@ class RecibosService
             // Determinar el tipo de recibo según el tipo de factura
             // (Ya calculado arriba como $tipoReciboTarget)
             
+            // Determinar prefijos
+            $prefixFactura = self::PREFIXES[$factura->tipo] ?? strtoupper(substr($factura->tipo, 0, 3));
+            $prefixRecibo = self::PREFIXES[$tipoReciboTarget] ?? strtoupper(substr($tipoReciboTarget, 0, 3));
+
             // Calcular vencimientos usando la forma de pago
             $fechaBase = $factura->fecha ?? now();
             $vencimientos = $factura->formaPago->calcularVencimientos($fechaBase, (float) $factura->total);
 
+            // Si hay múltiples vencimientos, usaremos sufijos para no romper la unicidad si se desea estricta,
+            // pero el usuario pidió "mismo número". Si hay varios recibos, no pueden tener el mismo número.
+            // ASUNCIÓN: El usuario se refiere a 1 factura -> 1 recibo normalmente, o sufijos /1, /2.
+            // PERO la DB tiene UNIQUE en (tipo, numero)? Probablemente no, pero es mala práctica.
+            // Si hay multiples vencimientos, el recibo estándar suele ser N, N+1... 
+            // PERO el usuario dijo: "al crear una factura... tiene que generar automáticamente el recibo correspondiente con la misma numeración".
+            // Voy a asumir que si hay 1 recibo, toma el número. Si hay varios, añadimos sufijo o usamos lógica secuencial forzada.
+            // Dado el seeder, suelen ser 1 recibo.
+            
             foreach ($vencimientos as $index => $vencimiento) {
+                // Generar número equivalente
+                $numeroRecibo = str_replace($prefixFactura, $prefixRecibo, $factura->numero);
+                
+                // Si hay más de un vencimiento, necesitamos diferenciar los números de alguna forma
+                // O el usuario acepta que sean REC-001/1, REC-001/2? 
+                // La numeración actual es un string.
+                if (count($vencimientos) > 1) {
+                    $numeroRecibo .= '-' . ($index + 1);
+                }
+
                 $recibo = new Documento([
                     'tipo' => $tipoReciboTarget,
-                    'serie' => $factura->serie,
+                    'serie' => $factura->serie ?? 'A', // Fallback seguridad
+                    'numero' => $numeroRecibo, // FORZAR NÚMERO
                     'fecha' => $fechaBase,
                     'fecha_vencimiento' => $vencimiento['fecha_vencimiento'],
                     'tercero_id' => $factura->tercero_id,
                     'user_id' => auth()->id() ?? $factura->user_id,
                     'documento_origen_id' => $factura->id,
-                    'estado' => $factura->tipo === 'factura_compra' ? 'pendiente' : 'borrador', // Estado inicial
+                    'estado' => $factura->tipo === 'factura_compra' ? 'pendiente' : 'borrador', 
                     'subtotal' => $vencimiento['importe'],
                     'base_imponible' => $vencimiento['importe'],
                     'total' => $vencimiento['importe'],
@@ -73,6 +112,35 @@ class RecibosService
 
                 $recibo->save();
                 $recibos->push($recibo);
+            }
+
+            // Sincronizar contador de Recibos para evitar colisiones futuras
+            // Extraer el número secuencial de la factura (asumiendo formato FAC-YYYY-S-XXXX)
+            // Intentamos extraer el último bloque numérico
+            if (preg_match('/-(\d+)$/', $factura->numero, $matches)) {
+                $secuencial = (int)$matches[1];
+                
+                // Actualizar NumeracionDocumento
+                $anio = $factura->fecha->year;
+                $serie = $factura->serie;
+                
+                $numeracion = \App\Models\NumeracionDocumento::firstOrCreate(
+                    [
+                        'tipo' => $tipoReciboTarget,
+                        'serie' => $serie,
+                        'anio' => $anio,
+                    ],
+                    [
+                        'ultimo_numero' => 0,
+                        'formato' => '{TIPO}-{ANIO}-{SERIE}-{NUM}', // Default fallback
+                        'longitud_numero' => strlen($matches[1]),
+                    ]
+                );
+
+                if ($secuencial > $numeracion->ultimo_numero) {
+                    $numeracion->ultimo_numero = $secuencial;
+                    $numeracion->save();
+                }
             }
 
             DB::commit();

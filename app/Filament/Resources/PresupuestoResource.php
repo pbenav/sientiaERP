@@ -60,7 +60,7 @@ class PresupuestoResource extends Resource
                         
                         Forms\Components\DatePicker::make('fecha_validez')
                             ->label('Válido hasta')
-                            ->default(now()->addDays(30))
+                            ->default(fn() => now()->addDays((int)\App\Models\Setting::get('presupuesto_validez_dias', 15)))
                             ->required(),
                         
                         Forms\Components\Select::make('tercero_id')
@@ -77,6 +77,14 @@ class PresupuestoResource extends Resource
                                     ->required(),
                             ]),
                         
+                        Forms\Components\Select::make('forma_pago_id')
+                            ->label('Forma de Pago')
+                            ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
+                            ->searchable()
+                            ->preload()
+                            ->default(1)
+                            ->required(),
+                        
                         Forms\Components\Select::make('estado')
                             ->label('Estado')
                             ->options([
@@ -88,9 +96,9 @@ class PresupuestoResource extends Resource
                             ->required(),
                     ])->columns(3),
 
-                // SECCIÓN 2: PRODUCTOS
-                Forms\Components\View::make('filament.components.document-lines')
-                    ->columnSpanFull(),
+                // SECCIÓN 2: PRODUCTOS (Movido a RelationManager)
+                // Forms\Components\View::make('filament.components.document-lines')
+                //     ->columnSpanFull(),
 
                 Forms\Components\Section::make('Totales')
                     ->schema([
@@ -235,7 +243,7 @@ class PresupuestoResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            LineasRelationManager::class,
         ];
     }
 

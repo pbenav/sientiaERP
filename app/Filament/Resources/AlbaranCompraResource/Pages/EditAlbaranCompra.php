@@ -21,6 +21,7 @@ class EditAlbaranCompra extends EditRecord
 
     protected function afterSave(): void
     {
+        $this->record->refresh();
         $this->record->recalcularTotales();
     }
 
