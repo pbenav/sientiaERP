@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use OpenAI\Laravel\Facades\OpenAI;
+use thiagoalessio\TesseractOCR\TesseractOCR;
 use App\Models\Tercero;
 use App\Models\Setting;
 use App\Models\Product;
@@ -142,7 +143,7 @@ class AiDocumentParserService
         $tesseractPath = Setting::get('tesseract_path', '/usr/bin/tesseract');
         
         try {
-            $ocr = new \thiagoalessio\TesseractOCR\TesseractOCR($imagePath);
+            $ocr = new TesseractOCR($imagePath);
             $ocr->executable($tesseractPath);
             // $ocr->lang('spa', 'eng'); // Optional: check if language packs installed
             $text = $ocr->run();
