@@ -9,18 +9,26 @@ class CreateAlbaranCompra extends CreateRecord
 {
     protected static string $resource = AlbaranCompraResource::class;
 
-    public function mount(): void
+    protected $listeners = ['refresh-document-totals' => '$refresh'];
+
+    protected function getHeaderActions(): array
     {
-        $data = [
-            'tipo' => 'albaran_compra',
-            'estado' => 'borrador',
-            'user_id' => auth()->id(),
-            'fecha' => now(),
-            'serie' => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A',
+        return [
+            \Filament\Actions\Action::make('importar')
+                ->label('Importar desde imagen')
+                ->icon('heroicon-o-camera')
+                ->color('info')
+                ->url(route('filament.admin.pages.ocr-import'))
+                ->openUrlInNewTab(false),
         ];
-
-        $record = static::getModel()::create($data);
-
-        $this->redirect($this->getResource()::getUrl('edit', ['record' => $record]));
     }
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        $data['tipo'] = 'albaran_compra';
+        return $data;
+    }
+
+    // La lógica de creación automática se ha movido al OcrImportModal.
+    // Este método queda limpio para la creación manual estándar de Filament.
 }

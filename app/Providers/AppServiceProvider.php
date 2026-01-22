@@ -22,5 +22,14 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Livewire::component('app.filament.relation-managers.lineas-relation-manager', LineasRelationManager::class);
+        
+        // Register observers
+        \App\Models\DocumentoLinea::observe(\App\Observers\DocumentoLineaObserver::class);
+
+        // CONFIGURACIÓN PARA PROXY SSL
+        if (env('FORCE_HTTPS', false)) {
+            \Illuminate\Support\Facades\URL::forceRootUrl(config('app.url'));
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
     }
 }

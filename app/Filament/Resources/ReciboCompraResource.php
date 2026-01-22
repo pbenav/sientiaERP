@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ReciboCompraResource\Pages;
+use App\Filament\Support\HasRoleAccess;
 use App\Models\Documento;
 use App\Models\Tercero;
 use Filament\Forms;
@@ -13,6 +14,13 @@ use Filament\Tables\Table;
 
 class ReciboCompraResource extends Resource
 {
+    use HasRoleAccess;
+
+    protected static string $viewPermission   = 'compras.view';
+    protected static string $createPermission = 'compras.create';
+    protected static string $editPermission   = 'compras.edit';
+    protected static string $deletePermission = 'compras.delete';
+
     protected static ?string $model = Documento::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-currency-euro';
@@ -119,7 +127,7 @@ class ReciboCompraResource extends Resource
                 
                 Tables\Columns\TextColumn::make('total')
                     ->label('Importe')
-                    ->money('EUR')
+                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatCurrency($state))
                     ->sortable(),
                 
                 Tables\Columns\BadgeColumn::make('estado')

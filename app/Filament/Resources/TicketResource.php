@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\TicketResource\Pages;
+use App\Filament\Support\HasRoleAccess;
 use App\Models\Ticket;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -14,15 +15,23 @@ use Filament\Infolists\Infolist;
 
 class TicketResource extends Resource
 {
+    use HasRoleAccess;
+
+    // TPV también accesible para vendedores
+    protected static string $viewPermission   = 'pos.view';
+    protected static string $createPermission = 'pos.operate';
+    protected static string $editPermission   = 'pos.operate';
+    protected static string $deletePermission = 'pos.operate';
+
     protected static ?string $model = Ticket::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-computer-desktop';
 
-    protected static ?string $navigationLabel = 'POS';
+    protected static ?string $navigationLabel = 'TPV';
 
-    protected static ?string $modelLabel = 'POS';
+    protected static ?string $modelLabel = 'TPV';
 
-    protected static ?string $pluralModelLabel = 'POS';
+    protected static ?string $pluralModelLabel = 'TPV';
 
     protected static ?int $navigationSort = 3;
 
@@ -58,8 +67,7 @@ class TicketResource extends Resource
                         'completed' => 'Completado',
                         'cancelled' => 'Cancelado',
                     ])
-                    ->required()
-                    ->disabled(),
+                    ->required(),
             ]);
     }
 
@@ -67,8 +75,9 @@ class TicketResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')
-                    ->label('ID')
+                Tables\Columns\TextColumn::make('numero')
+                    ->label('Nº Ticket')
+                    ->searchable()
                     ->sortable(),
                 
                 Tables\Columns\TextColumn::make('user.name')
@@ -96,7 +105,7 @@ class TicketResource extends Resource
                 
                 Tables\Columns\TextColumn::make('total')
                     ->label('Total')
-                    ->money('EUR')
+                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatCurrency($state))
                     ->sortable(),
                 
                 Tables\Columns\TextColumn::make('payment_method')
@@ -147,6 +156,81 @@ class TicketResource extends Resource
                     }),
             ])
             ->actions([
+                Tables\Actions\Action::make('generarAlbaran')
+                    ->label('')
+                    ->tooltip('Generar Albarán')
+                    ->icon('heroicon-o-truck')
+                    ->color('info')
+                    ->requiresConfirmation()
+                    ->visible(fn (Ticket $record) => $record->status === 'completed' && !$record->hasInvoice())
+                    ->action(function (Ticket $record) {
+                        $items = $record->items()->get();
+                        
+                        if ($items->isEmpty()) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Error')
+                                ->body('El ticket no tiene líneas para generar el albarán')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+                        
+                        $terceroId = $record->tercero_id;
+                        if (!$terceroId) {
+                            $terceroId = \App\Models\Setting::get('pos_default_tercero_id');
+                        }
+                        
+                        if (!$terceroId) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Error')
+                                ->body('No se puede generar albarán: el ticket no tiene cliente asignado')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+                        
+                        // Crear documento tipo albaran
+                        $albaran = \App\Models\Documento::create([
+                            'tipo' => 'albaran',
+                            'tercero_id' => $terceroId,
+                            'user_id' => auth()->id(),
+                            'estado' => 'borrador',
+                            'fecha' => now(),
+                            'observaciones' => "Generada automáticamente desde Ticket #{$record->numero}\nFecha ticket: {$record->created_at->format('d/m/Y H:i')}",
+                        ]);
+                        
+                        // Copiar líneas
+                        $orden = 1;
+                        foreach ($items as $item) {
+                            $productoNombre = $item->product ? $item->product->name : 'Producto eliminado';
+                            $productoCodigo = $item->product ? $item->product->sku : '';
+                            
+                            \App\Models\DocumentoLinea::create([
+                                'documento_id' => $albaran->id,
+                                'producto_id' => $item->product_id,
+                                'orden' => $orden++,
+                                'codigo' => $productoCodigo,
+                                'descripcion' => $productoNombre,
+                                'cantidad' => $item->quantity,
+                                'precio_unitario' => $item->unit_price,
+                                'descuento' => 0,
+                                'iva' => 21,
+                            ]);
+                        }
+                        
+                        $albaran->recalcularTotales();
+                        $albaran->confirmar();
+                        
+                        // Guardar referencia
+                        $record->documento_id = $albaran->id;
+                        $record->save();
+                        
+                        \Filament\Notifications\Notification::make()
+                            ->title('Albarán creado y confirmado')
+                            ->body("Albarán {$albaran->numero} creado. Total: " . number_format($albaran->total, 2, ',', '.') . " €.")
+                            ->success()
+                            ->send();
+                    }),
                 Tables\Actions\Action::make('generarFactura')
                     ->label('')
                     ->tooltip('Generar Factura')
@@ -191,7 +275,7 @@ class TicketResource extends Resource
                             'user_id' => auth()->id(),
                             'estado' => 'borrador',
                             'fecha' => now(),
-                            'observaciones' => "Generada automáticamente desde Ticket #{$record->id}\nFecha ticket: {$record->created_at->format('d/m/Y H:i')}",
+                            'observaciones' => "Generada automáticamente desde Ticket #{$record->numero}\nFecha ticket: {$record->created_at->format('d/m/Y H:i')}",
                         ]);
                         
                         // Copiar líneas del ticket a la factura
@@ -222,12 +306,11 @@ class TicketResource extends Resource
                         
                         // Guardar referencia a factura en el ticket
                         $record->documento_id = $factura->id;
-                        $record->status = 'completed';
                         $record->save();
                         
                         \Filament\Notifications\Notification::make()
                             ->title('Factura creada y confirmada')
-                            ->body("Factura {$factura->numero} creada para {$record->tercero->nombre_comercial}. Total: " . number_format($factura->total, 2, ',', '.') . " €.")
+                            ->body("Factura {$factura->numero} creada. Total: " . number_format($factura->total, 2, ',', '.') . " €.")
                             ->success()
                             ->send();
                     }),
@@ -241,6 +324,11 @@ class TicketResource extends Resource
                 Tables\Actions\EditAction::make()->label('')->tooltip('Editar')->visible(fn (Ticket $record) => !$record->hasInvoice()),
                 Tables\Actions\DeleteAction::make()->label('')->tooltip('Borrar'),
             ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
+            ])
             ->defaultSort('created_at', 'desc');
     }
 
@@ -250,7 +338,7 @@ class TicketResource extends Resource
             ->schema([
                 Infolists\Components\Section::make('Información del Ticket')
                     ->schema([
-                        Infolists\Components\TextEntry::make('id')->label('ID'),
+                        Infolists\Components\TextEntry::make('numero')->label('Número'),
                         Infolists\Components\TextEntry::make('session_id')->label('ID de Sesión'),
                         Infolists\Components\TextEntry::make('user.name')->label('Operador'),
                         Infolists\Components\TextEntry::make('tercero.nombre_comercial')->label('Cliente'),
@@ -273,9 +361,9 @@ class TicketResource extends Resource
                 
                 Infolists\Components\Section::make('Totales')
                     ->schema([
-                        Infolists\Components\TextEntry::make('subtotal')->label('Subtotal')->money('EUR'),
-                        Infolists\Components\TextEntry::make('tax')->label('IVA')->money('EUR'),
-                        Infolists\Components\TextEntry::make('total')->label('Total')->money('EUR'),
+                        Infolists\Components\TextEntry::make('subtotal')->label('Subtotal')->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatCurrency($state)),
+                        Infolists\Components\TextEntry::make('tax')->label('IVA')->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatCurrency($state)),
+                        Infolists\Components\TextEntry::make('total')->label('Total')->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatCurrency($state)),
                         Infolists\Components\TextEntry::make('payment_method')
                             ->label('Método de Pago')
                             ->formatStateUsing(fn (?string $state): string => match ($state) {
@@ -284,8 +372,8 @@ class TicketResource extends Resource
                                 'mixed' => 'Mixto',
                                 default => '-',
                             }),
-                        Infolists\Components\TextEntry::make('amount_paid')->label('Pagado')->money('EUR'),
-                        Infolists\Components\TextEntry::make('change_given')->label('Cambio')->money('EUR'),
+                        Infolists\Components\TextEntry::make('amount_paid')->label('Pagado')->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatCurrency($state)),
+                        Infolists\Components\TextEntry::make('change_given')->label('Cambio')->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatCurrency($state)),
                     ])->columns(3),
             ]);
     }

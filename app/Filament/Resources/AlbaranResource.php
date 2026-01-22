@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\AlbaranResource\Pages;
 use App\Filament\RelationManagers\LineasRelationManager;
+use App\Filament\Support\HasRoleAccess;
 use App\Models\Documento;
 use App\Models\FormaPago;
 use App\Models\Tercero;
@@ -18,6 +19,13 @@ use Filament\Tables\Table;
 
 class AlbaranResource extends Resource
 {
+    use HasRoleAccess;
+
+    protected static string $viewPermission   = 'ventas.view';
+    protected static string $createPermission = 'ventas.create';
+    protected static string $editPermission   = 'ventas.edit';
+    protected static string $deletePermission = 'ventas.delete';
+
     protected static ?string $model = Documento::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-truck';
@@ -41,64 +49,15 @@ class AlbaranResource extends Resource
     {
         return $form
             ->schema([
-                // SECCIÓN 1: CLIENTE
-                Forms\Components\Section::make('Cliente')
-                    ->schema([
-                        Forms\Components\Select::make('tercero_id')
-                            ->label('Cliente')
-                            ->options(fn() => \App\Models\Tercero::clientes()->pluck('nombre_comercial', 'id'))
-                            ->searchable()
-                            ->preload()
-                            ->live()
-                            ->required()
-                            ->createOptionForm([
-                                Forms\Components\TextInput::make('nombre_comercial')->required(),
-                                Forms\Components\TextInput::make('nif_cif')->required(),
-                                Forms\Components\TextInput::make('email')->email(),
-                                Forms\Components\TextInput::make('telefono')->tel(),
-                            ])
-                            ->createOptionUsing(function (array $data) {
-                                $tercero = Tercero::create($data);
-                                $tercero->tipos()->attach(\App\Models\TipoTercero::where('codigo', 'CLI')->first());
-                                return $tercero->id;
-                            }),
-                    ])->columns(1),
+                \App\Filament\Support\DocumentFormFactory::terceroSection('Cliente', 'CLI'),
+                
+                \App\Filament\Support\DocumentFormFactory::detailsSection('Datos del Albarán'),
 
-                // SECCIÓN 2: DATOS DEL ALBARÁN
-                Forms\Components\Section::make('Datos del Albarán')
-                    ->schema([
-                        Forms\Components\TextInput::make('numero')
-                            ->label('Número')
-                            ->disabled()
-                            ->dehydrated(false)
-                            ->placeholder('Se generará automáticamente'),
-                        
-                        Forms\Components\Select::make('serie')
-                            ->label('Serie')
-                            ->options(\App\Models\BillingSerie::where('activo', true)->pluck('nombre', 'codigo'))
-                            ->default(fn() => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A')
-                            ->required(),
-                        
-                        Forms\Components\DatePicker::make('fecha')
-                            ->label('Fecha')
-                            ->default(now())
-                            ->required(),
-                        
-                        Forms\Components\Select::make('estado')
-                            ->label('Estado')
-                            ->options([
-                                'borrador' => 'Borrador',
-                                'confirmado' => 'Confirmado',
-                                'anulado' => 'Anulado',
-                            ])
-                            ->default('borrador')
-                            ->required(),
-                        
-                    ])->columns(3)->compact(),
+                ...\App\Filament\Support\DocumentFormFactory::linesSection(),
 
-                // SECCIÓN 3: PRODUCTOS (Movido a RelationManager)
-                // Forms\Components\View::make('filament.components.document-lines')
-                //     ->columnSpanFull(),
+                \App\Filament\Support\DocumentFormFactory::totalsSection()
+                    ->visibleOn('edit')
+                    ->collapsible(),
 
                 // SECCIÓN 4: OBSERVACIONES
                 Forms\Components\Section::make('Observaciones')
@@ -139,7 +98,7 @@ class AlbaranResource extends Resource
                 
                 Tables\Columns\TextColumn::make('total')
                     ->label('Total')
-                    ->money('EUR')
+                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatCurrency($state))
                     ->sortable(),
                 
                 Tables\Columns\BadgeColumn::make('estado')
@@ -241,7 +200,7 @@ class AlbaranResource extends Resource
     public static function getRelations(): array
     {
         return [
-            LineasRelationManager::class,
+            // LineasRelationManager::class,
         ];
     }
 

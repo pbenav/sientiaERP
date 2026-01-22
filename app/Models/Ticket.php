@@ -20,19 +20,39 @@ class Ticket extends Model
         'tpv_slot',   // TPV Slot ID (1-4)
         'numero',     // Ticket number
         'status',
+        'descuento_porcentaje',
+        'descuento_importe',
         'subtotal',
         'tax',
         'total',
         'payment_method',
+        'pago_efectivo',
+        'pago_tarjeta',
         'amount_paid',
         'change_given',
         'completed_at',
     ];
 
+    protected $attributes = [
+        'descuento_porcentaje' => 0,
+        'descuento_importe' => 0,
+        'pago_efectivo' => 0,
+        'pago_tarjeta' => 0,
+        'amount_paid' => 0,
+        'change_given' => 0,
+        'subtotal' => 0,
+        'tax' => 0,
+        'total' => 0,
+    ];
+
     protected $casts = [
+        'descuento_porcentaje' => 'decimal:2',
+        'descuento_importe' => 'decimal:2',
         'subtotal' => 'decimal:2',
         'tax' => 'decimal:2',
         'total' => 'decimal:2',
+        'pago_efectivo' => 'decimal:2',
+        'pago_tarjeta' => 'decimal:2',
         'amount_paid' => 'decimal:2',
         'change_given' => 'decimal:2',
         'completed_at' => 'datetime',
@@ -78,7 +98,15 @@ class Ticket extends Model
 
         $this->subtotal = $items->sum('subtotal');
         $this->tax = $items->sum('tax_amount');
-        $this->total = $items->sum('total');
+        
+        $totalBruto = (float)$this->subtotal + (float)$this->tax;
+        
+        // Aplicar descuentos generales
+        $perc = (float)($this->descuento_porcentaje ?? 0);
+        $imp = (float)($this->descuento_importe ?? 0);
+        
+        $descuentoPorcentajeV = ($totalBruto * ($perc / 100));
+        $this->total = $totalBruto - $descuentoPorcentajeV - $imp;
 
         $this->save();
     }
@@ -98,8 +126,31 @@ class Ticket extends Model
 
         // Decrementar stock de productos
         foreach ($this->items as $item) {
-            $item->product->decrementStock($item->quantity);
+            if ($item->product) {
+                $item->product->decrement('stock', $item->quantity);
+            }
         }
+    }
+
+    /**
+     * Anular el ticket y devolver stock
+     */
+    public function cancel(): void
+    {
+        if ($this->status === 'cancelled') {
+            return;
+        }
+
+        // Devolver stock de productos
+        foreach ($this->items as $item) {
+            if ($item->product) {
+                $item->product->increment('stock', $item->quantity);
+            }
+        }
+
+        $this->update([
+            'status' => 'cancelled',
+        ]);
     }
 
     /**

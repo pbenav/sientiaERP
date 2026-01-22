@@ -136,16 +136,21 @@ class PosController extends Controller
         // Buscar si ya existe el producto en el ticket
         $existingItem = $ticket->items()->where('product_id', $product->id)->first();
 
+        // Convertir PVP de producto a precio base para almacenamiento interno
+        $taxRate = (float) $product->tax_rate;
+        $basePrice = $product->price / (1 + ($taxRate / 100));
+
         if ($existingItem) {
             $existingItem->quantity += $quantity;
+            $existingItem->unit_price = $basePrice; // Asegurar que usamos base
             $existingItem->save();
             $item = $existingItem;
         } else {
             $item = $ticket->items()->create([
                 'product_id' => $product->id,
                 'quantity' => $quantity,
-                'unit_price' => $product->price,
-                'tax_rate' => $product->tax_rate,
+                'unit_price' => $basePrice,
+                'tax_rate' => $taxRate,
             ]);
         }
 
@@ -311,7 +316,7 @@ class PosController extends Controller
                 'name' => $item->product->name,
             ],
             'quantity' => $item->quantity,
-            'unit_price' => (float) $item->unit_price,
+            'unit_price' => (float) ($item->total / $item->quantity), // Return PVP for TUI
             'tax_rate' => (float) $item->tax_rate,
             'subtotal' => (float) $item->subtotal,
             'tax_amount' => (float) $item->tax_amount,
