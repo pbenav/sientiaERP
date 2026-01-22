@@ -23,7 +23,7 @@ class SettingsPage extends Page
     
     protected static ?string $title = 'Configuración del Sistema';
     
-    protected static ?string $navigationGroup = 'Sistema';
+    protected static ?string $navigationGroup = 'Configuración';
     
     protected static ?int $navigationSort = 99;
 
