@@ -25,7 +25,7 @@ class SettingResource extends Resource
     
     protected static ?string $pluralModelLabel = 'Ajustes Avanzados';
     
-    protected static ?string $navigationGroup = 'Sistema';
+    protected static ?string $navigationGroup = 'Configuración';
     
     protected static ?int $navigationSort = 100;
     

@@ -61,7 +61,7 @@ class AdminPanelProvider extends PanelProvider
                 'Ventas',
                 'Compras',
                 'Gestión',
-                'Ajustes Avanzados',
+                'Configuración',
             ]);
     }
 }
