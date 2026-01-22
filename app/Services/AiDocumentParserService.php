@@ -4,6 +4,7 @@ namespace App\Services;
 
 use OpenAI\Laravel\Facades\OpenAI;
 use App\Models\Tercero;
+use App\Models\Setting;
 use App\Models\Product;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
