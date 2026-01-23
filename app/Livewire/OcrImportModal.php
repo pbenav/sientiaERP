@@ -115,11 +115,18 @@ class OcrImportModal extends Component implements HasForms
             
             // Run Tesseract
             $ocr = new TesseractOCR($fullPath);
-            $this->rawText = $ocr->run();
+            // $ocr->allowlist(range('a', 'z'), range('A', 'Z'), range('0', '9'), '.,-:/'); // Optional: restrict chars
+            $this->rawText = trim($ocr->run());
 
             if (empty($this->rawText)) {
                 throw new \Exception("Tesseract no devolvió ningún texto. La imagen podría no ser legible.");
             }
+            
+            \Filament\Notifications\Notification::make()
+                ->title('OCR Completado')
+                ->body('Texto extraído: ' . strlen($this->rawText) . ' caracteres.')
+                ->success()
+                ->send();
 
             $this->parseText($this->rawText);
 
