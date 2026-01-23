@@ -83,19 +83,27 @@ class OcrImportModal extends Component implements HasForms
             } 
             // Case 2: It's a string path
             elseif (is_string($path)) {
-                // Try finding it on public disk
+                // Try finding it on public disk (configured disk)
                 $publicPath = \Illuminate\Support\Facades\Storage::disk('public')->path($path);
                 if (file_exists($publicPath)) {
                     $fullPath = $publicPath;
                 } else {
                     // Try finding it on local (default) disk, often where livewire-tmp lives
+                    // Note: 'local' is usually storage/app
                     $localPath = \Illuminate\Support\Facades\Storage::disk('local')->path($path);
                     if (file_exists($localPath)) {
                         $fullPath = $localPath;
                     } else {
-                        // Fallback: maybe it's already an absolute path?
-                        if (file_exists($path)) {
-                            $fullPath = $path;
+                        // Sometimes livewire stores inside livewire-tmp which is inside the app but the path passed is just the filename or relative to livewire-tmp?
+                        // If path contains 'tmp', check standard storage/app
+                        $storagePath = storage_path('app/' . $path);
+                        if (file_exists($storagePath)) {
+                            $fullPath = $storagePath;
+                        } else {
+                             // Last resort: maybe it's already absolute?
+                            if (file_exists($path)) {
+                                $fullPath = $path;
+                            }
                         }
                     }
                 }
