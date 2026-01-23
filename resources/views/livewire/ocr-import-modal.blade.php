@@ -1,28 +1,15 @@
 <div>
     <div class="space-y-4">
-        @if(!$rawText)
-            <div class="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg">
-                <input type="file" wire:model="file" accept="image/*" class="block w-full text-sm text-slate-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-full file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-primary-50 file:text-primary-700
-                    hover:file:bg-primary-100
-                "/>
-                <div wire:loading wire:target="file" class="mt-2 text-sm text-gray-500">
-                    Procesando imagen...
-                </div>
-            </div>
-        @else
+    <div class="space-y-4">
+        <!-- Filament Form with FileUpload -->
+        {{ $this->form }}
+
+        <div wire:loading wire:target="data.documento" class="text-sm text-gray-500">
+            Procesando imagen (OCR)...
+        </div>
+
+        @if($rawText)
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <!-- Preview (Optional, showing the uploaded image) -->
-                @if ($file)
-                    <div class="border rounded p-2">
-                        <p class="text-xs font-bold mb-1">Imagen Subida</p>
-                        <img src="{{ $file->temporaryUrl() }}" class="max-h-64 object-contain">
-                    </div>
-                @endif
-                
                 <!-- Parsed Data Form -->
                 <div class="space-y-2">
                     <p class="text-xs font-bold mb-1">Datos Detectados</p>

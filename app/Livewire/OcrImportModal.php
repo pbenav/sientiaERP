@@ -3,15 +3,24 @@
 namespace App\Livewire;
 
 use Livewire\Component;
-use Livewire\WithFileUploads;
+use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Form;
+use Filament\Forms\Components\FileUpload;
 use thiagoalessio\TesseractOCR\TesseractOCR;
 use Illuminate\Support\Facades\Cache;
+use Livewire\WithFileUploads;
 
-class OcrImportModal extends Component
+class OcrImportModal extends Component implements HasForms
 {
+    use InteractsWithForms;
     use WithFileUploads;
 
-    public $file;
+    public ?array $data = [];
+    
+    // We keep $file for the logic, but it will be managed by Filament Form
+    public $documento; 
+
     public $rawText = '';
     public $isProcessing = false;
     public $parsedData = [
@@ -22,30 +31,59 @@ class OcrImportModal extends Component
         'items' => [],
     ];
 
-    public function updatedFile()
+    public function mount(): void
     {
-        $this->processImage();
+        $this->form->fill();
     }
 
-    public function processImage()
+    public function form(Form $form): Form
     {
-        if (!$this->file) {
+        return $form
+            ->schema([
+                FileUpload::make('documento')
+                    ->label('Subir Imagen del Albarán')
+                    ->image()
+                    ->disk('public')
+                    ->directory('imports/albaranes')
+                    ->visibility('private')
+                    ->live()
+                    ->afterStateUpdated(function ($state) {
+                        $this->processImage($state);
+                    })
+                    ->columnSpanFull(),
+            ])
+            ->statePath('data');
+    }
+
+    public function processImage($state)
+    {
+        $path = null;
+        
+        // Handle array or single string from FileUpload
+        if (is_array($state)) {
+            $path = array_values($state)[0] ?? null;
+        } else {
+            $path = $state;
+        }
+
+        if (!$path) {
             return;
         }
 
         $this->isProcessing = true;
 
         try {
-            $path = $this->file->getRealPath();
+            $fullPath = \Illuminate\Support\Facades\Storage::disk('public')->path($path);
             
             // Run Tesseract
-            $ocr = new TesseractOCR($path);
+            $ocr = new TesseractOCR($fullPath);
             $this->rawText = $ocr->run();
 
             $this->parseText($this->rawText);
 
         } catch (\Exception $e) {
-            $this->addError('file', 'Error procesando la imagen: ' . $e->getMessage());
+            // Notification or error bag
+            $this->addError('documento', 'Error procesando la imagen: ' . $e->getMessage());
         }
 
         $this->isProcessing = false;
