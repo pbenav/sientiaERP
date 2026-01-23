@@ -9,6 +9,19 @@ class CreateAlbaranCompra extends CreateRecord
 {
     protected static string $resource = AlbaranCompraResource::class;
 
+    protected function getHeaderActions(): array
+    {
+        return [
+            \Filament\Actions\Action::make('importar')
+                ->label('Importar (OCR)')
+                ->icon('heroicon-o-document-text')
+                ->color('info')
+                ->modalContent(fn () => view('filament.resources.albaran-compra-resource.pages.ocr-modal-wrapper'))
+                ->modalSubmitAction(false)
+                ->modalCancelAction(false),
+        ];
+    }
+
     public function mount(): void
     {
         $importedData = \Illuminate\Support\Facades\Cache::pull('albaran_import_' . auth()->id());
