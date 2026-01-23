@@ -46,7 +46,6 @@ class OcrImportModal extends Component implements HasForms
                     ->disk('public')
                     ->directory('imports/albaranes')
                     ->visibility('private')
-                    ->visibility('private')
                     ->columnSpanFull(),
             ])
             ->statePath('data');
@@ -65,24 +64,43 @@ class OcrImportModal extends Component implements HasForms
         }
 
         if (!$path) {
-            $this->addError('documento', 'Debes subir una imagen primero.');
+            \Filament\Notifications\Notification::make()
+                ->title('Error')
+                ->body('Debes subir una imagen primero.')
+                ->danger()
+                ->send();
             return;
         }
 
         $this->isProcessing = true;
 
         try {
+            // Ensure we have the full system path
             $fullPath = \Illuminate\Support\Facades\Storage::disk('public')->path($path);
+            
+            if (!file_exists($fullPath)) {
+                throw new \Exception("El archivo no se encuentra en la ruta: $fullPath");
+            }
             
             // Run Tesseract
             $ocr = new TesseractOCR($fullPath);
             $this->rawText = $ocr->run();
 
+            if (empty($this->rawText)) {
+                throw new \Exception("Tesseract no devolvió ningún texto. La imagen podría no ser legible.");
+            }
+
             $this->parseText($this->rawText);
 
         } catch (\Exception $e) {
-            // Notification or error bag
-            $this->addError('documento', 'Error procesando la imagen: ' . $e->getMessage());
+            \Filament\Notifications\Notification::make()
+                ->title('Error procesando imagen')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+            
+            // Also add to form error bag for redundancy
+            $this->addError('data.documento', $e->getMessage());
         }
 
         $this->isProcessing = false;
