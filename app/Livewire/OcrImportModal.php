@@ -56,7 +56,7 @@ class OcrImportModal extends Component implements HasForms
         $state = $this->data['documento'] ?? null;
         $path = null;
         
-        // Handle array or single string from FileUpload
+        // Handle array or single (File object or path string)
         if (is_array($state)) {
             $path = array_values($state)[0] ?? null;
         } else {
@@ -75,11 +75,34 @@ class OcrImportModal extends Component implements HasForms
         $this->isProcessing = true;
 
         try {
-            // Ensure we have the full system path
-            $fullPath = \Illuminate\Support\Facades\Storage::disk('public')->path($path);
+            $fullPath = null;
+
+            // Case 1: It's an UploadedFile object (Livewire temporary file)
+            if (is_object($path) && method_exists($path, 'getRealPath')) {
+                $fullPath = $path->getRealPath();
+            } 
+            // Case 2: It's a string path
+            elseif (is_string($path)) {
+                // Try finding it on public disk
+                $publicPath = \Illuminate\Support\Facades\Storage::disk('public')->path($path);
+                if (file_exists($publicPath)) {
+                    $fullPath = $publicPath;
+                } else {
+                    // Try finding it on local (default) disk, often where livewire-tmp lives
+                    $localPath = \Illuminate\Support\Facades\Storage::disk('local')->path($path);
+                    if (file_exists($localPath)) {
+                        $fullPath = $localPath;
+                    } else {
+                        // Fallback: maybe it's already an absolute path?
+                        if (file_exists($path)) {
+                            $fullPath = $path;
+                        }
+                    }
+                }
+            }
             
-            if (!file_exists($fullPath)) {
-                throw new \Exception("El archivo no se encuentra en la ruta: $fullPath");
+            if (!$fullPath || !file_exists($fullPath)) {
+                throw new \Exception("No se ha podido localizar el archivo temporal. Intenta subirlo de nuevo.");
             }
             
             // Run Tesseract
