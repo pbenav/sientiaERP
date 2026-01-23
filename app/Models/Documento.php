@@ -22,7 +22,8 @@ class Documento extends Model
         'forma_pago_id',
         'observaciones', 'observaciones_internas',
         'fecha_validez', 'fecha_entrega', 'fecha_vencimiento',
-        'es_rectificativa', 'rectificada_id'
+        'es_rectificativa', 'rectificada_id',
+        'archivo',
     ];
 
     protected $casts = [

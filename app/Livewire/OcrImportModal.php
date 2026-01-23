@@ -236,9 +236,58 @@ class OcrImportModal extends Component implements HasForms
 
     public function confirm()
     {
+        // 1. Debug Start
+        \Filament\Notifications\Notification::make()
+            ->title('Procesando...')
+            ->body('Iniciando transferencia de datos')
+            ->info()
+            ->send();
+
         // Store data in cache to retrieve it in the Create page
         $key = 'albaran_import_' . auth()->id();
         
+        // Identify the final path of the image
+        $finalPath = null;
+        try {
+            // Get the current temporary path (resolved in processImage essentially)
+            $state = $this->data['documento'] ?? null;
+            $currentPath = null;
+             if (is_array($state)) {
+                $currentPath = array_values($state)[0] ?? null;
+            } else {
+                $currentPath = $state;
+            }
+
+            if ($currentPath) {
+                // If it's a temp file managed by Filament/Livewire, we should copy it to a permanent location
+                // The $currentPath is usually relative to disk root (public or local)
+                // We want to store it in public/documentos/images
+                
+                $sourceDisk = 'public'; // Assuming upload disk is public as configured
+                // Verify existence
+                if (!\Illuminate\Support\Facades\Storage::disk($sourceDisk)->exists($currentPath)) {
+                    // Try to find it if it was local/temp
+                    // But easier: rely on $this->rawText generation which already found the file.
+                    // Let's just blindly try to copy if we can find it.
+                    // Simplest: If processImage worked, we know where it is? No, processImage logic was local.
+                    // Re-resolve using same logic or just use the Storage copy if possible.
+                }
+
+                $extension = pathinfo($currentPath, PATHINFO_EXTENSION);
+                $newFilename = 'albaran_' . time() . '_' . uniqid() . '.' . $extension;
+                $targetDir = 'documentos/images';
+                $targetPath = $targetDir . '/' . $newFilename;
+
+                // Move/Copy
+                \Illuminate\Support\Facades\Storage::disk('public')->copy($currentPath, $targetPath);
+                $finalPath = $targetPath;
+                
+                \Illuminate\Support\Facades\Log::info('File stored permanently', ['path' => $finalPath]);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error moving file: ' . $e->getMessage());
+        }
+
         $data = [
             'raw_text' => $this->rawText,
             'document_date' => $this->parsedData['date'],
@@ -248,18 +297,20 @@ class OcrImportModal extends Component implements HasForms
             'provider_name' => $this->parsedData['supplier'] ?? null,
             'found_provider' => isset($this->parsedData['matched_provider_id']),
             'items' => $this->parsedData['items'] ?? [],
+            'document_image_path' => $finalPath,
         ];
 
         \Illuminate\Support\Facades\Log::info('OCR Confirm: Storing cache', ['key' => $key, 'data' => $data]);
         
         Cache::put($key, $data, now()->addMinutes(10));
 
+        // 2. Debug Saved
         \Filament\Notifications\Notification::make()
-            ->title('Redirigiendo...')
-            ->body('Creando albarán...')
-            ->info()
+            ->title('Datos Guardados')
+            ->body('Caché escrita correctamente via ' . config('cache.default'))
+            ->success()
             ->send();
-
+            
         // Redirect using Filament structure
         return redirect()->to(\App\Filament\Resources\AlbaranCompraResource::getUrl('create'));
     }

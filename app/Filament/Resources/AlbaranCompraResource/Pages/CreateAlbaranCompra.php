@@ -29,7 +29,10 @@ class CreateAlbaranCompra extends CreateRecord
         
         $importedData = \Illuminate\Support\Facades\Cache::pull($key);
         
-        \Illuminate\Support\Facades\Log::info('CreateAlbaran: Data found?', ['found' => (bool)$importedData]);
+        \Illuminate\Support\Facades\Log::info('CreateAlbaran: Data found?', [
+            'found' => (bool)$importedData, 
+            'image' => $importedData['document_image_path'] ?? 'none'
+        ]);
 
         if ($importedData) {
             $data = [
@@ -40,6 +43,7 @@ class CreateAlbaranCompra extends CreateRecord
                 'serie' => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A',
                 'tercero_id' => $importedData['matched_provider_id'] ?? null,
                 'referencia_proveedor' => $importedData['document_number'] ?? null,
+                'archivo' => $importedData['document_image_path'] ?? null,
             ];
 
             if (!$importedData['found_provider'] && !empty($importedData['provider_name'])) {
