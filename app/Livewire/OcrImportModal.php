@@ -19,6 +19,7 @@ class OcrImportModal extends Component
         'total' => null,
         'nif' => null,
         'supplier' => null,
+        'items' => [],
     ];
 
     public function updatedFile()
@@ -39,7 +40,6 @@ class OcrImportModal extends Component
             
             // Run Tesseract
             $ocr = new TesseractOCR($path);
-            // $ocr->lang('spa'); // Optional: specify language if installed
             $this->rawText = $ocr->run();
 
             $this->parseText($this->rawText);
@@ -65,7 +65,7 @@ class OcrImportModal extends Component
             $this->parsedData['total'] = str_replace(',', '.', $matches[1]);
         }
         
-        // NIF/CIF (Simple Spanish NIF regex: 8 digits + letter or Letter + 8 digits)
+        // NIF/CIF (Simple Spanish NIF regex)
         if (preg_match('/([A-Z]\d{8}|\d{8}[A-Z])/', $text, $matches)) {
             $this->parsedData['nif'] = $matches[1];
             
@@ -76,6 +76,53 @@ class OcrImportModal extends Component
                 $this->parsedData['matched_provider_id'] = $provider->id;
             }
         }
+
+        $this->extractItems($text);
+    }
+
+    protected function extractItems($text)
+    {
+        $lines = explode("\n", $text);
+        $items = [];
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line)) continue;
+
+            // Heuristic: Line ends with a price-like number
+            // Matches "Product Desc 10.00" or "Product 10,00" or "2 x Product 20.00"
+            if (preg_match('/(.*?)\s+(\d+[\.,]\d{2})\s*$/', $line, $matches)) {
+                $description = trim($matches[1]);
+                $price = str_replace(',', '.', $matches[2]);
+                $qty = 1;
+
+                // Check if description starts with a quantity?
+                // E.g. "2 x Product" or "2 Product"
+                if (preg_match('/^(\d+)\s*[xX]?\s+(.*)/', $description, $qtyMatches)) {
+                    $qty = $qtyMatches[1];
+                    $description = trim($qtyMatches[2]);
+                }
+
+                // Skip lines that look like totals or dates
+                if (stripos($description, 'Total') !== false || stripos($description, 'Fecha') !== false) {
+                    continue;
+                }
+                
+                // Matches "Subtotal", "Base", "IVA", etc. -> skip
+                if (preg_match('/(subtotal|base|iva|impuesto)/i', $description)) {
+                    continue;
+                }
+
+                $items[] = [
+                    'description' => $description,
+                    'quantity' => $qty,
+                    'unit_price' => $price,
+                    'matched_product_id' => null // Could try to lookup product by name here
+                ];
+            }
+        }
+        
+        $this->parsedData['items'] = $items;
     }
 
     public function confirm()
@@ -91,7 +138,7 @@ class OcrImportModal extends Component
             'matched_provider_id' => $this->parsedData['matched_provider_id'] ?? null,
             'provider_name' => $this->parsedData['supplier'] ?? null,
             'found_provider' => isset($this->parsedData['matched_provider_id']),
-            'items' => [], // No line items extracted yet
+            'items' => $this->parsedData['items'] ?? [],
         ];
 
         Cache::put($key, $data, now()->addMinutes(10));

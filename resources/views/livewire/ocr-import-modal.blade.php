@@ -45,6 +45,30 @@
                 </div>
             </div>
 
+            <!-- Parsed Items Table -->
+            @if(!empty($parsedData['items']))
+                <div class="border rounded overflow-hidden">
+                    <table class="min-w-full text-xs">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-2 py-1 text-left">Concepto (Detectado)</th>
+                                <th class="px-2 py-1 text-right">Cant.</th>
+                                <th class="px-2 py-1 text-right">Precio</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            @foreach($parsedData['items'] as $index => $item)
+                                <tr>
+                                    <td class="px-2 py-1">{{ $item['description'] }}</td>
+                                    <td class="px-2 py-1 text-right">{{ $item['quantity'] }}</td>
+                                    <td class="px-2 py-1 text-right">{{ $item['unit_price'] }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+
             <!-- Raw Text Area -->
             <div>
                 <label class="block text-xs font-bold mb-1">Texto Completo (OCR)</label>
