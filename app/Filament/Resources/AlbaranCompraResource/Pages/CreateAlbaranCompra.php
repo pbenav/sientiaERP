@@ -24,7 +24,12 @@ class CreateAlbaranCompra extends CreateRecord
 
     public function mount(): void
     {
-        $importedData = \Illuminate\Support\Facades\Cache::pull('albaran_import_' . auth()->id());
+        $key = 'albaran_import_' . auth()->id();
+        \Illuminate\Support\Facades\Log::info('CreateAlbaran: Checking cache', ['key' => $key]);
+        
+        $importedData = \Illuminate\Support\Facades\Cache::pull($key);
+        
+        \Illuminate\Support\Facades\Log::info('CreateAlbaran: Data found?', ['found' => (bool)$importedData]);
 
         if ($importedData) {
             $data = [

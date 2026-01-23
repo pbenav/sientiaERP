@@ -250,7 +250,15 @@ class OcrImportModal extends Component implements HasForms
             'items' => $this->parsedData['items'] ?? [],
         ];
 
+        \Illuminate\Support\Facades\Log::info('OCR Confirm: Storing cache', ['key' => $key, 'data' => $data]);
+        
         Cache::put($key, $data, now()->addMinutes(10));
+
+        \Filament\Notifications\Notification::make()
+            ->title('Redirigiendo...')
+            ->body('Creando albarán...')
+            ->info()
+            ->send();
 
         // Redirect using Filament structure
         return redirect()->to(\App\Filament\Resources\AlbaranCompraResource::getUrl('create'));
