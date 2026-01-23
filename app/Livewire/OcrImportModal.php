@@ -124,37 +124,40 @@ class OcrImportModal extends Component implements HasForms
 
         foreach ($lines as $line) {
             $line = trim($line);
-            if (empty($line)) continue;
+            if (empty($line) || strlen($line) < 5) continue;
 
-            // Heuristic: Line ends with a price-like number
-            // Matches "Product Desc 10.00" or "Product 10,00" or "2 x Product 20.00"
-            if (preg_match('/(.*?)\s+(\d+[\.,]\d{2})\s*$/', $line, $matches)) {
+            // Normalize decimals: replace comma with dot if it looks like a price
+            // Regex: Find a number at the end, possibly followed by 'EUR', '€', or noise
+            // Pattern: Description + (spaces) + Amount
+            if (preg_match('/^(.*?)\s+(\d{1,5}(?:[\.,]\d{2})?)\s*([€a-zA-Z\W]*)$/', $line, $matches)) {
                 $description = trim($matches[1]);
-                $price = str_replace(',', '.', $matches[2]);
+                $priceRaw = $matches[2];
+                $price = str_replace(',', '.', $priceRaw);
                 $qty = 1;
 
-                // Check if description starts with a quantity?
-                // E.g. "2 x Product" or "2 Product"
-                if (preg_match('/^(\d+)\s*[xX]?\s+(.*)/', $description, $qtyMatches)) {
-                    $qty = $qtyMatches[1];
-                    $description = trim($qtyMatches[2]);
-                }
-
-                // Skip lines that look like totals or dates
-                if (stripos($description, 'Total') !== false || stripos($description, 'Fecha') !== false) {
+                // Stop words filter (headers, totals)
+                if (preg_match('/(Total|Subtotal|Base|IVA|Importe|Fecha|Página|Page|Albarán|Factura|Proveedor)/i', $description)) {
                     continue;
                 }
                 
-                // Matches "Subtotal", "Base", "IVA", etc. -> skip
-                if (preg_match('/(subtotal|base|iva|impuesto)/i', $description)) {
-                    continue;
+                // Detection of "Qty x Description"
+                if (preg_match('/^(\d+)\s*[xX]\s+(.*)/', $description, $qtyMatches)) {
+                    $qty = $qtyMatches[1];
+                    $description = trim($qtyMatches[2]);
+                } elseif (preg_match('/^(\d+)\s+(.*)/', $description, $qtyMatches)) {
+                    // Start with number might mean quantity (risky but common)
+                    // Only if number is small (<100) and description is long
+                    if ($qtyMatches[1] < 100 && strlen($qtyMatches[2]) > 5) {
+                        $qty = $qtyMatches[1];
+                        $description = trim($qtyMatches[2]);
+                    }
                 }
 
                 $items[] = [
                     'description' => $description,
                     'quantity' => $qty,
                     'unit_price' => $price,
-                    'matched_product_id' => null // Could try to lookup product by name here
+                    'matched_product_id' => null
                 ];
             }
         }

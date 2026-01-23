@@ -18,7 +18,8 @@ class ListAlbaranesCompra extends ListRecords
                 ->icon('heroicon-o-document-text')
                 ->color('info')
                 ->modalContent(fn () => view('filament.resources.albaran-compra-resource.pages.ocr-modal-wrapper'))
-                ->modalSubmitAction(false),
+                ->modalSubmitAction(false)
+                ->modalCancelAction(false),
             Actions\CreateAction::make(),
         ];
     }

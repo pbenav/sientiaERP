@@ -63,6 +63,10 @@
                         </tbody>
                     </table>
                 </div>
+            @else
+                <div class="p-4 border rounded bg-gray-50 text-center text-xs text-gray-500">
+                    No se han detectado líneas de artículos automáticamente.
+                </div>
             @endif
 
             <!-- Raw Text Area -->
@@ -71,13 +75,18 @@
                 <textarea wire:model="rawText" rows="6" class="w-full border-gray-300 rounded shadow-sm text-xs font-mono"></textarea>
             </div>
             
-            <div class="flex justify-between pt-4">
-                <button wire:click="resetState" class="text-gray-600 hover:text-gray-800 font-medium py-2 px-4 rounded border border-gray-300 hover:bg-gray-50">
-                    Nueva Imagen
+            <div class="flex items-center justify-between pt-4 border-t mt-4">
+                <button x-on:click="$dispatch('close-modal', { id: 'importar' })" type="button" class="text-gray-500 hover:text-gray-700 text-sm font-medium">
+                    Cancelar
                 </button>
-                <button wire:click="confirm" class="bg-primary-600 hover:bg-primary-500 text-white font-bold py-2 px-4 rounded shadow">
-                    Crear Albarán con estos datos
-                </button>
+                <div class="flex gap-2">
+                    <button wire:click="resetState" class="text-gray-600 hover:text-gray-800 font-medium py-2 px-4 rounded border border-gray-300 hover:bg-gray-50 text-sm">
+                        Nueva Imagen
+                    </button>
+                    <button wire:click="confirm" class="bg-primary-600 hover:bg-primary-500 text-white font-bold py-2 px-4 rounded shadow text-sm">
+                        Crear Albarán
+                    </button>
+                </div>
             </div>
         @endif
     </div>
