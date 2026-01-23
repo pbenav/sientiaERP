@@ -62,7 +62,10 @@
                 <textarea wire:model="rawText" rows="6" class="w-full border-gray-300 rounded shadow-sm text-xs font-mono"></textarea>
             </div>
             
-            <div class="flex justify-end pt-4">
+            <div class="flex justify-between pt-4">
+                <button wire:click="resetState" class="text-gray-600 hover:text-gray-800 font-medium py-2 px-4 rounded border border-gray-300 hover:bg-gray-50">
+                    Nueva Imagen
+                </button>
                 <button wire:click="confirm" class="bg-primary-600 hover:bg-primary-500 text-white font-bold py-2 px-4 rounded shadow">
                     Crear Albarán con estos datos
                 </button>

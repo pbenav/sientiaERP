@@ -163,6 +163,19 @@ class OcrImportModal extends Component implements HasForms
         $this->parsedData['items'] = $items;
     }
 
+    public function resetState()
+    {
+        $this->rawText = '';
+        $this->parsedData = [
+            'date' => null,
+            'total' => null,
+            'nif' => null,
+            'supplier' => null,
+            'items' => [],
+        ];
+        $this->form->fill(); // Clear file upload
+    }
+
     public function confirm()
     {
         // Store data in cache to retrieve it in the Create page
