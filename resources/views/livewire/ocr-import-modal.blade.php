@@ -4,8 +4,17 @@
         <!-- Filament Form with FileUpload -->
         {{ $this->form }}
 
+        @if(!$rawText)
+            <div class="flex justify-end">
+                <button wire:click="processImage" wire:loading.attr="disabled" class="bg-primary-600 hover:bg-primary-500 text-white font-bold py-2 px-4 rounded shadow flex items-center gap-2">
+                    <span wire:loading.remove wire:target="processImage">Procesar Imagen</span>
+                    <span wire:loading wire:target="processImage">Procesando...</span>
+                </button>
+            </div>
+        @endif
+
         <div wire:loading wire:target="data.documento" class="text-sm text-gray-500">
-            Procesando imagen (OCR)...
+            Subiendo...
         </div>
 
         @if($rawText)

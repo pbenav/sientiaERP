@@ -46,17 +46,15 @@ class OcrImportModal extends Component implements HasForms
                     ->disk('public')
                     ->directory('imports/albaranes')
                     ->visibility('private')
-                    ->live()
-                    ->afterStateUpdated(function ($state) {
-                        $this->processImage($state);
-                    })
+                    ->visibility('private')
                     ->columnSpanFull(),
             ])
             ->statePath('data');
     }
 
-    public function processImage($state)
+    public function processImage()
     {
+        $state = $this->data['documento'] ?? null;
         $path = null;
         
         // Handle array or single string from FileUpload
@@ -67,6 +65,7 @@ class OcrImportModal extends Component implements HasForms
         }
 
         if (!$path) {
+            $this->addError('documento', 'Debes subir una imagen primero.');
             return;
         }
 
