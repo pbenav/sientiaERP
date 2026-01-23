@@ -13,7 +13,7 @@ class CreateAlbaranCompra extends CreateRecord
     {
         return [
             \Filament\Actions\Action::make('importar')
-                ->label('Importar (OCR)')
+                ->label('Importar con Tesseract')
                 ->icon('heroicon-o-document-text')
                 ->color('info')
                 ->modalContent(fn () => view('filament.resources.albaran-compra-resource.pages.ocr-modal-wrapper'))
