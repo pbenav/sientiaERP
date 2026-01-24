@@ -46,9 +46,14 @@ class CreateAlbaranCompra extends CreateRecord
                 'archivo' => $importedData['document_image_path'] ?? null,
             ];
 
+            $observaciones = [];
             if (!$importedData['found_provider'] && !empty($importedData['provider_name'])) {
-                 $data['observaciones'] = "Proveedor detectado por IA: " . $importedData['provider_name'];
+                 $observaciones[] = "Proveedor detectado por IA: " . $importedData['provider_name'];
             }
+            if (!empty($importedData['raw_text'])) {
+                $observaciones[] = "--- OCR RAW TEXT ---\n" . $importedData['raw_text'];
+            }
+            $data['observaciones'] = implode("\n\n", $observaciones);
 
             $record = static::getModel()::create($data);
 

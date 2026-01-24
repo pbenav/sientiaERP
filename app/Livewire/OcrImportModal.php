@@ -28,6 +28,7 @@ class OcrImportModal extends Component implements HasForms
         'total' => null,
         'nif' => null,
         'supplier' => null,
+        'document_number' => null,
         'items' => [],
     ];
 
@@ -86,14 +87,12 @@ class OcrImportModal extends Component implements HasForms
                 if (file_exists($publicPath)) {
                     $fullPath = $publicPath;
                 } else {
-                    // Try finding it on local (default) disk, often where livewire-tmp lives
-                    // Note: 'local' is usually storage/app
+                    // Try finding it on local (default) disk
                     $localPath = \Illuminate\Support\Facades\Storage::disk('local')->path($path);
                     if (file_exists($localPath)) {
                         $fullPath = $localPath;
                     } else {
-                        // Sometimes livewire stores inside livewire-tmp which is inside the app but the path passed is just the filename or relative to livewire-tmp?
-                        // If path contains 'tmp', check standard storage/app
+                         // Check raw storage path
                         $storagePath = storage_path('app/' . $path);
                         if (file_exists($storagePath)) {
                             $fullPath = $storagePath;
@@ -111,22 +110,40 @@ class OcrImportModal extends Component implements HasForms
                 throw new \Exception("No se ha podido localizar el archivo temporal. Intenta subirlo de nuevo.");
             }
             
-            // Run Tesseract
-            $ocr = new TesseractOCR($fullPath);
-            // $ocr->allowlist(range('a', 'z'), range('A', 'Z'), range('0', '9'), '.,-:/'); // Optional: restrict chars
-            $this->rawText = trim($ocr->run());
-
-            if (empty($this->rawText)) {
-                throw new \Exception("Tesseract no devolvió ningún texto. La imagen podría no ser legible.");
-            }
+            // Usar el servicio de IA
+            $service = new \App\Services\AiDocumentParserService();
+            $result = $service->extractFromImage($fullPath);
             
+            // Mapear resultados
+            $this->parsedData['date'] = $result['document_date'] ?? null;
+            $this->parsedData['nif'] = $result['provider_nif'] ?? null;
+            $this->parsedData['supplier'] = $result['provider_name'] ?? null;
+            $this->parsedData['document_number'] = $result['document_number'] ?? null;
+            $this->parsedData['total'] = null; // AI Service might not explicitly parse total yet, or it's in items
+            $this->parsedData['matched_provider_id'] = $result['matched_provider_id'] ?? null;
+            
+            // Items
+            $formattedItems = [];
+            if (!empty($result['items'])) {
+                foreach ($result['items'] as $item) {
+                     $formattedItems[] = [
+                        'description' => $item['description'] ?? '',
+                        'quantity' => $item['quantity'] ?? 1,
+                        'unit_price' => $item['unit_price'] ?? 0,
+                        'matched_product_id' => $item['matched_product_id'] ?? null,
+                    ];
+                }
+            }
+            $this->parsedData['items'] = $formattedItems;
+            
+            // Raw text might be in 'observaciones' if fallback was used
+            $this->rawText = $result['raw_text'] ?? ($result['observaciones'] ?? 'Procesado por IA');
+
             \Filament\Notifications\Notification::make()
-                ->title('OCR Completado')
-                ->body('Texto extraído: ' . strlen($this->rawText) . ' caracteres.')
+                ->title('Procesamiento Completado')
+                ->body('Datos extraídos correctamente.')
                 ->success()
                 ->send();
-
-            $this->parseText($this->rawText);
 
         } catch (\Exception $e) {
             \Filament\Notifications\Notification::make()
@@ -135,89 +152,16 @@ class OcrImportModal extends Component implements HasForms
                 ->danger()
                 ->send();
             
-            // Also add to form error bag for redundancy
             $this->addError('data.documento', $e->getMessage());
         }
 
         $this->isProcessing = false;
     }
 
-    protected function parseText($text)
-    {
-        // Simple regex patterns
-        
-        // Date (DD/MM/YYYY or DD-MM-YYYY)
-        if (preg_match('/(\d{2}[\/\-]\d{2}[\/\-]\d{4})/', $text, $matches)) {
-            $this->parsedData['date'] = str_replace('-', '/', $matches[1]);
-        }
+    // parseText y extractItems eliminados ya que la lógica está ahora en el servicio
 
-        // Total (looking for "Total" followed by numbers)
-        if (preg_match('/Total.*?(\d+[\.,]\d{2})/i', $text, $matches)) {
-            $this->parsedData['total'] = str_replace(',', '.', $matches[1]);
-        }
-        
-        // NIF/CIF (Simple Spanish NIF regex)
-        if (preg_match('/([A-Z]\d{8}|\d{8}[A-Z])/', $text, $matches)) {
-            $this->parsedData['nif'] = $matches[1];
-            
-            // Try to find provider
-            $provider = \App\Models\Tercero::where('nif', $this->parsedData['nif'])->first();
-            if ($provider) {
-                $this->parsedData['supplier'] = $provider->nombre;
-                $this->parsedData['matched_provider_id'] = $provider->id;
-            }
-        }
 
-        $this->extractItems($text);
-    }
-
-    protected function extractItems($text)
-    {
-        $lines = explode("\n", $text);
-        $items = [];
-
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if (empty($line) || strlen($line) < 5) continue;
-
-            // Normalize decimals: replace comma with dot if it looks like a price
-            // Regex: Find a number at the end, possibly followed by 'EUR', '€', or noise
-            // Pattern: Description + (spaces) + Amount
-            if (preg_match('/^(.*?)\s+(\d{1,5}(?:[\.,]\d{2})?)\s*([€a-zA-Z\W]*)$/', $line, $matches)) {
-                $description = trim($matches[1]);
-                $priceRaw = $matches[2];
-                $price = str_replace(',', '.', $priceRaw);
-                $qty = 1;
-
-                // Stop words filter (headers, totals)
-                if (preg_match('/(Total|Subtotal|Base|IVA|Importe|Fecha|Página|Page|Albarán|Factura|Proveedor)/i', $description)) {
-                    continue;
-                }
-                
-                // Detection of "Qty x Description"
-                if (preg_match('/^(\d+)\s*[xX]\s+(.*)/', $description, $qtyMatches)) {
-                    $qty = $qtyMatches[1];
-                    $description = trim($qtyMatches[2]);
-                } elseif (preg_match('/^(\d+)\s+(.*)/', $description, $qtyMatches)) {
-                    // Start with number might mean quantity (risky but common)
-                    // Only if number is small (<100) and description is long
-                    if ($qtyMatches[1] < 100 && strlen($qtyMatches[2]) > 5) {
-                        $qty = $qtyMatches[1];
-                        $description = trim($qtyMatches[2]);
-                    }
-                }
-
-                $items[] = [
-                    'description' => $description,
-                    'quantity' => $qty,
-                    'unit_price' => $price,
-                    'matched_product_id' => null
-                ];
-            }
-        }
-        
-        $this->parsedData['items'] = $items;
-    }
+    // extractItems removido
 
     public function resetState()
     {
@@ -227,6 +171,7 @@ class OcrImportModal extends Component implements HasForms
             'total' => null,
             'nif' => null,
             'supplier' => null,
+            'document_number' => null,
             'items' => [],
         ];
         $this->form->fill(); // Clear file upload
@@ -289,6 +234,7 @@ class OcrImportModal extends Component implements HasForms
         $data = [
             'raw_text' => $this->rawText,
             'document_date' => $this->parsedData['date'],
+            'document_number' => $this->parsedData['document_number'] ?? null,
             'import_total' => $this->parsedData['total'], 
             'provider_nif' => $this->parsedData['nif'],
             'matched_provider_id' => $this->parsedData['matched_provider_id'] ?? null,

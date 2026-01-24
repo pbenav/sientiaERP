@@ -36,6 +36,10 @@
                         <label class="block text-xs text-gray-500">Proveedor</label>
                         <input type="text" wire:model="parsedData.supplier" class="w-full border-gray-300 rounded shadow-sm text-sm" placeholder="Nombre del proveedor">
                     </div>
+                    <div>
+                        <label class="block text-xs text-gray-500">Número Documento</label>
+                        <input type="text" wire:model="parsedData.document_number" class="w-full border-gray-300 rounded shadow-sm text-sm" placeholder="Ej: INV-2024-001">
+                    </div>
                 </div>
             </div>
 
