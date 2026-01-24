@@ -247,6 +247,8 @@ class OcrImportModal extends Component implements HasForms
         \Illuminate\Support\Facades\Log::info('OCR Confirm: Storing cache', ['key' => $key, 'data' => $data]);
         
         Cache::put($key, $data, now()->addMinutes(10));
+        
+        \Illuminate\Support\Facades\Log::info('OCR Confirm: Cache stored. Redirecting...');
 
         // 2. Debug Saved
         \Filament\Notifications\Notification::make()
