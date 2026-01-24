@@ -23,6 +23,20 @@ class OcrImportModal extends Component implements HasForms
 
     public $rawText = '';
     public $isProcessing = false;
+    public $isCreating = false; // Estado para mostrar logs
+
+    protected function streamLog($message, $type = 'info')
+    {
+        $color = match($type) {
+            'success' => 'text-green-400',
+            'warning' => 'text-yellow-400',
+            'error' => 'text-red-400',
+            default => 'text-gray-300'
+        };
+        
+        $html = "<div class='{$color}'>[".date('H:i:s')."] {$message}</div>";
+        $this->stream('ocr-creation-logs', $html, true); // true = append
+    }
     public $parsedData = [
         'date' => null,
         'total' => null,
@@ -253,11 +267,47 @@ class OcrImportModal extends Component implements HasForms
         $data['observaciones'] = implode("\n\n", $observaciones);
 
         try {
+            $this->isCreating = true;
+            $this->streamLog("Iniciando proceso de creación...", 'info');
+
+            // 1. Validate / Create Products
+            if (!empty($this->parsedData['items']) && is_array($this->parsedData['items'])) {
+                foreach ($this->parsedData['items'] as $index => &$item) {
+                    if (empty($item['matched_product_id'])) {
+                        $desc = $item['description'] ?? 'Producto Desconocido';
+                        $price = $item['unit_price'] ?? 0;
+                        
+                        $this->streamLog("Producto no existe: '{$desc}'. Creando...", 'warning');
+                        
+                        // Create Product
+                        try {
+                            $newProduct = \App\Models\Product::create([
+                                'name' => $desc,
+                                'description' => $desc, // Use name as desc
+                                'price' => $price,
+                                'tax_rate' => 21.00, // Default tax
+                                'active' => true,
+                                'stock' => 0,
+                                'sku' => 'AUTO-' . strtoupper(uniqid()), // Temp SKU
+                            ]);
+                            
+                            $item['matched_product_id'] = $newProduct->id;
+                            $this->streamLog(" > Creado OK (SKU: {$newProduct->sku})", 'success');
+                            
+                        } catch (\Exception $e) {
+                            $this->streamLog(" > Error creando producto: " . $e->getMessage(), 'error');
+                        }
+                    }
+                }
+            }
+
+            $this->streamLog("Creando cabecera del documento...", 'info');
             // DIRECT CREATION (No Session)
             $record = \App\Models\Documento::create($data);
 
+            $this->streamLog("Documento #{$record->id} creado. Añadiendo líneas...", 'info');
+
             // Create Lines
-            if (!empty($this->parsedData['items']) && is_array($this->parsedData['items'])) {
                 foreach ($this->parsedData['items'] as $item) {
                     $qty = $item['quantity'] ?? 1;
                     $price = $item['unit_price'] ?? 0;
