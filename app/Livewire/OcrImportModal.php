@@ -244,11 +244,11 @@ class OcrImportModal extends Component implements HasForms
             'document_image_path' => $finalPath,
         ];
 
-        \Illuminate\Support\Facades\Log::info('OCR Confirm: Storing cache', ['key' => $key, 'data' => $data]);
+        \Illuminate\Support\Facades\Log::info('OCR Confirm: Storing session', ['data' => $data]);
         
-        Cache::put($key, $data, now()->addMinutes(10));
+        session()->put('albaran_import_data', $data);
         
-        \Illuminate\Support\Facades\Log::info('OCR Confirm: Cache stored. Redirecting...');
+        \Illuminate\Support\Facades\Log::info('OCR Confirm: Session stored. Redirecting...');
 
         // 2. Debug Saved
         \Filament\Notifications\Notification::make()
