@@ -39,7 +39,30 @@ class CreateAlbaranCompra extends CreateRecord
                 'archivo' => $importedData['document_image_path'] ?? null,
             ];
 
-            $observaciones = [];
+            // LOGICA PROVEEDOR FICTICIO / FALLBACK (Petición de usuario: "usa datos ficticios")
+            if (empty($data['tercero_id'])) {
+                $dummyProvider = \App\Models\Tercero::firstOrCreate(
+                    ['nif_cif' => '00000000T'],
+                    [
+                        'nombre_comercial' => 'PROVEEDOR PENDIENTE DE ASIGNAR',
+                        'razon_social' => 'PROVEEDOR GENERADO AUTOMATICAMENTE', 
+                        'activo' => true
+                    ]
+                );
+                
+                // Asegurar que sea proveedor
+                if (!$dummyProvider->esProveedor()) {
+                    $tipoProv = \App\Models\TipoTercero::where('codigo', 'PRO')->first();
+                    if ($tipoProv) {
+                        $dummyProvider->tipos()->syncWithoutDetaching([$tipoProv->id]);
+                    }
+                }
+                
+                $data['tercero_id'] = $dummyProvider->id;
+                // Dejamos constancia en las observaciones
+                $observaciones[] = "AVISO: Proveedor no detectado. Asignado a 'PROVEEDOR PENDIENTE'.";
+            }
+
             if (!$importedData['found_provider'] && !empty($importedData['provider_name'])) {
                  $observaciones[] = "Proveedor detectado por IA: " . $importedData['provider_name'];
             }
