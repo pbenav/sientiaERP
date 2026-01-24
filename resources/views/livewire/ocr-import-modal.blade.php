@@ -1,5 +1,3 @@
-<div>
-    <div class="space-y-4">
     <div class="space-y-4">
         <!-- Filament Form with FileUpload -->
         {{ $this->form }}
@@ -89,5 +87,4 @@
                 </div>
             </div>
         @endif
-    </div>
 </div>
