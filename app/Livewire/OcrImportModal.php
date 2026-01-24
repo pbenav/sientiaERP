@@ -335,7 +335,6 @@ class OcrImportModal extends Component implements HasForms
                         'total' => ($qty * $price) * (1 + $taxRate), // Added required
                     ]);
                 }
-            }
 
             if (method_exists($record, 'recalcularTotales')) {
                 $record->recalcularTotales();
