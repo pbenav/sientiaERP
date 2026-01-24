@@ -24,6 +24,7 @@ class Documento extends Model
         'fecha_validez', 'fecha_entrega', 'fecha_vencimiento',
         'es_rectificativa', 'rectificada_id',
         'archivo',
+        'referencia_proveedor',
     ];
 
     protected $casts = [
