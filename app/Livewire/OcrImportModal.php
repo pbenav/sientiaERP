@@ -272,11 +272,17 @@ class OcrImportModal extends Component implements HasForms
 
                     $record->lineas()->create([
                         'product_id' => $item['matched_product_id'] ?? null,
-                        'concepto' => $item['description'],
+                        'descripcion' => $item['description'], // Fixed: concepto -> descripcion
                         'cantidad' => $qty,
+                        'unidad' => 'Ud', // Default
                         'precio_unitario' => $price,
-                        'importe' => $qty * $price,
-                        'iva' => $taxRate,
+                        'descuento' => 0,
+                        'subtotal' => $qty * $price, // Fixed: importe -> subtotal
+                        'iva' => $taxRate * 100, // Fixed: 0.21 -> 21.00
+                        'importe_iva' => ($qty * $price) * $taxRate, // Added required
+                        'irpf' => 0,
+                        'importe_irpf' => 0,
+                        'total' => ($qty * $price) * (1 + $taxRate), // Added required
                     ]);
                 }
             }
