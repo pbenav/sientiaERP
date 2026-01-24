@@ -43,9 +43,7 @@ class OcrImportModal extends Component implements HasForms
                 FileUpload::make('documento')
                     ->label('Subir Imagen del Albarán')
                     ->image()
-                    ->disk('public')
-                    ->directory('imports/albaranes')
-                    ->visibility('private')
+                    ->maxSize(10240)
                     ->columnSpanFull(),
             ])
             ->statePath('data');
