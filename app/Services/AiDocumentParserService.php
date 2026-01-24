@@ -14,33 +14,42 @@ class AiDocumentParserService
 {
     public function extractFromImage(string $imagePath): array
     {
-        $provider = Setting::get('ai_provider', 'gemini');
-        $backupProvider = Setting::get('ai_backup_provider', 'none');
+        // Petición usuario: Usar Tesseract por defecto o fallback silencioso si Google falla.
+        // Si no hay configuración explícita, intentamos leer, pero priorizamos Tesseract si Google da error.
         
+        $provider = Setting::get('ai_provider', 'gemini'); 
+        // Force Tesseract priority if requested by context or config
+        // For now, standard flow with robust fallback.
+
+        $result = null;
+        $error = null;
+
         try {
             if ($provider === 'google_doc_ai') {
-                return $this->extractWithGoogleCloudDocAI($imagePath);
+                $result = $this->extractWithGoogleCloudDocAI($imagePath);
+            } elseif ($provider === 'gemini') {
+                $result = $this->extractWithGemini($imagePath);
+            } elseif ($provider === 'openai') {
+                $result = $this->extractWithOpenAi($imagePath);
+            } elseif ($provider === 'tesseract') {
+                $result = $this->extractWithTesseract($imagePath);
             }
-            
-            if ($provider === 'gemini') {
-                return $this->extractWithGemini($imagePath);
-            }
-            
-            if ($provider === 'openai') {
-                return $this->extractWithOpenAi($imagePath);
-            }
-            
-            throw new \Exception("Proveedor de IA principal ($provider) no configurado o no soportado.");
-
         } catch (\Exception $e) {
+            $error = $e;
             \Illuminate\Support\Facades\Log::warning("Fallo proveedor principal ($provider): " . $e->getMessage());
-            
-            // Backup Strategy
-            if ($backupProvider === 'tesseract') {
-                return $this->extractWithTesseract($imagePath);
-            }
-            
-            throw $e; // Re-throw if no backup configured or both failed
+        }
+
+        if ($result) {
+            return $result;
+        }
+
+        // BACKUP AUTOMATICO: Tesseract
+        // Si falló el principal (ej: google creds error), usamos Tesseract siempre sirve como red de seguridad.
+        try {
+             return $this->extractWithTesseract($imagePath);
+        } catch (\Exception $tesseractError) {
+             // Si tesseract también falla, entonces lanzamos el error original si existía, o el de tesseract
+             throw $error ?? $tesseractError;
         }
     }
 
