@@ -4,7 +4,10 @@
 
         @if(!$rawText)
             <div class="flex justify-end">
-                <button wire:click="processImage" wire:loading.attr="disabled" class="bg-primary-600 hover:bg-primary-500 text-white font-bold py-2 px-4 rounded shadow flex items-center gap-2">
+                <button wire:click="processImage" 
+                        wire:loading.attr="disabled" 
+                        wire:target="processImage, data.documento"
+                        class="bg-primary-600 hover:bg-primary-500 text-white font-bold py-2 px-4 rounded shadow flex items-center gap-2">
                     <span wire:loading.remove wire:target="processImage">Procesar Imagen</span>
                     <span wire:loading wire:target="processImage">Procesando...</span>
                 </button>

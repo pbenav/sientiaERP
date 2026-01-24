@@ -179,86 +179,135 @@ class OcrImportModal extends Component implements HasForms
 
     public function confirm()
     {
-        // 1. Debug Start
-        \Filament\Notifications\Notification::make()
-            ->title('Procesando...')
-            ->body('Iniciando transferencia de datos')
-            ->info()
-            ->send();
+        // 1. Log inicial
+        \Illuminate\Support\Facades\Log::info('OCR Confirm: Starting creation process.');
 
-        // Store data in cache to retrieve it in the Create page
-        $key = 'albaran_import_' . auth()->id();
-        
-        // Identify the final path of the image
+        // Identify final path
         $finalPath = null;
         try {
-            // Get the current temporary path (resolved in processImage essentially)
             $state = $this->data['documento'] ?? null;
-            $currentPath = null;
-             if (is_array($state)) {
-                $currentPath = array_values($state)[0] ?? null;
-            } else {
-                $currentPath = $state;
-            }
+            $currentPath = is_array($state) ? (array_values($state)[0] ?? null) : $state;
 
             if ($currentPath) {
-                // If it's a temp file managed by Filament/Livewire, we should copy it to a permanent location
-                // The $currentPath is usually relative to disk root (public or local)
-                // We want to store it in public/documentos/images
-                
-                $sourceDisk = 'public'; // Assuming upload disk is public as configured
-                // Verify existence
-                if (!\Illuminate\Support\Facades\Storage::disk($sourceDisk)->exists($currentPath)) {
-                    // Try to find it if it was local/temp
-                    // But easier: rely on $this->rawText generation which already found the file.
-                    // Let's just blindly try to copy if we can find it.
-                    // Simplest: If processImage worked, we know where it is? No, processImage logic was local.
-                    // Re-resolve using same logic or just use the Storage copy if possible.
+                // If temporary usage, persist. Assuming standard upload.
+                // Re-verify existence to be safe
+                if (\Illuminate\Support\Facades\Storage::disk('public')->exists($currentPath)) {
+                     // Since Livewire/Filament temp uploads are usually moved automatically on form save, 
+                     // but here we are manual. Let's copy to "documentos/images".
+                     $extension = pathinfo($currentPath, PATHINFO_EXTENSION);
+                     $newFilename = 'albaran_' . time() . '_' . uniqid() . '.' . $extension;
+                     $targetDir = 'documentos/images';
+                     $targetPath = $targetDir . '/' . $newFilename;
+
+                     \Illuminate\Support\Facades\Storage::disk('public')->copy($currentPath, $targetPath);
+                     $finalPath = $targetPath;
+                     \Illuminate\Support\Facades\Log::info('File stored permanently', ['path' => $finalPath]);
+                } else {
+                     // Fallback: Use raw path if it was already local or full path
+                     $finalPath = $currentPath; 
                 }
-
-                $extension = pathinfo($currentPath, PATHINFO_EXTENSION);
-                $newFilename = 'albaran_' . time() . '_' . uniqid() . '.' . $extension;
-                $targetDir = 'documentos/images';
-                $targetPath = $targetDir . '/' . $newFilename;
-
-                // Move/Copy
-                \Illuminate\Support\Facades\Storage::disk('public')->copy($currentPath, $targetPath);
-                $finalPath = $targetPath;
-                
-                \Illuminate\Support\Facades\Log::info('File stored permanently', ['path' => $finalPath]);
             }
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Error moving file: ' . $e->getMessage());
         }
 
+        // Prepare Data for Creation
         $data = [
-            'raw_text' => $this->rawText,
-            'document_date' => $this->parsedData['date'],
-            'document_number' => $this->parsedData['document_number'] ?? null,
-            'import_total' => $this->parsedData['total'], 
-            'provider_nif' => $this->parsedData['nif'],
-            'matched_provider_id' => $this->parsedData['matched_provider_id'] ?? null,
-            'provider_name' => $this->parsedData['supplier'] ?? null,
-            'found_provider' => isset($this->parsedData['matched_provider_id']),
-            'items' => $this->parsedData['items'] ?? [],
-            'document_image_path' => $finalPath,
+            'tipo' => 'albaran_compra',
+            'estado' => 'borrador',
+            'user_id' => auth()->id(),
+            'fecha' => $this->parsedData['date'] ?? now(),
+            'serie' => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A',
+            'tercero_id' => $this->parsedData['matched_provider_id'] ?? null,
+            'referencia_proveedor' => $this->parsedData['document_number'] ?? null,
+            'archivo' => $finalPath,
         ];
 
-        \Illuminate\Support\Facades\Log::info('OCR Confirm: Storing session', ['data' => $data]);
-        
-        session()->put('albaran_import_data', $data);
-        
-        \Illuminate\Support\Facades\Log::info('OCR Confirm: Session stored. Redirecting...');
-
-        // 2. Debug Saved
-        \Filament\Notifications\Notification::make()
-            ->title('Datos Guardados')
-            ->body('Caché escrita correctamente via ' . config('cache.default'))
-            ->success()
-            ->send();
+        // LOGICA PROVEEDOR FICTICIO / FALLBACK
+        $observaciones = [];
+        if (empty($data['tercero_id'])) {
+             $dummyProvider = \App\Models\Tercero::firstOrCreate(
+                ['nif_cif' => '00000000T'],
+                [
+                    'nombre_comercial' => 'PROVEEDOR PENDIENTE DE ASIGNAR',
+                    'razon_social' => 'PROVEEDOR GENERADO AUTOMATICAMENTE', 
+                    'activo' => true
+                ]
+            );
             
-        // Redirect using Filament structure
-        return redirect()->to(\App\Filament\Resources\AlbaranCompraResource::getUrl('create'));
+            if (!$dummyProvider->esProveedor()) {
+                $tipoProv = \App\Models\TipoTercero::where('codigo', 'PRO')->first();
+                if ($tipoProv) $dummyProvider->tipos()->syncWithoutDetaching([$tipoProv->id]);
+            }
+            
+            $data['tercero_id'] = $dummyProvider->id;
+            $observaciones[] = "AVISO: Proveedor no detectado. Asignado a 'PROVEEDOR PENDIENTE'.";
+        }
+
+        if (!empty($this->parsedData['supplier']) && empty($this->parsedData['matched_provider_id'])) {
+             $observaciones[] = "Proveedor detectado por IA (no macheado): " . $this->parsedData['supplier'];
+        }
+        if (!empty($this->rawText)) {
+            $observaciones[] = "--- OCR RAW TEXT ---\n" . $this->rawText;
+        }
+        $data['observaciones'] = implode("\n\n", $observaciones);
+
+        try {
+            // DIRECT CREATION (No Session)
+            $record = \App\Models\Documento::create($data);
+
+            // Create Lines
+            if (!empty($this->parsedData['items']) && is_array($this->parsedData['items'])) {
+                foreach ($this->parsedData['items'] as $item) {
+                    $qty = $item['quantity'] ?? 1;
+                    $price = $item['unit_price'] ?? 0;
+                    
+                    $taxRate = 0.21;
+                    if (!empty($item['matched_product_id'])) {
+                        $prod = \App\Models\Product::find($item['matched_product_id']);
+                        if ($prod) {
+                            $taxRate = $prod->tax_rate > 0 ? $prod->tax_rate / 100 : 0.21;
+                        }
+                    }
+
+                    $record->lineas()->create([
+                        'product_id' => $item['matched_product_id'] ?? null,
+                        'concepto' => $item['description'],
+                        'cantidad' => $qty,
+                        'precio_unitario' => $price,
+                        'importe' => $qty * $price,
+                        'iva' => $taxRate,
+                    ]);
+                }
+            }
+
+            if (method_exists($record, 'recalcularTotales')) {
+                $record->recalcularTotales();
+                $record->save();
+            }
+
+            \Filament\Notifications\Notification::make()
+                ->title('Albarán Creado Correctamente')
+                ->body('Redirigiendo a la edición...')
+                ->success()
+                ->send();
+            
+            // Redirect DIRECTLY to Edit Page
+            // Must use full URL or route helper
+            return redirect()->route('filament.admin.resources.albaran-compras.edit', ['record' => $record]);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('OCR Creation Error: ' . $e->getMessage());
+            
+            \Filament\Notifications\Notification::make()
+                ->title('Error Crítico')
+                ->body('No se pudo crear el documento: ' . $e->getMessage())
+                ->danger()
+                ->persistent()
+                ->send();
+                
+            // Stay in modal, or redirect to index? Stay to allow retry.
+        }
     }
 
     public function render()
