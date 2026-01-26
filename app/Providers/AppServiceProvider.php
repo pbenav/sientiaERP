@@ -22,5 +22,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Livewire::component('app.filament.relation-managers.lineas-relation-manager', LineasRelationManager::class);
+        
+        // Register observers
+        \App\Models\DocumentoLinea::observe(\App\Observers\DocumentoLineaObserver::class);
     }
 }

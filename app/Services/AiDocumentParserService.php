@@ -65,8 +65,17 @@ class AiDocumentParserService
         }
         
         try {
-            $clientOptions = ['credentials' => json_decode($jsonCredentials, true)];
-            $client = new \Google\Cloud\DocumentAI\V1\DocumentProcessorServiceClient($clientOptions);
+            // Set regional endpoint based on processor location
+            $apiEndpoint = $location === 'eu' 
+                ? 'eu-documentai.googleapis.com' 
+                : 'us-documentai.googleapis.com';
+            
+            $clientOptions = [
+                'credentials' => json_decode($jsonCredentials, true),
+                'apiEndpoint' => $apiEndpoint
+            ];
+            
+            $client = new \Google\Cloud\DocumentAI\V1\Client\DocumentProcessorServiceClient($clientOptions);
             
             $name = $client->processorName($projectId, $location, $processorId);
 
@@ -78,15 +87,18 @@ class AiDocumentParserService
             $rawDocument->setContent($imageData);
             $rawDocument->setMimeType($mimeType); // e.g. 'image/jpeg' or 'application/pdf'
 
-            $processOptions = new \Google\Cloud\DocumentAI\V1\ProcessOptions(); 
-            // Depending on library version, might pass options differently. keeping simple for now.
+            $request = new \Google\Cloud\DocumentAI\V1\ProcessRequest();
+            $request->setName($name);
+            $request->setRawDocument($rawDocument);
 
-            $response = $client->processDocument($name, [
-                'rawDocument' => $rawDocument,
-                // 'fieldMask' => ... for specific fields if needed
-            ]);
+            Log::info('DocAI: Sending request to processor', ['processor_id' => $processorId, 'project' => $projectId]);
+            $response = $client->processDocument($request);
+            Log::info('DocAI: Received response');
 
             $document = $response->getDocument();
+            
+            $entityCount = count($document->getEntities());
+            Log::info('DocAI: Total entities found', ['count' => $entityCount]);
             
             // Extract from Entities (Invoice Processor returns entities like supplier_name, etc.)
             $data = [
@@ -100,6 +112,8 @@ class AiDocumentParserService
             foreach ($document->getEntities() as $entity) {
                 $type = $entity->getType();
                 $value = $entity->getMentionText() ?? $entity->getNormalizedValue()?->getText(); // normalized preferred for dates
+
+                Log::info('DocAI: Processing entity', ['type' => $type, 'value' => substr($value ?? '', 0, 100)]);
 
                 switch ($type) {
                     case 'supplier_name':
@@ -122,22 +136,43 @@ class AiDocumentParserService
                         break;
                     case 'line_item':
                         // Nested entities for line items
-                        $line = ['description' => '', 'quantity' => 1, 'unit_price' => 0];
+                        $line = [
+                            'description' => '',
+                            'quantity' => 1,
+                            'unit_price' => 0,
+                            'reference' => null,
+                            'product_code' => null
+                        ];
+                        
                         foreach ($entity->getProperties() as $prop) {
                             $propType = $prop->getType();
                             $propValue = $prop->getMentionText() ?? $prop->getNormalizedValue()?->getText();
                             
+                            Log::info('DocAI: Line item property', ['type' => $propType, 'value' => $propValue]);
+                            
                             if ($propType === 'line_item/description') $line['description'] = $propValue;
                             if ($propType === 'line_item/quantity') $line['quantity'] = (float) filter_var($propValue, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
                             if ($propType === 'line_item/unit_price') $line['unit_price'] = (float) filter_var($propValue, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
-                             // line_item/amount is strict total
+                            
+                            // Extract product code/SKU/reference
+                            if ($propType === 'line_item/product_code') $line['product_code'] = $propValue;
+                            if ($propType === 'line_item/sku') $line['product_code'] = $propValue;
+                            if ($propType === 'line_item/reference') $line['reference'] = $propValue;
                         }
+                        
                         if (!empty($line['description'])) {
                             $data['items'][] = $line;
+                            Log::info('DocAI: Added line item', $line);
                         }
                         break;
                 }
             }
+
+            Log::info('DocAI: Final extracted data', [
+                'provider' => $data['provider_name'],
+                'date' => $data['document_date'],
+                'items_count' => count($data['items'])
+            ]);
 
             return $this->enrichData($data);
 
@@ -195,53 +230,83 @@ class AiDocumentParserService
     protected function extractWithGemini(string $imagePath): array
     {
         // ... (existing code)
-        $apiKey = Setting::get('ai_gemini_api_key');
+        $apiKey = Setting::get('ai_gemini_api_key', config('services.google.ai_api_key'));
         if (empty($apiKey)) {
-            throw new \Exception("API Key de Gemini no configurada en Ajustes.");
+            throw new \Exception("API Key de Gemini no configurada en Ajustes ni en .env");
         }
 
         // Initialize dynamic client
         $client = \Gemini::factory()
             ->withApiKey($apiKey)
-            ->withBaseUrl(config('gemini.base_url') ?? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent')
             ->make();
 
         $imageData = base64_encode(file_get_contents($imagePath));
         $mimeType = mime_content_type($imagePath);
 
         $prompt = <<<EOT
-Extract the following information from the delivery note (Albarán) image and return it as a strictly valid JSON object. 
-If a field is not found, use null.
-Fields:
-- provider_name: (string)
-- provider_nif: (string, if visible)
-- document_date: (string YYYY-MM-DD)
-- document_number: (string)
-- items: (array of objects)
-  - description: (string)
-  - reference: (string)
-  - quantity: (number)
-  - unit_price: (number)
+You are an expert at extracting data from delivery notes (Albaranes de compra) in Spanish.
 
-IMPORTANT: Return ONLY the JSON object. Do not wrap it in markdown code blocks like ```json ... ```.
+Analyze this image and extract ALL the information into a JSON object with this exact structure:
+
+{
+  "provider_name": "string or null",
+  "provider_nif": "string or null",
+  "document_date": "YYYY-MM-DD or null",
+  "document_number": "string or null",
+  "items": [
+    {
+      "description": "string",
+      "reference": "string or null",
+      "quantity": number,
+      "unit_price": number
+    }
+  ]
+}
+
+CRITICAL INSTRUCTIONS:
+1. Extract ALL line items you can see in the document
+2. For items, extract: description (product name), quantity, and unit_price
+3. Return ONLY valid JSON, nothing else
+4. You may wrap the JSON in ```json ``` markdown if needed
 EOT;
 
         try {
-            $result = $client->geminiProVision()->generateContent([
+            $result = $client->generativeModel('gemini-1.5-flash')->generateContent([
                 $prompt,
                 new \Gemini\Data\Blob(
-                    mimeType: $mimeType,
+                    mimeType: \Gemini\Enums\MimeType::from($mimeType),
                     data: $imageData
                 )
             ]);
 
+
             $jsonRaw = $result->text();
-            $jsonRaw = str_replace(['```json', '```'], '', $jsonRaw);
-            $data = json_decode($jsonRaw, true);
             
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                 Log::error("Gemini JSON Parse Error: " . json_last_error_msg() . " | Raw: " . $jsonRaw);
-                 throw new \Exception("Error al leer la respuesta de Gemini.");
+            // Log first 1000 chars for debugging
+            Log::info('Gemini Raw Response (first 1000 chars)', ['response' => substr($jsonRaw, 0, 1000)]);
+            
+            // Extracts JSON from markdown block if present
+            if (preg_match('/```json\s*(.*?)\s*```/s', $jsonRaw, $matches)) {
+                $jsonRaw = $matches[1];
+                Log::info('Extracted JSON from markdown block');
+            } elseif (preg_match('/```\s*(.*?)\s*```/s', $jsonRaw, $matches)) {
+                // Try without json specifier
+                $jsonRaw = $matches[1];
+                Log::info('Extracted from generic code block');
+            } else {
+                 // Fallback: cleanup
+                 $jsonRaw = str_replace(['```json', '```'], '', $jsonRaw);
+                 $jsonRaw = trim($jsonRaw);
+            }
+            
+            try {
+                $data = json_decode($jsonRaw, true, 512, JSON_THROW_ON_ERROR);
+            } catch (\JsonException $e) {
+                Log::error('Gemini JSON Parse Error', [
+                    'error' => $e->getMessage(),
+                    'raw_sample' => substr($jsonRaw, 0, 500)
+                ]);
+                throw new \Exception("Error parsing Gemini response: " . $e->getMessage());
             }
 
             return $this->enrichData($data ?? []);

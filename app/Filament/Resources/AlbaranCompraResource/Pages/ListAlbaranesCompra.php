@@ -14,12 +14,11 @@ class ListAlbaranesCompra extends ListRecords
     {
         return [
             Actions\Action::make('importar')
-                ->label('Importar con Tesseract')
-                ->icon('heroicon-o-document-text')
+                ->label('Importar desde imagen')
+                ->icon('heroicon-o-camera')
                 ->color('info')
-                ->modalContent(fn () => view('filament.resources.albaran-compra-resource.pages.ocr-modal-wrapper'))
-                ->modalSubmitAction(false)
-                ->modalCancelAction(false),
+                ->url(route('filament.admin.pages.ocr-import'))
+                ->openUrlInNewTab(false),
             Actions\CreateAction::make(),
         ];
     }

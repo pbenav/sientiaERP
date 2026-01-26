@@ -23,6 +23,7 @@ class OcrImportModal extends Component implements HasForms
 
     public $rawText = '';
     public $isProcessing = false;
+    public $showDataForm = false;
     public $isCreating = false; // Estado para mostrar logs
 
     protected function streamLog($message, $type = 'info')
@@ -46,9 +47,12 @@ class OcrImportModal extends Component implements HasForms
         'items' => [],
     ];
 
+    public $maxUploadSize;
+
     public function mount(): void
     {
         $this->form->fill();
+        $this->maxUploadSize = ini_get('upload_max_filesize');
     }
 
     public function form(Form $form): Form
@@ -153,9 +157,12 @@ class OcrImportModal extends Component implements HasForms
             // Raw text might be in 'observaciones' if fallback was used
             $this->rawText = $result['raw_text'] ?? ($result['observaciones'] ?? 'Procesado por IA');
 
+            $this->showDataForm = true;
+            \Illuminate\Support\Facades\Log::info('OCR process success. showDataForm set to true.');
+
             \Filament\Notifications\Notification::make()
                 ->title('Procesamiento Completado')
-                ->body('Datos extraídos correctamente.')
+                ->body('Datos extraídos. Por favor revisa y crea el albarán.')
                 ->success()
                 ->send();
 
@@ -179,6 +186,7 @@ class OcrImportModal extends Component implements HasForms
 
     public function resetState()
     {
+        $this->showDataForm = false;
         $this->rawText = '';
         $this->parsedData = [
             'date' => null,
@@ -191,10 +199,10 @@ class OcrImportModal extends Component implements HasForms
         $this->form->fill(); // Clear file upload
     }
 
-    public function confirm()
+    public function createDocument()
     {
         // 1. Log inicial
-        \Illuminate\Support\Facades\Log::info('OCR Confirm: Starting creation process.');
+        \Illuminate\Support\Facades\Log::info('OCR: createDocument called.');
 
         // Identify final path
         $finalPath = null;
@@ -213,9 +221,11 @@ class OcrImportModal extends Component implements HasForms
                      $targetDir = 'documentos/images';
                      $targetPath = $targetDir . '/' . $newFilename;
 
-                     \Illuminate\Support\Facades\Storage::disk('public')->copy($currentPath, $targetPath);
+                     // Optimize and save
+                     $this->optimizeAndRefactorImage($currentPath, $targetPath);
+                     
                      $finalPath = $targetPath;
-                     \Illuminate\Support\Facades\Log::info('File stored permanently', ['path' => $finalPath]);
+                     \Illuminate\Support\Facades\Log::info('File stored and optimized', ['path' => $finalPath]);
                 } else {
                      // Fallback: Use raw path if it was already local or full path
                      $finalPath = $currentPath; 
@@ -233,9 +243,10 @@ class OcrImportModal extends Component implements HasForms
             'fecha' => $this->parsedData['date'] ?? now(),
             'serie' => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A',
             'tercero_id' => $this->parsedData['matched_provider_id'] ?? null,
-            'referencia_proveedor' => $this->parsedData['document_number'] ?? null,
+            'referencia_proveedor' => (string) ($this->parsedData['document_number'] ?? 'REF-' . strtoupper(uniqid())),
             'archivo' => $finalPath,
         ];
+        
 
         // LOGICA PROVEEDOR FICTICIO / FALLBACK
         $observaciones = [];
@@ -275,6 +286,8 @@ class OcrImportModal extends Component implements HasForms
                 foreach ($this->parsedData['items'] as $index => &$item) {
                     if (empty($item['matched_product_id'])) {
                         $desc = $item['description'] ?? 'Producto Desconocido';
+                        if (empty($desc)) $desc = 'Producto sin descripción';
+                        
                         $price = $item['unit_price'] ?? 0;
                         
                         $this->streamLog("Producto no existe: '{$desc}'. Creando...", 'warning');
@@ -311,6 +324,8 @@ class OcrImportModal extends Component implements HasForms
                 foreach ($this->parsedData['items'] as $item) {
                     $qty = $item['quantity'] ?? 1;
                     $price = $item['unit_price'] ?? 0;
+                    $desc = $item['description'] ?? 'Producto incorrecto';
+                    if (empty($desc)) $desc = 'Línea importada'; // Fallback
                     
                     $taxRate = 0.21;
                     if (!empty($item['matched_product_id'])) {
@@ -322,17 +337,17 @@ class OcrImportModal extends Component implements HasForms
 
                     $record->lineas()->create([
                         'product_id' => $item['matched_product_id'] ?? null,
-                        'descripcion' => $item['description'], // Fixed: concepto -> descripcion
+                        'descripcion' => $desc, 
                         'cantidad' => $qty,
                         'unidad' => 'Ud', // Default
                         'precio_unitario' => $price,
                         'descuento' => 0,
-                        'subtotal' => $qty * $price, // Fixed: importe -> subtotal
-                        'iva' => $taxRate * 100, // Fixed: 0.21 -> 21.00
-                        'importe_iva' => ($qty * $price) * $taxRate, // Added required
+                        'subtotal' => $qty * $price, 
+                        'iva' => $taxRate * 100, 
+                        'importe_iva' => ($qty * $price) * $taxRate, 
                         'irpf' => 0,
                         'importe_irpf' => 0,
-                        'total' => ($qty * $price) * (1 + $taxRate), // Added required
+                        'total' => ($qty * $price) * (1 + $taxRate), 
                     ]);
                 }
 
@@ -348,7 +363,6 @@ class OcrImportModal extends Component implements HasForms
                 ->send();
             
             // Redirect DIRECTLY to Edit Page
-            // Must use full URL or route helper
             return redirect()->route('filament.admin.resources.albaran-compras.edit', ['record' => $record]);
 
         } catch (\Exception $e) {
@@ -360,13 +374,95 @@ class OcrImportModal extends Component implements HasForms
                 ->danger()
                 ->persistent()
                 ->send();
-                
-            // Stay in modal, or redirect to index? Stay to allow retry.
+            
+            // Re-throw to make debugging easier in development? No, handle gracefully.
         }
     }
 
     public function render()
     {
         return view('livewire.ocr-import-modal');
+    }
+
+    private function optimizeAndRefactorImage($sourcePath, $targetRelativePath)
+    {
+        // Ensure directory exists
+        $disk = \Illuminate\Support\Facades\Storage::disk('public');
+        
+        // Source Image
+        $sourceFullPath = $disk->path($sourcePath);
+        
+        // Load image based on type
+        // Use try-catch to avoid breaking flow if image is invalid
+        try {
+            if (!file_exists($sourceFullPath)) {
+                 $disk->copy($sourcePath, $targetRelativePath);
+                 return;
+            }
+
+            $info = getimagesize($sourceFullPath);
+            if (!$info) {
+                 $disk->copy($sourcePath, $targetRelativePath);
+                 return;
+            }
+            
+            $mime = $info['mime'];
+            
+            $image = null;
+            switch ($mime) {
+                case 'image/jpeg': $image = imagecreatefromjpeg($sourceFullPath); break;
+                case 'image/png': $image = imagecreatefrompng($sourceFullPath); break;
+                case 'image/gif': $image = imagecreatefromgif($sourceFullPath); break;
+                case 'image/webp': $image = imagecreatefromwebp($sourceFullPath); break;
+            }
+
+            if (!$image) {
+                // Fallback if not supported or error: just copy
+                $disk->copy($sourcePath, $targetRelativePath);
+                return;
+            }
+
+            // Calculate new dimensions (Max width 1024)
+            $maxWidth = 1024;
+            $width = imagesx($image);
+            $height = imagesy($image);
+            
+            if ($width > $maxWidth) {
+                $newWidth = $maxWidth;
+                $newHeight = (int) floor($height * ($maxWidth / $width));
+                
+                $tmp = imagecreatetruecolor($newWidth, $newHeight);
+                
+                // Handle transparency
+                if (in_array($mime, ['image/png', 'image/webp'])) {
+                    imagealphablending($tmp, false);
+                    imagesavealpha($tmp, true);
+                }
+                
+                imagecopyresampled($tmp, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+                imagedestroy($image);
+                $image = $tmp;
+            }
+
+            $targetFullPath = $disk->path($targetRelativePath);
+            if (!file_exists(dirname($targetFullPath))) {
+                mkdir(dirname($targetFullPath), 0755, true);
+            }
+            
+            // Save logic
+            switch ($mime) {
+                case 'image/png': imagepng($image, $targetFullPath, 8); break; // 0-9
+                case 'image/jpeg': imagejpeg($image, $targetFullPath, 80); break; // 0-100
+                case 'image/webp': imagewebp($image, $targetFullPath, 80); break;
+                default: imagejpeg($image, $targetFullPath, 80);
+            }
+            
+            imagedestroy($image);
+            
+        } catch (\Exception $e) {
+             \Illuminate\Support\Facades\Log::warning("Image optimization failed: " . $e->getMessage());
+             // Fallback
+             $disk->copy($sourcePath, $targetRelativePath);
+        }
     }
 }

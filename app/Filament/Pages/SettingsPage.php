@@ -45,13 +45,13 @@ class SettingsPage extends Page
             'timezone' => Setting::get('timezone', 'Europe/Madrid'),
             'pos_default_tercero_id' => Setting::get('pos_default_tercero_id'),
             // AI Settings
-            'ai_provider' => Setting::get('ai_provider', 'google_doc_ai'),
+            'ai_provider' => Setting::get('ai_provider', 'gemini'),
             'ai_backup_provider' => Setting::get('ai_backup_provider', 'none'),
             'google_location' => Setting::get('google_location', 'eu'),
             'google_project_id' => Setting::get('google_project_id'),
             'google_processor_id' => Setting::get('google_processor_id'),
             'google_application_credentials' => Setting::get('google_application_credentials'),
-            'ai_gemini_api_key' => Setting::get('ai_gemini_api_key'),
+            'ai_gemini_api_key' => Setting::get('ai_gemini_api_key', config('services.google.ai_api_key')),
             'ai_openai_api_key' => Setting::get('ai_openai_api_key'),
             'tesseract_path' => Setting::get('tesseract_path', '/usr/bin/tesseract'),
         ]);
@@ -216,7 +216,7 @@ class SettingsPage extends Page
                                 'gemini' => 'Google Gemini (GenAI)',
                                 'openai' => 'OpenAI (ChatGPT)',
                             ])
-                            ->default('google_doc_ai')
+                            ->default('gemini')
                             ->required()
                             ->columnSpanFull()
                             ->live(),

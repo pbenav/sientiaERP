@@ -1,21 +1,27 @@
-    <div class="space-y-4">
+    <div wire:ignore.self class="space-y-4">
         <!-- Filament Form with FileUpload -->
         {{ $this->form }}
+        <p class="text-xs text-gray-500 text-right">Límite de subida del servidor: {{ $maxUploadSize }}</p>
 
-        @if(!$rawText)
+        @if(!$showDataForm)
             <div class="flex justify-end">
                 <button wire:click="processImage" 
-                        wire:loading.attr="disabled" 
+                        wire:loading.attr="disabled"
                         wire:target="processImage, data.documento"
-                        class="bg-primary-600 hover:bg-primary-500 text-white font-bold py-2 px-4 rounded shadow flex items-center gap-2">
+                        class="bg-primary-600 hover:bg-primary-500 text-white font-bold py-2 px-4 rounded shadow flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                     <span wire:loading.remove wire:target="processImage">Procesar Imagen</span>
-                    <span wire:loading wire:target="processImage">Procesando...</span>
+                    <span wire:loading wire:target="processImage">Procesando... (Espere)</span>
                 </button>
             </div>
+            <div class="text-xs text-gray-400 mt-2 text-right">
+                <!-- Debug: showDataForm is FALSE -->
+            </div>
+        @else
+            <!-- Debug: showDataForm is TRUE -->
         @endif
 
-        <div wire:loading wire:target="data.documento" class="text-sm text-gray-500">
-            Subiendo archivo...
+        <div wire:loading wire:target="data.documento" class="text-sm text-yellow-600 font-medium">
+            Subiendo archivo, por favor espera...
         </div>
 
         <!-- Consola de Logs (Proceso de Creación) -->
@@ -34,7 +40,7 @@
             </div>
         </div>
 
-        @if($rawText)
+        @if($showDataForm)
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <!-- Parsed Data Form -->
                 <div class="space-y-2">
@@ -104,8 +110,12 @@
                     <button wire:click="resetState" class="text-gray-600 hover:text-gray-800 font-medium py-2 px-4 rounded border border-gray-300 hover:bg-gray-50 text-sm">
                         Nueva Imagen
                     </button>
-                    <button wire:click="confirm" class="bg-primary-600 hover:bg-primary-500 text-white font-bold py-2 px-4 rounded shadow text-sm">
-                        Crear Albarán
+                    <button wire:click="createDocument" 
+                            wire:loading.attr="disabled"
+                            wire:target="createDocument"
+                            class="bg-primary-600 hover:bg-primary-500 text-white font-bold py-2 px-4 rounded shadow text-sm disabled:opacity-50">
+                        <span wire:loading.remove wire:target="createDocument">Crear Albarán</span>
+                        <span wire:loading wire:target="createDocument">Creando...</span>
                     </button>
                 </div>
             </div>
