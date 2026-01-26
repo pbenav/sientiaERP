@@ -120,6 +120,8 @@ class OcrImport extends Page implements HasForms
                 foreach ($result['items'] as $item) {
                      $formattedItems[] = [
                         'description' => $item['description'] ?? '',
+                        'reference' => $item['reference'] ?? $item['product_code'] ?? '',
+                        'product_code' => $item['product_code'] ?? $item['reference'] ?? '',
                         'quantity' => $item['quantity'] ?? 1,
                         'unit_price' => $item['unit_price'] ?? 0,
                         'matched_product_id' => $item['matched_product_id'] ?? null,
