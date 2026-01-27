@@ -21,6 +21,14 @@ use App\NexErpTui\Actions\DetailsActions;
 ob_implicit_flush(true);
 
 // Cargar variables de entorno
+// Primero intentar cargar .tui.env (configuración específica del TUI)
+$tuiEnvPath = __DIR__ . '/../.tui.env';
+if (file_exists($tuiEnvPath)) {
+    $dotenvTui = \Dotenv\Dotenv::createImmutable(__DIR__ . '/../', '.tui.env');
+    $dotenvTui->safeLoad();
+}
+
+// Luego cargar .env principal (no sobrescribe variables ya definidas)
 $dotenv = \Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
 $dotenv->safeLoad();
 
