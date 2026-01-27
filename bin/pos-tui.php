@@ -26,9 +26,13 @@ use App\PosTui\Input\KeyHandler;
 use App\PosTui\PosClient;
 use App\PosTui\TicketManager;
 
+// Cargar variables de entorno
+$dotenv = \Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
+$dotenv->safeLoad();
+
 // Configuración
 $config = [
-    'api_url' => getenv('POS_API_URL') ?: 'http://localhost:8000',
+    'api_url' => $_ENV['POS_API_URL'] ?? getenv('POS_API_URL') ?: ($_ENV['APP_URL'] ?? getenv('APP_URL') ?: 'http://localhost:8000'),
     'colors' => [
         'bg' => "\033[40m",
         'fg_white' => "\033[37m",
