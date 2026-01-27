@@ -44,6 +44,7 @@ class SettingsPage extends Page
             'locale' => Setting::get('locale', 'es'),
             'timezone' => Setting::get('timezone', 'Europe/Madrid'),
             'pos_default_tercero_id' => Setting::get('pos_default_tercero_id'),
+            'default_commercial_margin' => Setting::get('default_commercial_margin', 30),
             // AI Settings
             'ai_provider' => Setting::get('ai_provider', 'gemini'),
             'ai_backup_provider' => Setting::get('ai_backup_provider', 'none'),
@@ -201,6 +202,20 @@ class SettingsPage extends Page
                             ->columnSpanFull(),
                     ]),
 
+                Section::make('Importación OCR')
+                    ->description('Configuración para la importación de documentos mediante OCR')
+                    ->schema([
+                        TextInput::make('default_commercial_margin')
+                            ->label('Margen Comercial por Defecto (%)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(1000)
+                            ->default(30)
+                            ->suffix('%')
+                            ->helperText('Margen que se aplicará automáticamente a los productos importados vía OCR para calcular el PVP')
+                            ->columnSpanFull(),
+                    ]),
+
                 Section::make('Orden y Tiempos')
                     ->schema([
                          // ... existing logic if any, or just close previous section
@@ -315,6 +330,7 @@ class SettingsPage extends Page
                 'locale' => 'Idioma',
                 'timezone' => 'Zona Horaria',
                 'pos_default_tercero_id' => 'Cliente por Defecto POS',
+                'default_commercial_margin' => 'Margen Comercial por Defecto',
             ];
             
             $groups = [
@@ -330,6 +346,7 @@ class SettingsPage extends Page
                 'locale' => 'Localización',
                 'timezone' => 'Localización',
                 'pos_default_tercero_id' => 'POS',
+                'default_commercial_margin' => 'OCR',
                 // AI Settings
                 'ai_provider' => 'IA',
                 'ai_backup_provider' => 'IA',

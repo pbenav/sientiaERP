@@ -117,6 +117,7 @@ class OcrImport extends Page implements HasForms
             
             $formattedItems = [];
             if (!empty($result['items'])) {
+                $defaultMargin = \App\Models\Setting::get('default_commercial_margin', 30);
                 foreach ($result['items'] as $item) {
                      $formattedItems[] = [
                         'description' => $item['description'] ?? '',
@@ -124,7 +125,7 @@ class OcrImport extends Page implements HasForms
                         'product_code' => $item['product_code'] ?? $item['reference'] ?? '',
                         'quantity' => $item['quantity'] ?? 1,
                         'unit_price' => $item['unit_price'] ?? 0,
-                        'margin' => 30, // Margen por defecto 30%
+                        'margin' => $defaultMargin,
                         'matched_product_id' => $item['matched_product_id'] ?? null,
                     ];
                 }
@@ -152,12 +153,13 @@ class OcrImport extends Page implements HasForms
 
     public function addItem()
     {
+        $defaultMargin = \App\Models\Setting::get('default_commercial_margin', 30);
         $this->parsedData['items'][] = [
             'description' => '',
             'reference' => '',
             'quantity' => 1,
             'unit_price' => 0,
-            'margin' => 30, // Margen por defecto 30%
+            'margin' => $defaultMargin,
             'matched_product_id' => null,
         ];
     }
