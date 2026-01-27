@@ -20,6 +20,7 @@ class Product extends Model
         'active',
         'barcode',
         'tax_rate',
+        'metadata',
     ];
 
     protected $casts = [
@@ -27,6 +28,7 @@ class Product extends Model
         'tax_rate' => 'decimal:2',
         'stock' => 'integer',
         'active' => 'boolean',
+        'metadata' => 'array',
     ];
 
     /**
@@ -63,5 +65,49 @@ class Product extends Model
     public function getPriceWithTaxAttribute(): float
     {
         return $this->price * (1 + ($this->tax_rate / 100));
+    }
+
+    /**
+     * Obtener margen comercial de metadata
+     */
+    public function getMargin(): ?float
+    {
+        return $this->metadata['commercial_margin'] ?? null;
+    }
+
+    /**
+     * Guardar margen comercial en metadata
+     */
+    public function setMargin(float $margin): void
+    {
+        $metadata = $this->metadata ?? [];
+        $metadata['commercial_margin'] = $margin;
+        $this->metadata = $metadata;
+    }
+
+    /**
+     * Guardar precio de compra en metadata
+     */
+    public function setPurchasePrice(float $purchasePrice): void
+    {
+        $metadata = $this->metadata ?? [];
+        $metadata['purchase_price'] = $purchasePrice;
+        $this->metadata = $metadata;
+    }
+
+    /**
+     * Obtener precio de compra de metadata
+     */
+    public function getPurchasePrice(): ?float
+    {
+        return $this->metadata['purchase_price'] ?? null;
+    }
+
+    /**
+     * Calcular precio de venta (PVP) a partir de precio de compra y margen
+     */
+    public static function calculateRetailPrice(float $purchasePrice, float $margin): float
+    {
+        return round($purchasePrice * (1 + ($margin / 100)), 2);
     }
 }

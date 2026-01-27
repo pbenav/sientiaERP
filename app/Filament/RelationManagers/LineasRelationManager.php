@@ -30,6 +30,53 @@ class LineasRelationManager extends RelationManager
         return [
             Forms\Components\Grid::make(6)
                 ->schema([
+                    // CÓDIGO como campo principal de búsqueda (similar al POS)
+                    Forms\Components\Select::make('codigo')
+                        ->label('Código/SKU')
+                        ->searchable()
+                        ->options(function () {
+                            return \App\Models\Product::query()
+                                ->orderBy('sku')
+                                ->limit(50)
+                                ->pluck('sku', 'sku');
+                        })
+                        ->getSearchResultsUsing(function (string $search) {
+                            return \App\Models\Product::where('sku', 'like', "%{$search}%")
+                                ->orWhere('barcode', 'like', "%{$search}%")
+                                ->limit(50)
+                                ->pluck('sku', 'sku');
+                        })
+                        ->live()
+                        ->afterStateUpdated(function ($state, Forms\Set $set) {
+                            if ($state) {
+                                // Buscar producto por SKU o código de barras
+                                $producto = \App\Models\Product::where('sku', $state)
+                                    ->orWhere('barcode', $state)
+                                    ->first();
+                                if ($producto) {
+                                    $set('product_id', $producto->id);
+                                    $set('descripcion', $producto->name);
+                                    $set('precio_unitario', $producto->price);
+                                    
+                                    // IVA del producto o por defecto
+                                    $taxRate = number_format($producto->tax_rate, 2, '.', '');
+                                    $ivaExists = \App\Models\Impuesto::where('valor', $taxRate)->where('tipo', 'iva')->exists();
+                                    
+                                    if ($ivaExists) {
+                                        $set('iva', $taxRate);
+                                    } else {
+                                        $globalDefault = \App\Models\Impuesto::where('tipo', 'iva')
+                                            ->where('es_predeterminado', true)
+                                            ->where('activo', true)
+                                            ->first()?->valor ?? 21.00;
+                                        $set('iva', number_format($globalDefault, 2, '.', ''));
+                                    }
+                                }
+                            }
+                        })
+                        ->columnSpan(2),
+                    
+                    // DESCRIPCIÓN como campo secundario (también permite búsqueda)
                     Forms\Components\Select::make('descripcion')
                         ->label('Descripción')
                         ->required()
@@ -37,22 +84,25 @@ class LineasRelationManager extends RelationManager
                         ->options(function () {
                             return \App\Models\Product::query()
                                 ->orderBy('name')
+                                ->limit(50)
                                 ->pluck('name', 'name');
                         })
                         ->getSearchResultsUsing(function (string $search) {
                             return \App\Models\Product::where('name', 'like', "%{$search}%")
-                                ->orWhere('sku', 'like', "%{$search}%")
                                 ->limit(50)
                                 ->pluck('name', 'name');
                         })
                         ->live()
-                        ->afterStateUpdated(function ($state, Forms\Set $set) {
+                        ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
                             if ($state) {
                                 // Buscar producto por nombre
                                 $producto = \App\Models\Product::where('name', $state)->first();
                                 if ($producto) {
                                     $set('product_id', $producto->id);
-                                    $set('codigo', $producto->sku);
+                                    // Solo actualizar código si está vacío
+                                    if (!$get('codigo')) {
+                                        $set('codigo', $producto->sku);
+                                    }
                                     $set('precio_unitario', $producto->price);
                                     
                                     // IVA del producto o por defecto
@@ -72,11 +122,6 @@ class LineasRelationManager extends RelationManager
                             }
                         })
                         ->columnSpan(4),
-                    
-                    Forms\Components\TextInput::make('codigo')
-                        ->label('Código')
-                        ->maxLength(50)
-                        ->columnSpan(2),
                     
                     Forms\Components\Hidden::make('product_id'),
                     
@@ -185,6 +230,14 @@ class LineasRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('descripcion')
             ->columns([
+                // CÓDIGO como primera columna
+                Tables\Columns\TextColumn::make('codigo')
+                    ->label('Código')
+                    ->extraHeaderAttributes(['style' => 'width: 120px; min-width: 120px; max-width: 120px'])
+                    ->extraAttributes(['style' => 'width: 120px; min-width: 120px; max-width: 120px'])
+                    ->searchable()
+                    ->sortable(),
+                
                 Tables\Columns\TextColumn::make('descripcion')
                     ->label('Producto')
                     ->searchable()

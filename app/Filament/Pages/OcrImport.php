@@ -124,6 +124,7 @@ class OcrImport extends Page implements HasForms
                         'product_code' => $item['product_code'] ?? $item['reference'] ?? '',
                         'quantity' => $item['quantity'] ?? 1,
                         'unit_price' => $item['unit_price'] ?? 0,
+                        'margin' => 30, // Margen por defecto 30%
                         'matched_product_id' => $item['matched_product_id'] ?? null,
                     ];
                 }
@@ -156,6 +157,7 @@ class OcrImport extends Page implements HasForms
             'reference' => '',
             'quantity' => 1,
             'unit_price' => 0,
+            'margin' => 30, // Margen por defecto 30%
             'matched_product_id' => null,
         ];
     }
@@ -270,10 +272,15 @@ class OcrImport extends Page implements HasForms
                                 $productRef = 'AUTO-' . strtoupper(uniqid());
                             }
                             
+                            // Calcular PVP aplicando margen
+                            $purchasePrice = $price;
+                            $margin = $item['margin'] ?? 30;
+                            $retailPrice = \App\Models\Product::calculateRetailPrice($purchasePrice, $margin);
+                            
                             $newProduct = \App\Models\Product::create([
                                 'name' => $desc,
                                 'description' => $desc,
-                                'price' => $price,
+                                'price' => $retailPrice, // PVP calculado con margen
                                 'tax_rate' => 21.00,
                                 'active' => true,
                                 'stock' => 0,
@@ -281,6 +288,10 @@ class OcrImport extends Page implements HasForms
                                 'sku' => $productRef,
                                 'code' => $productRef,
                                 'barcode' => $productRef,
+                                'metadata' => [
+                                    'purchase_price' => $purchasePrice,
+                                    'commercial_margin' => $margin,
+                                ],
                             ]);
 
                             $item['matched_product_id'] = $newProduct->id;

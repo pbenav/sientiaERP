@@ -55,8 +55,9 @@
                                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-32">Ref/SKU</th>
                                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Descripción</th>
                                         <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-24">Cantidad</th>
-                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-32">Precio Unit.</th>
-                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-32">Total</th>
+                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-32">P. Compra</th>
+                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-24">Margen %</th>
+                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-32">PVP</th>
                                         <th class="px-3 py-2 w-10"></th>
                                     </tr>
                                 </thead>
@@ -75,8 +76,16 @@
                                             <td class="px-3 py-2">
                                                 <input type="number" step="0.01" wire:model="parsedData.items.{{ $index }}.unit_price" class="block w-full text-sm rounded border-gray-300 text-right dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                                             </td>
+                                            <td class="px-3 py-2">
+                                                <input type="number" step="0.01" min="0" max="1000" wire:model="parsedData.items.{{ $index }}.margin" class="block w-full text-sm rounded border-gray-300 text-right dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="30">
+                                            </td>
                                             <td class="px-3 py-2 text-sm text-right font-medium dark:text-white">
-                                                {{ number_format(($item['quantity'] ?? 0) * ($item['unit_price'] ?? 0), 2) }} €
+                                                @php
+                                                    $unitPrice = $item['unit_price'] ?? 0;
+                                                    $margin = $item['margin'] ?? 30;
+                                                    $pvp = $unitPrice * (1 + ($margin / 100));
+                                                @endphp
+                                                {{ number_format($pvp, 2) }} €
                                             </td>
                                             <td class="px-3 py-2 text-center">
                                                 <button type="button" wire:click="removeItem({{ $index }})" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
