@@ -187,7 +187,7 @@ class OcrImport extends Page implements HasForms
                         'product_code' => $item['product_code'] ?? $item['reference'] ?? '',
                         'quantity' => (float)($item['quantity'] ?? 1),
                         'unit_price' => $purchasePrice,
-                        'margin' => round($margin, 2), // Redondear visualización
+                        'margin' => round($margin, 3), // Redondeo interno a 3 decimales
                         'benefit' => $benefit,
                         'vat_rate' => $defaultTaxRate,
                         'vat_amount' => $vatAmount,
@@ -220,34 +220,32 @@ class OcrImport extends Page implements HasForms
 
     protected function getClosestPsychologicalPrice(float $price): float
     {
-        // Estrategia: Buscar terminaciones en .99, .95, .50, .00
-        // y elegir la que esté más cerca del precio original.
+        // Estrategia: "Decimals must be 90 upwards (90, 95 or 99)"
+        // "closest possible to the ten (just below)"
         
         $integerPart = floor($price);
         
-        // Candidatos alrededor del precio
+        // Generamos candidatos para el entero actual y el anterior
         $candidates = [
-            $integerPart - 1 + 0.95,
-            $integerPart - 1 + 0.99,
-            $integerPart + 0.00,
-            $integerPart + 0.50,
+             // Entero actual
+            $integerPart + 0.90,
             $integerPart + 0.95,
             $integerPart + 0.99,
-            $integerPart + 1.00,
-            $integerPart + 1.50,
+            // Entero anterior (por si 15.05 debe bajar a 14.99)
+            $integerPart - 1 + 0.90,
+            $integerPart - 1 + 0.95,
+            $integerPart - 1 + 0.99,
         ];
 
         $closest = $price;
         $minDiff = PHP_FLOAT_MAX;
 
         foreach ($candidates as $candidate) {
+            // Evitar precios negativos
             if ($candidate < 0) continue;
             
             $diff = abs($price - $candidate);
             
-            // Preferencia ligera por redondear hacia arriba si la diferencia es muy pequeña
-            // para proteger el margen, pero el usuario pidió "más cercano posible".
-            // Nos mantenemos estrictos en "más cercano".
             if ($diff < $minDiff) {
                 $minDiff = $diff;
                 $closest = $candidate;

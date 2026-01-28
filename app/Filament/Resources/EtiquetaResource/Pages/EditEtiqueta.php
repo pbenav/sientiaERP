@@ -15,11 +15,15 @@ class EditEtiqueta extends EditRecord
     {
         return [
             Actions\Action::make('pdf')
-                ->label('Descargar PDF')
-                ->icon('heroicon-o-document-arrow-down')
+                ->label('Imprimir etiquetas')
+                ->icon('heroicon-o-printer')
                 ->color('success')
-                ->url(fn (Documento $record): string => route('etiquetas.pdf', ['record' => $record->id]))
-                ->openUrlInNewTab(),
+                ->action(function (Documento $record, EditEtiqueta $livewire) {
+                    $livewire->save(shouldRedirect: false);
+                    return response()->streamDownload(function () use ($record) {
+                        echo app(\App\Services\LabelGeneratorService::class)->generatePDF($record)->output();
+                    }, 'etiquetas-' . ($record->numero ?? $record->id) . '.pdf');
+                }),
             Actions\DeleteAction::make(),
         ];
     }

@@ -109,6 +109,6 @@ class Product extends Model
      */
     public static function calculateRetailPrice(float $purchasePrice, float $margin): float
     {
-        return round($purchasePrice * (1 + ($margin / 100)), 2);
+        return round($purchasePrice * (1 + ($margin / 100)), 3);
     }
 }
