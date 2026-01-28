@@ -110,7 +110,7 @@
 
     @php
         $logoType = \App\Models\Setting::get('pdf_logo_type', 'text');
-        $logoText = \App\Models\Setting::get('pdf_logo_text', 'sientiaERP System');
+        $logoText = \App\Models\Setting::get('pdf_logo_text', 'sienteERP System');
         $logoImage = \App\Models\Setting::get('pdf_logo_image');
         
         $empresaNombre = $logoText; // O usar setting específico de nombre fiscal

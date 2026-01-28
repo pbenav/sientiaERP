@@ -1,7 +1,7 @@
 #!/bin/bash
 # Script de diagnóstico para TUI en producción
 
-echo "=== Diagnóstico TUI sientiaERP ==="
+echo "=== Diagnóstico TUI sienteERP ==="
 echo ""
 
 echo "1. Directorio actual:"
@@ -12,8 +12,8 @@ echo "2. Versión del código (últimos 3 commits):"
 git log --oneline -3
 echo ""
 
-echo "3. Configuración de API URL en sientiaerp-tui.php:"
-grep -A 1 "'api_url'" bin/sientiaerp-tui.php | head -2
+echo "3. Configuración de API URL en sienteerp-tui.php:"
+grep -A 1 "'api_url'" bin/sienteerp-tui.php | head -2
 echo ""
 
 echo "4. Variables de entorno en .env:"

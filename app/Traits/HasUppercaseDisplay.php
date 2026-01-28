@@ -57,6 +57,13 @@ trait HasUppercaseDisplay
             'remember_token',
             'email',
             'email_verified_at',
+            'tipo',
+            'estado',
+            'serie',
+            'unidad',
+            'archivo',
+            'status',
+            'type',
         ], $this->excludedFromFormatting ?? []);
     }
 }

@@ -1,4 +1,4 @@
-# sientiaERP - Sistema Híbrido POS + ERP
+# sienteERP - Sistema Híbrido POS + ERP
 
 Sistema completo de gestión empresarial con doble interfaz: web (Filament) y terminal (TUI).
 
@@ -146,7 +146,7 @@ GET  /api/pos/totals
 ## 📊 Estructura del Proyecto
 
 ```
-sientiaerp/
+sienteerp/
 ├── app/
 │   ├── Filament/Resources/
 │   │   ├── ProductResource.php
@@ -231,7 +231,7 @@ export POS_API_URL=http://localhost:8000
 sudo apt install tmux
 
 # Matar sesión colgada
-tmux kill-session -t sientiaerp-tui
+tmux kill-session -t sienteerp-tui
 ```
 
 ## 📄 Licencia

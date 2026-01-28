@@ -107,6 +107,9 @@
                             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 ocr-table">
                                 <thead class="bg-gray-50 dark:bg-gray-900">
                                     <tr>
+                                        <th class="px-2 py-2 text-center w-8">
+                                            <input type="checkbox" wire:model.live="print_all_labels" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                                        </th>
                                         <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-24">Ref/SKU</th>
                                         <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Descripción</th>
                                         <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-16">Cant.</th>
@@ -162,6 +165,9 @@
                                                 }
                                             }
                                         }">
+                                            <td class="px-2 py-2 text-center">
+                                                <input type="checkbox" wire:model.live="parsedData.items.{{ $index }}.print_label" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                                            </td>
                                             <td class="px-2 py-2">
                                                 <input type="text" wire:model="parsedData.items.{{ $index }}.reference" onfocus="this.select()" class="block w-full text-sm rounded border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white {{ $displayUppercase ? 'uppercase-display' : '' }}" placeholder="REF">
                                             </td>
@@ -256,6 +262,24 @@
                         No se detectaron productos. Puedes añadirlos manualmente.
                     </div>
                 @endif
+
+                <div class="p-4 bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 rounded-lg flex flex-col md:flex-row md:items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="generateLabels" wire:model.live="generateLabels" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                        <label for="generateLabels" class="text-sm font-medium text-gray-700 dark:text-gray-300">Generar documento de etiquetas también</label>
+                    </div>
+
+                    @if($generateLabels)
+                        <div class="flex-1 max-w-xs">
+                            <select wire:model="selectedLabelFormatId" class="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                <option value="">-- Seleccionar Formato --</option>
+                                @foreach($labelFormats as $format)
+                                    <option value="{{ $format->id }}">{{ $format->nombre }} ({{ $format->ancho_etiqueta }}x{{ $format->alto_etiqueta }}mm)</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
+                </div>
 
                 <div class="flex justify-end gap-2 pt-4 border-t dark:border-gray-700">
                     <x-filament::button color="gray" wire:click="$set('showDataForm', false)">

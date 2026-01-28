@@ -14,7 +14,7 @@ class SettingsSeeder extends Seeder
     {
         // Logo y PDFs
         \App\Models\Setting::set('pdf_logo_type', 'text', 'Tipo de Logo PDF', 'PDF');
-        \App\Models\Setting::set('pdf_logo_text', 'sientiaERP System', 'Texto del Logo', 'PDF');
+        \App\Models\Setting::set('pdf_logo_text', 'sienteERP System', 'Texto del Logo', 'PDF');
         \App\Models\Setting::set('pdf_logo_image', null, 'Imagen del Logo', 'PDF');
         
         // Moneda y formato

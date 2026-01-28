@@ -53,7 +53,7 @@ El sistema busca la configuración en el siguiente orden:
 
 Esta configuración funciona para ambos clientes TUI:
 
-- **`bin/sientiaerp-tui.php`** - Cliente ERP completo
+- **`bin/sienteerp-tui.php`** - Cliente ERP completo
 - **`bin/pos-tui.php`** - Cliente POS (Punto de Venta)
 
 Ambos usan el mismo archivo `.tui.env` para su configuración.
@@ -67,7 +67,7 @@ Para verificar que la configuración está correcta:
 cat .tui.env
 
 # Ejecutar el TUI y verificar la URL en el mensaje de autenticación
-php bin/sientiaerp-tui.php
+php bin/sienteerp-tui.php
 ```
 
 Durante la autenticación, verás un mensaje como:

@@ -33,10 +33,10 @@ class SettingsPage extends Page
     {
         $this->form->fill([
             'pdf_logo_type' => Setting::get('pdf_logo_type', 'text'),
-            'pdf_logo_text' => Setting::get('pdf_logo_text', 'sientiaERP System'),
+            'pdf_logo_text' => Setting::get('pdf_logo_text', 'sienteERP System'),
             'pdf_logo_image' => Setting::get('pdf_logo_image'),
             'pdf_header_html' => Setting::get('pdf_header_html', '<strong>Sientia SL</strong><br>NIF: B12345678<br>Calle Falsa 123, 28001 Madrid'),
-            'pdf_footer_text' => Setting::get('pdf_footer_text', 'sientiaERP System'),
+            'pdf_footer_text' => Setting::get('pdf_footer_text', 'sienteERP System'),
             'currency_symbol' => Setting::get('currency_symbol', '€'),
             'currency_position' => Setting::get('currency_position', 'suffix'),
             'decimal_separator' => Setting::get('decimal_separator', ','),
@@ -81,8 +81,8 @@ class SettingsPage extends Page
 
                         TextInput::make('pdf_logo_text')
                             ->label('Texto del Logo')
-                            ->placeholder('sientiaERP System')
-                            ->default('sientiaERP System')
+                            ->placeholder('sienteERP System')
+                            ->default('sienteERP System')
                             ->maxLength(100)
                             ->visible(fn($get) => $get('pdf_logo_type') === 'text')
                             ->columnSpanFull(),
@@ -117,7 +117,7 @@ class SettingsPage extends Page
 
                         TextInput::make('pdf_footer_text')
                             ->label('Texto del Pie de Página')
-                            ->placeholder('sientiaERP System')
+                            ->placeholder('sienteERP System')
                             ->maxLength(200)
                             ->columnSpanFull(),
                     ]),

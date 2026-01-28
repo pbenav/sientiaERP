@@ -23,9 +23,10 @@ class Documento extends Model
         'forma_pago_id',
         'observaciones', 'observaciones_internas',
         'fecha_validez', 'fecha_entrega', 'fecha_vencimiento',
-        'es_rectificativa', 'rectificada_id',
+        'es_rectificativa', 'factura_rectificada_id', 'motivo_rectificación',
         'archivo',
         'referencia_proveedor',
+        'label_format_id', 'fila_inicio', 'columna_inicio',
     ];
 
     protected $casts = [
@@ -50,11 +51,14 @@ class Documento extends Model
 
         static::creating(function ($documento) {
             // No generamos número automáticamente para facturas (se hace al confirmar)
-            if (empty($documento->numero) && !in_array($documento->tipo, ['factura', 'factura_compra'])) {
+            if (!empty($documento->tipo) && empty($documento->numero) && !in_array($documento->tipo, ['factura', 'factura_compra'])) {
                 $documento->numero = NumeracionDocumento::generarNumero($documento->tipo, $documento->serie ?? 'A');
             }
             if (empty($documento->fecha)) {
                 $documento->fecha = now();
+            }
+            if (empty($documento->user_id)) {
+                $documento->user_id = auth()->id() ?? (\class_exists('\Filament\Facades\Filament') ? \Filament\Facades\Filament::auth()->id() : null) ?? 1;
             }
         });
 
@@ -129,6 +133,14 @@ class Documento extends Model
     public function billingSerie(): BelongsTo
     {
         return $this->belongsTo(BillingSerie::class, 'serie', 'codigo');
+    }
+
+    /**
+     * Formato de etiqueta asociado
+     */
+    public function labelFormat(): BelongsTo
+    {
+        return $this->belongsTo(LabelFormat::class);
     }
 
     /**

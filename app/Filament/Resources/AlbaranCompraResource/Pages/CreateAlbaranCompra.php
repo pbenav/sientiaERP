@@ -21,6 +21,12 @@ class CreateAlbaranCompra extends CreateRecord
         ];
     }
 
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        $data['tipo'] = 'albaran_compra';
+        return $data;
+    }
+
     // La lógica de creación automática se ha movido al OcrImportModal.
     // Este método queda limpio para la creación manual estándar de Filament.
 }

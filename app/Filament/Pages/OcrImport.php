@@ -25,6 +25,10 @@ class OcrImport extends Page implements HasForms
     public $showDataForm = false;
     public $isCreating = false;
     public $maxUploadSize;
+    public $labelFormats = [];
+    public $generateLabels = false;
+    public $selectedLabelFormatId = null;
+    public $print_all_labels = true;
 
     public $parsedData = [
         'date' => null,
@@ -57,6 +61,10 @@ class OcrImport extends Page implements HasForms
         
         // Cargar preferencia de mayúsculas
         $this->displayUppercase = \App\Models\Setting::get('display_uppercase', 'false') === 'true';
+
+        // Cargar formatos de etiquetas
+        $this->labelFormats = \App\Models\LabelFormat::where('activo', true)->get();
+        $this->selectedLabelFormatId = $this->labelFormats->first()?->id;
     }
 
     public function form(Form $form): Form
@@ -171,6 +179,7 @@ class OcrImport extends Page implements HasForms
                         'vat_amount' => $vatAmount,
                         'sale_price' => $salePrice,
                         'matched_product_id' => $item['matched_product_id'] ?? null,
+                        'print_label' => true,
                     ];
                 }
             }
@@ -228,7 +237,15 @@ class OcrImport extends Page implements HasForms
             'vat_amount' => $vatAmount,
             'sale_price' => $salePrice,
             'matched_product_id' => null,
+            'print_label' => true,
         ];
+    }
+
+    public function updatedPrintAllLabels($value)
+    {
+        foreach ($this->parsedData['items'] as $index => $item) {
+            $this->parsedData['items'][$index]['print_label'] = $value;
+        }
     }
 
     public function removeItem($index)
@@ -397,6 +414,8 @@ class OcrImport extends Page implements HasForms
                 if (empty($desc)) $desc = 'Línea importada';
 
                 $taxRate = 0.21;
+                $prod = null; // Reset $prod to avoid loop leakage
+                
                 if (!empty($item['matched_product_id'])) {
                     $prod = \App\Models\Product::find($item['matched_product_id']);
                     if ($prod) {
@@ -406,6 +425,7 @@ class OcrImport extends Page implements HasForms
 
                 $record->lineas()->create([
                     'product_id' => $item['matched_product_id'] ?? null,
+                    'codigo' => !empty($item['reference']) ? $item['reference'] : ($prod?->sku ?? $prod?->code ?? null),
                     'descripcion' => $desc,
                     'cantidad' => $qty,
                     'unidad' => 'Ud',
@@ -425,13 +445,51 @@ class OcrImport extends Page implements HasForms
                 $record->save();
             }
 
+            // REDIRECT OR ADDITIONAL ACTIONS
+            if ($this->generateLabels && $this->selectedLabelFormatId) {
+                $selectedItems = array_filter($this->parsedData['items'], fn($item) => $item['print_label'] ?? false);
+                
+                if (count($selectedItems) > 0) {
+                    $labelDoc = \App\Models\Documento::create([
+                        'tipo' => 'etiqueta',
+                        'estado' => 'borrador',
+                        'user_id' => auth()->id(),
+                        'fecha' => now(),
+                        'label_format_id' => $this->selectedLabelFormatId,
+                        'documento_origen_id' => $record->id,
+                        'observaciones' => "Generado desde importación OCR del Albarán: " . ($record->numero ?? $record->referencia_proveedor),
+                    ]);
+
+                    foreach ($selectedItems as $item) {
+                        $qty = (float)($item['quantity'] ?? 1);
+                        $desc = $item['description'] ?? 'Línea importada';
+                        $prod = !empty($item['matched_product_id']) ? \App\Models\Product::find($item['matched_product_id']) : null;
+                    
+                        $labelDoc->lineas()->create([
+                            'product_id' => $item['matched_product_id'] ?? null,
+                            'codigo' => !empty($item['reference']) ? $item['reference'] : ($prod?->sku ?? $prod?->code ?? $prod?->barcode ?? null),
+                            'descripcion' => $desc,
+                            'cantidad' => $qty,
+                            'unidad' => 'Ud',
+                            'precio_unitario' => $item['unit_price'] ?? 0,
+                        ]);
+                    }
+
+                    \Filament\Notifications\Notification::make()
+                        ->title('Documento de Etiquetas Creado')
+                        ->body('Se ha generado un documento de etiquetas asociado.')
+                        ->success()
+                        ->send();
+                }
+            }
+
             \Filament\Notifications\Notification::make()
                 ->title('Albarán Creado Correctamente')
                 ->body('Redirigiendo a la edición...')
                 ->success()
                 ->send();
 
-            // Redirect to Edit Page
+            // Redirect to Edit Page of the Albarán
             return redirect()->route('filament.admin.resources.albaran-compras.edit', ['record' => $record]);
 
         } catch (\Exception $e) {

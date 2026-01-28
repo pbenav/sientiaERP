@@ -57,7 +57,7 @@
         <div class="company-info">
             @php
                 $logoType = App\Models\Setting::get('pdf_logo_type', 'text');
-                $logoText = App\Models\Setting::get('pdf_logo_text', 'sientiaERP System');
+                $logoText = App\Models\Setting::get('pdf_logo_text', 'sienteERP System');
                 $logoImage = App\Models\Setting::get('pdf_logo_image');
             @endphp
             
@@ -160,7 +160,7 @@
     </div>
 
     <div class="footer">
-        {{ App\Models\Setting::get('pdf_footer_text', 'sientiaERP System') }}
+        {{ App\Models\Setting::get('pdf_footer_text', 'sienteERP System') }}
     </div>
 </body>
 </html>

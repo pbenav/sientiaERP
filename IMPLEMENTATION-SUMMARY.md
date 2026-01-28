@@ -1,4 +1,4 @@
-# sientiaERP - Resumen de Implementación
+# sienteERP - Resumen de Implementación
 
 ## ✅ Sistema Completado
 

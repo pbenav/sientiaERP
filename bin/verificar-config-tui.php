@@ -8,7 +8,7 @@
 require __DIR__ . '/../vendor/autoload.php';
 
 echo "\n╔═══════════════════════════════════════════════════════════╗\n";
-echo "║     Verificación de Configuración TUI de sientiaERP       ║\n";
+echo "║     Verificación de Configuración TUI de sienteERP       ║\n";
 echo "╚═══════════════════════════════════════════════════════════╝\n\n";
 
 // Cargar variables de entorno igual que el TUI

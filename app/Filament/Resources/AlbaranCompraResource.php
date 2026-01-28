@@ -100,12 +100,71 @@ class AlbaranCompraResource extends Resource
             Tables\Filters\Filter::make('bloqueados')->label('Solo bloqueados')->query(fn ($query) => $query->whereHas('documentosDerivados'))->toggle(),
         ])->actions([
             Tables\Actions\EditAction::make()->tooltip('Editar')->label('')->visible(fn($record) => $record->puedeEditarse()),
+            Tables\Actions\Action::make('generate_labels')
+                ->label('')
+                ->tooltip('Generar Etiquetas')
+                ->icon('heroicon-o-document-plus')
+                ->color('primary')
+                ->form([
+                    \Filament\Forms\Components\Select::make('label_format_id')
+                        ->label('Formato de Etiqueta')
+                        ->options(\App\Models\LabelFormat::where('activo', true)->pluck('nombre', 'id'))
+                        ->required()
+                        ->default(\App\Models\LabelFormat::where('activo', true)->first()?->id),
+                ])
+                ->action(function (Documento $record, array $data) {
+                    $labelDoc = Documento::create([
+                        'tipo' => 'etiqueta',
+                        'estado' => 'borrador',
+                        'user_id' => auth()->id(),
+                        'fecha' => now(),
+                        'label_format_id' => $data['label_format_id'],
+                        'documento_origen_id' => $record->id,
+                        'observaciones' => "Generado desde Albarán: " . ($record->numero ?? $record->referencia_proveedor),
+                    ]);
+
+                    foreach ($record->lineas as $linea) {
+                        $labelDoc->lineas()->create([
+                            'product_id' => $linea->product_id,
+                            'codigo' => $linea->codigo ?: ($linea->product?->sku ?? $linea->product?->code ?? $linea->product?->barcode ?? null),
+                            'descripcion' => $linea->descripcion,
+                            'cantidad' => $linea->cantidad,
+                            'unidad' => $linea->unidad,
+                            'precio_unitario' => $linea->precio_unitario,
+                        ]);
+                    }
+
+                    Notification::make()
+                        ->title('Documento de etiquetas generado')
+                        ->success()
+                        ->send();
+                })
+                ->visible(fn (Documento $record) => !Documento::where('tipo', 'etiqueta')
+                    ->where('documento_origen_id', $record->id)
+                    ->exists()),
             Tables\Actions\Action::make('pdf')
                 ->label('')
                 ->tooltip('Descargar PDF')
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('info')
-                ->url(fn($record) => route('documentos.pdf', $record))
+                ->url(fn($record) => route('documentos.pdf', ['record' => $record->id]))
+                ->openUrlInNewTab(),
+            Tables\Actions\Action::make('print_labels')
+                ->label('')
+                ->tooltip('Imprimir Etiquetas')
+                ->icon('heroicon-o-tag')
+                ->color('success')
+                ->url(function (Documento $record) {
+                    $etiqueta = Documento::where('tipo', 'etiqueta')
+                        ->where('documento_origen_id', $record->id)
+                        ->first();
+                    return $etiqueta ? route('etiquetas.pdf', ['record' => $etiqueta->id]) : '#';
+                })
+                ->visible(function (Documento $record) {
+                    return Documento::where('tipo', 'etiqueta')
+                        ->where('documento_origen_id', $record->id)
+                        ->exists();
+                })
                 ->openUrlInNewTab(),
             Tables\Actions\Action::make('convertir_factura')
                 ->label('')

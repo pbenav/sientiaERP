@@ -22,10 +22,13 @@ class LineasRelationManager extends RelationManager
 
     public function form(Form $form): Form
     {
-        return $form->schema(self::getLineFormSchema());
+        $doc = $this->getOwnerRecord();
+        $isLabel = $doc && $doc->tipo === 'etiqueta';
+        
+        return $form->schema(self::getLineFormSchema($isLabel));
     }
 
-    public static function getLineFormSchema(): array
+    public static function getLineFormSchema(bool $isLabel = false): array
     {
         return [
             Forms\Components\Grid::make(6)
@@ -150,6 +153,7 @@ class LineasRelationManager extends RelationManager
                         ->live()
                         ->columnSpan(1)
                         ->extraInputAttributes(['style' => 'width: 110px'])
+                        ->visible(!$isLabel)
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
                         ->dehydrateStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::parseNumber($state))
                         ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
@@ -164,6 +168,7 @@ class LineasRelationManager extends RelationManager
                         ->live()
                         ->columnSpan(1)
                         ->extraInputAttributes(['style' => 'width: 110px'])
+                        ->visible(!$isLabel)
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
                         ->dehydrateStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::parseNumber($state))
                         ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
@@ -185,15 +190,17 @@ class LineasRelationManager extends RelationManager
                         ->required()
                         ->live()
                         ->columnSpan(1)
+                        ->visible(!$isLabel)
                         ->extraInputAttributes(['style' => 'width: 120px'])
                         ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                             self::calcularLinea($set, $get)),
-
+ 
                     Forms\Components\TextInput::make('total')
                         ->label('Total')
                         ->disabled()
                         ->dehydrated()
                         ->columnSpan(1)
+                        ->visible(!$isLabel)
                         ->extraInputAttributes(['style' => 'width: 140px'])
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2)),
                 ]),
@@ -227,6 +234,9 @@ class LineasRelationManager extends RelationManager
 
     public function table(Table $table): Table
     {
+        $doc = $this->getOwnerRecord();
+        $isLabel = $doc && $doc->tipo === 'etiqueta';
+        
         return $table
             ->recordTitleAttribute('descripcion')
             ->columns([
@@ -254,25 +264,25 @@ class LineasRelationManager extends RelationManager
                 
                 Tables\Columns\TextColumn::make('precio_unitario')
                     ->label('Precio')
-                    ->extraHeaderAttributes(['style' => 'width: 110px; min-width: 110px; max-width: 110px'])
                     ->extraAttributes(['style' => 'width: 110px; min-width: 110px; max-width: 110px'])
                     ->sortable()
+                    ->visible(!$isLabel)
                     ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
                     ->alignRight(),
                 
                 Tables\Columns\TextColumn::make('descuento')
                     ->label('Dto.%')
-                    ->extraHeaderAttributes(['style' => 'width: 70px; min-width: 70px; max-width: 70px'])
                     ->extraAttributes(['style' => 'width: 70px; min-width: 70px; max-width: 70px'])
                     ->sortable()
+                    ->visible(!$isLabel)
                     ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
                     ->alignCenter(),
                 
                 Tables\Columns\TextColumn::make('iva')
                     ->label('IVA%')
-                    ->extraHeaderAttributes(['style' => 'width: 90px; min-width: 90px; max-width: 90px'])
                     ->extraAttributes(['style' => 'width: 90px; min-width: 90px; max-width: 90px'])
                     ->sortable()
+                    ->visible(!$isLabel)
                     ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
                     ->alignCenter(),
                     
@@ -281,6 +291,7 @@ class LineasRelationManager extends RelationManager
                     ->extraHeaderAttributes(['style' => 'width: 140px; min-width: 140px; max-width: 140px'])
                     ->extraAttributes(['style' => 'width: 140px; min-width: 140px; max-width: 140px'])
                     ->alignRight()
+                    ->visible(!$isLabel)
                     ->getStateUsing(fn ($record) => $record->total)
                     ->formatStateUsing(function ($state) {
                         return \App\Helpers\NumberFormatHelper::formatCurrency($state);
@@ -294,21 +305,21 @@ class LineasRelationManager extends RelationManager
                 Tables\Actions\CreateAction::make()
                     ->label('Añadir Línea')
                     ->modalHeading('Añadir Línea al Documento')
-                    ->visible(fn ($livewire) => $livewire->getOwnerRecord()->estado === 'borrador')
+                    ->visible(fn ($livewire) => strtolower($livewire->getOwnerRecord()->estado) === 'borrador')
                     ->after(fn ($livewire) => $livewire->dispatch('refresh-document-totals')),
             ])
             ->actions([
                 Tables\Actions\EditAction::make()
-                    ->visible(fn ($livewire) => $livewire->getOwnerRecord()->estado === 'borrador')
+                    ->visible(fn ($livewire) => strtolower($livewire->getOwnerRecord()->estado) === 'borrador')
                     ->after(fn ($livewire) => $livewire->dispatch('refresh-document-totals')),
                 Tables\Actions\DeleteAction::make()
-                    ->visible(fn ($livewire) => $livewire->getOwnerRecord()->estado === 'borrador')
+                    ->visible(fn ($livewire) => strtolower($livewire->getOwnerRecord()->estado) === 'borrador')
                     ->after(fn ($livewire) => $livewire->dispatch('refresh-document-totals')),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn ($livewire) => $livewire->getOwnerRecord()->estado === 'borrador')
+                        ->visible(fn ($livewire) => strtolower($livewire->getOwnerRecord()->estado) === 'borrador')
                         ->after(fn ($livewire) => $livewire->dispatch('refresh-document-totals')),
                 ]),
             ]);

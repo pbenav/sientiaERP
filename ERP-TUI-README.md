@@ -1,4 +1,4 @@
-# Cliente TUI para ERP - sientiaERP
+# Cliente TUI para ERP - sienteERP
 
 Cliente de terminal con interfaz dividida usando tmux para gestión de terceros y documentos de negocio.
 
@@ -76,7 +76,7 @@ El cliente crea automáticamente una sesión tmux con 3 paneles:
 
 - Presiona `Q` en el menú principal
 - O presiona `Ctrl+B` luego `D` para detach de tmux
-- Para matar la sesión: `tmux kill-session -t sientiaerp-tui`
+- Para matar la sesión: `tmux kill-session -t sienteerp-tui`
 
 ## Estructura
 
@@ -130,7 +130,7 @@ chmod +x bin/erp-tui*.php
 ### Sesión tmux colgada
 
 ```bash
-tmux kill-session -t sientiaerp-tui
+tmux kill-session -t sienteerp-tui
 ```
 
 ### Paneles no se muestran correctamente
