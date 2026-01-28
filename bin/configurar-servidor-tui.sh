@@ -58,14 +58,14 @@ esac
 
 # Crear o actualizar el archivo .tui.env
 cat > "$TUI_ENV_FILE" << EOF
-# Configuración del Cliente TUI de nexERP
+# Configuracion del Cliente TUI de nexERP
 # Este archivo permite configurar la URL del servidor API para el cliente TUI
 
 # URL del servidor API (sin barra final)
 # Ejemplos:
 #   - Servidor de pruebas: https://erp.contraste.online
 #   - Desarrollo local: http://localhost:8000
-#   - Producción: https://tu-servidor.com
+#   - Produccion: https://tu-servidor.com
 
 ERP_API_URL=$URL
 EOF
