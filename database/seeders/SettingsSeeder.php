@@ -26,5 +26,8 @@ class SettingsSeeder extends Seeder
         // Localización
         \App\Models\Setting::set('locale', 'es', 'Idioma', 'Localización');
         \App\Models\Setting::set('timezone', 'Europe/Madrid', 'Zona Horaria', 'Localización');
+        
+        // Visualización
+        \App\Models\Setting::set('display_uppercase', 'false', 'Mostrar Todo en Mayúsculas', 'Visualización');
     }
 }

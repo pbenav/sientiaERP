@@ -119,6 +119,16 @@ class SettingResource extends Resource
                             ->visible(fn ($get) => $get('key') === 'google_application_credentials')
                             ->columnSpanFull(),
 
+                        Forms\Components\Select::make('value')
+                            ->label('Mostrar Todo en Mayúsculas')
+                            ->options([
+                                'true' => 'Sí',
+                                'false' => 'No',
+                            ])
+                            ->required()
+                            ->visible(fn ($get) => $get('key') === 'display_uppercase')
+                            ->columnSpanFull(),
+
                         Forms\Components\TextInput::make('value')
                             ->label('Configuración / API Key')
                             ->password()
