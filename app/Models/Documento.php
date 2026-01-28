@@ -172,6 +172,44 @@ class Documento extends Model
     }
 
     /**
+     * Obtener desglose de impuestos (para visualización)
+     */
+    public function getDesgloseImpuestos(): array
+    {
+        $lineas = $this->lineas;
+        $desglose = [];
+
+        // Agrupación por tipos de IVA (Buckets)
+        $buckets = $lineas->groupBy(function ($linea) {
+            return number_format($linea->iva, 2); // Agrupar por % IVA (string key)
+        });
+
+        foreach ($buckets as $ivaKey => $grupoLineas) {
+            $baseGrupo = $grupoLineas->sum('subtotal');
+            $primerLinea = $grupoLineas->first();
+            $porcentajeIva = $primerLinea->iva;
+            $porcentajeRe = $primerLinea->recargo_equivalencia;
+
+            $cuotaIvaGrupo = round($baseGrupo * ($porcentajeIva / 100), 2);
+            $cuotaReGrupo = round($baseGrupo * ($porcentajeRe / 100), 2);
+
+            $desglose[] = [
+                'iva' => $porcentajeIva,
+                're' => $porcentajeRe,
+                'base' => $baseGrupo,
+                'cuota_iva' => $cuotaIvaGrupo,
+                'cuota_re' => $cuotaReGrupo,
+                'total' => $baseGrupo + $cuotaIvaGrupo + $cuotaReGrupo,
+            ];
+        }
+        
+        // Ordenar por tipo de IVA
+        usort($desglose, fn($a, $b) => $a['iva'] <=> $b['iva']);
+
+        return $desglose;
+    }
+
+    /**
      * Recalcular totales del documento
      */
     public function recalcularTotales(): void

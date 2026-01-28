@@ -20,9 +20,11 @@ class DatabaseSeeder extends Seeder
             FormaPagoSeeder::class,
             UserSeeder::class,
             ProductSeeder::class,
+            TipoTerceroSeeder::class,  // Asegurar que existen tipos para TerceroSeeder
             TerceroSeeder::class,      // ANTES de SettingSeeder para que CLIPOS exista
             SettingSeeder::class,      // DESPUÉS de TerceroSeeder
             AiSettingsSeeder::class,   // Ajustes de IA
+            LabelFormatSeeder::class,  // Formatos de etiquetas
             DocumentoSeeder::class,
         ]);
     }

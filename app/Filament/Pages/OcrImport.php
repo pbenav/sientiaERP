@@ -155,17 +155,31 @@ class OcrImport extends Page implements HasForms
                         $margin = 99;
                     }
                     
-                    // Precio sin IVA
-                    $priceWithoutVat = $purchasePrice / (1 - ($margin / 100));
+                    // Precio sin IVA INICIAL (Calculado con margen deseado)
+                    $initialPriceWithoutVat = $purchasePrice / (1 - ($margin / 100));
                     
-                    // Beneficio
+                    // Precio de venta TEÓRICO con IVA
+                    $theoreticalSalePrice = $initialPriceWithoutVat * (1 + ($defaultTaxRate / 100));
+                    
+                    // APLICAR PRECIO PSICOLÓGICO
+                    $salePrice = $this->getClosestPsychologicalPrice($theoreticalSalePrice);
+                    
+                    // RECALCULAR TODO HACIA ATRÁS DESDE EL PRECIO FINAL
+                    $priceWithoutVat = $salePrice / (1 + ($defaultTaxRate / 100));
+                    
+                    // Nuevo Margen Real
+                    // Margin = 1 - (Cost / PriceWithoutVat)
+                    if ($priceWithoutVat > 0) {
+                        $margin = (1 - ($purchasePrice / $priceWithoutVat)) * 100;
+                    } else {
+                        $margin = 0;
+                    }
+                    
+                    // Beneficio Real
                     $benefit = $priceWithoutVat - $purchasePrice;
                     
-                    // Importe IVA
+                    // Importe IVA Real
                     $vatAmount = $priceWithoutVat * ($defaultTaxRate / 100);
-                    
-                    // Precio final con IVA
-                    $salePrice = round($priceWithoutVat * (1 + ($defaultTaxRate / 100)), 2);
                     
                     $formattedItems[] = [
                         'description' => $item['description'] ?? '',
@@ -173,7 +187,7 @@ class OcrImport extends Page implements HasForms
                         'product_code' => $item['product_code'] ?? $item['reference'] ?? '',
                         'quantity' => (float)($item['quantity'] ?? 1),
                         'unit_price' => $purchasePrice,
-                        'margin' => $margin,
+                        'margin' => round($margin, 2), // Redondear visualización
                         'benefit' => $benefit,
                         'vat_rate' => $defaultTaxRate,
                         'vat_amount' => $vatAmount,
@@ -204,6 +218,45 @@ class OcrImport extends Page implements HasForms
         }
     }
 
+    protected function getClosestPsychologicalPrice(float $price): float
+    {
+        // Estrategia: Buscar terminaciones en .99, .95, .50, .00
+        // y elegir la que esté más cerca del precio original.
+        
+        $integerPart = floor($price);
+        
+        // Candidatos alrededor del precio
+        $candidates = [
+            $integerPart - 1 + 0.95,
+            $integerPart - 1 + 0.99,
+            $integerPart + 0.00,
+            $integerPart + 0.50,
+            $integerPart + 0.95,
+            $integerPart + 0.99,
+            $integerPart + 1.00,
+            $integerPart + 1.50,
+        ];
+
+        $closest = $price;
+        $minDiff = PHP_FLOAT_MAX;
+
+        foreach ($candidates as $candidate) {
+            if ($candidate < 0) continue;
+            
+            $diff = abs($price - $candidate);
+            
+            // Preferencia ligera por redondear hacia arriba si la diferencia es muy pequeña
+            // para proteger el margen, pero el usuario pidió "más cercano posible".
+            // Nos mantenemos estrictos en "más cercano".
+            if ($diff < $minDiff) {
+                $minDiff = $diff;
+                $closest = $candidate;
+            }
+        }
+        
+        return $closest;
+    }
+
     public function addItem()
     {
         $defaultMargin = (float)\App\Models\Setting::get('default_commercial_margin', 30);
@@ -214,17 +267,15 @@ class OcrImport extends Page implements HasForms
             $defaultMargin = 99;
         }
         
+        // Precio base (asumimos 0 al crear manual)
+        $purchasePrice = 0;
+
         // Precio sin IVA
-        $priceWithoutVat = 0 / (1 - ($defaultMargin / 100));
-        
-        // Beneficio
-        $benefit = $priceWithoutVat - 0;
-        
-        // Importe IVA
-        $vatAmount = $priceWithoutVat * ($defaultTaxRate / 100);
-        
-        // Precio final con IVA
-        $salePrice = round($priceWithoutVat * (1 + ($defaultTaxRate / 100)), 2);
+        // Al ser coste 0, cualquier precio de venta da margen 100%.
+        // Ponemos valores por defecto para que el usuario edite.
+        $salePrice = 0.00;
+        $vatAmount = 0;
+        $benefit = 0;
         
         $this->parsedData['items'][] = [
             'description' => '',

@@ -100,7 +100,10 @@ class LabelFormatSeeder extends Seeder
         ];
 
         foreach ($formats as $format) {
-            LabelFormat::create($format);
+            LabelFormat::firstOrCreate(
+                ['nombre' => $format['nombre']],
+                $format
+            );
         }
     }
 }

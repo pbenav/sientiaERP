@@ -154,24 +154,9 @@ class FacturaResource extends Resource
 
                 Forms\Components\Section::make('Totales')
                     ->schema([
-                        Forms\Components\Placeholder::make('subtotal_display')
-                            ->label('Subtotal')
-                            ->content(fn($record) => $record ? number_format($record->subtotal, 2, ',', '.') . ' €' : '0,00 €'),
-                        
-                        Forms\Components\Placeholder::make('iva_display')
-                            ->label('IVA')
-                            ->content(fn($record) => $record ? number_format($record->iva, 2, ',', '.') . ' €' : '0,00 €'),
-
-                        Forms\Components\Placeholder::make('irpf_display')
-                            ->label(fn($record) => 'IRPF (' . ($record->porcentaje_irpf ?? 0) . '%)')
-                            ->content(fn($record) => $record ? number_format($record->irpf, 2, ',', '.') . ' €' : '0,00 €')
-                            ->visible(fn($record) => $record && $record->porcentaje_irpf > 0),
-                        
-                        Forms\Components\Placeholder::make('total_display')
-                            ->label('TOTAL')
-                            ->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €')
-                            ->extraAttributes(['class' => 'text-xl font-bold text-primary-600']),
-                    ])->columns(4)
+                        Forms\Components\View::make('filament.components.tax-breakdown')
+                            ->columnSpanFull(),
+                    ])
                     ->visibleOn('edit')
                     ->collapsible(),
 

@@ -6,7 +6,7 @@ use App\Models\Documento;
 use App\Models\LabelFormat;
 use App\Models\Setting;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Picqer\Barcode\BarcodeGeneratorSVG;
+use Picqer\Barcode\BarcodeGeneratorPNG;
 
 class LabelGeneratorService
 {
@@ -14,7 +14,7 @@ class LabelGeneratorService
 
     public function __construct()
     {
-        $this->generator = new BarcodeGeneratorSVG();
+        $this->generator = new BarcodeGeneratorPNG();
     }
 
     /**
@@ -90,16 +90,17 @@ class LabelGeneratorService
         if (empty($text)) return null;
 
         $typeMap = [
-            'code128' => BarcodeGeneratorSVG::TYPE_CODE_128,
-            'code39' => BarcodeGeneratorSVG::TYPE_CODE_39,
-            'ean13' => BarcodeGeneratorSVG::TYPE_EAN_13,
+            'code128' => \Picqer\Barcode\BarcodeGeneratorPNG::TYPE_CODE_128,
+            'code39' => \Picqer\Barcode\BarcodeGeneratorPNG::TYPE_CODE_39,
+            'ean13' => \Picqer\Barcode\BarcodeGeneratorPNG::TYPE_EAN_13,
             // QR Not supported by this library, requires another one if needed
         ];
 
-        $barcodeType = $typeMap[strtolower($type)] ?? BarcodeGeneratorSVG::TYPE_CODE_128;
+        $barcodeType = $typeMap[strtolower($type)] ?? \Picqer\Barcode\BarcodeGeneratorPNG::TYPE_CODE_128;
 
         try {
-            return $this->generator->getBarcode($text, $barcodeType);
+            $barcodeData = $this->generator->getBarcode($text, $barcodeType);
+            return '<img src="data:image/png;base64,' . base64_encode($barcodeData) . '" alt="barcode">';
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Barcode generation error: ' . $e->getMessage());
             return null;

@@ -69,7 +69,7 @@
             height: 8mm;
             overflow: hidden;
         }
-        .barcode svg {
+        .barcode img {
             display: block;
             margin: 0 auto;
             max-width: 100%;

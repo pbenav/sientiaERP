@@ -21,4 +21,10 @@ class EditRecibo extends EditRecord
     {
         return $this->getResource()::getUrl('index');
     }
+
+    protected function getSaveFormAction(): \Filament\Actions\Action
+    {
+        return parent::getSaveFormAction()
+            ->successRedirectUrl($this->getRedirectUrl());
+    }
 }

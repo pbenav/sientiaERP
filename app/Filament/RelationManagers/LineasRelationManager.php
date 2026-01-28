@@ -277,26 +277,27 @@ class LineasRelationManager extends RelationManager
                     ->visible(!$isLabel)
                     ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
                     ->alignCenter(),
+
+                // Mostramos Base Imponible en lugar de Total con IVA
+                Tables\Columns\TextColumn::make('subtotal')
+                    ->label('Base')
+                    ->extraAttributes(['style' => 'width: 120px; min-width: 120px; max-width: 120px'])
+                    ->sortable()
+                    ->visible(!$isLabel)
+                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2) . ' €')
+                    ->alignRight(),
                 
                 Tables\Columns\TextColumn::make('iva')
                     ->label('IVA%')
+                    ->badge() // Badge para resaltar que es un tipo impositivo
+                    ->color('info')
                     ->extraAttributes(['style' => 'width: 90px; min-width: 90px; max-width: 90px'])
                     ->sortable()
                     ->visible(!$isLabel)
-                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
+                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 0) . '%')
                     ->alignCenter(),
                     
-                Tables\Columns\TextColumn::make('total')
-                    ->label('Total')
-                    ->extraHeaderAttributes(['style' => 'width: 140px; min-width: 140px; max-width: 140px'])
-                    ->extraAttributes(['style' => 'width: 140px; min-width: 140px; max-width: 140px'])
-                    ->alignRight()
-                    ->visible(!$isLabel)
-                    ->getStateUsing(fn ($record) => $record->total)
-                    ->formatStateUsing(function ($state) {
-                        return \App\Helpers\NumberFormatHelper::formatCurrency($state);
-                    })
-                    ->sortable(),
+                // Ocultamos la columna Total porque se desgloza al final
             ])
             ->filters([
                 //

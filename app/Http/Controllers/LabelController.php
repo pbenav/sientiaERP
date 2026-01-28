@@ -22,8 +22,8 @@ class LabelController extends Controller
         }
 
         try {
-            $pdf = $this->labelService->generatePDF($etiqueta);
-            return $pdf->download('etiquetas-' . ($etiqueta->numero ?? $etiqueta->id) . '.pdf');
+            $pdf = $this->labelService->generatePDF($record);
+            return $pdf->download('etiquetas-' . ($record->numero ?? $record->id) . '.pdf');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
         }

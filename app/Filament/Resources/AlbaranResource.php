@@ -102,19 +102,9 @@ class AlbaranResource extends Resource
 
                 Forms\Components\Section::make('Totales')
                     ->schema([
-                        Forms\Components\Placeholder::make('subtotal_display')
-                            ->label('Subtotal')
-                            ->content(fn($record) => $record ? number_format($record->subtotal, 2, ',', '.') . ' €' : '0,00 €'),
-                        
-                        Forms\Components\Placeholder::make('iva_display')
-                            ->label('IVA')
-                            ->content(fn($record) => $record ? number_format($record->iva, 2, ',', '.') . ' €' : '0,00 €'),
-
-                        Forms\Components\Placeholder::make('total_display')
-                            ->label('TOTAL')
-                            ->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €')
-                            ->extraAttributes(['class' => 'text-xl font-bold text-primary-600']),
-                    ])->columns(3)
+                        Forms\Components\View::make('filament.components.tax-breakdown')
+                            ->columnSpanFull(),
+                    ])->columns(3) // Keep columns to match layout if needed, though columnSpanFull overrides it inside
                     ->visibleOn('edit')
                     ->collapsible(),
 
