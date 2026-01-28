@@ -28,6 +28,12 @@ class EditEtiqueta extends EditRecord
         ];
     }
 
+    public function save(bool $shouldRedirect = true): void
+    {
+        parent::save($shouldRedirect);
+        $this->redirect($this->getResource()::getUrl('index'));
+    }
+
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
