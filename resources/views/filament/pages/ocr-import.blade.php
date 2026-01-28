@@ -1,4 +1,46 @@
 <x-filament-panels::page>
+    <style>
+        /* Ocultar spin buttons en campos numéricos */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        
+        /* Asegurar que el contenido de la tabla no se envuelva */
+        .ocr-table th,
+        .ocr-table td {
+            white-space: nowrap;
+        }
+        
+        /* Hacer que la tabla sea scrollable horizontalmente si es necesario */
+        .table-container {
+            overflow-x: auto;
+        }
+    </style>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Navegación con Enter: avanzar al siguiente campo
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+                    e.preventDefault();
+                    
+                    // Obtener todos los inputs editables
+                    const inputs = Array.from(document.querySelectorAll('input:not([type="hidden"]):not([disabled]), textarea:not([disabled])'));
+                    const currentIndex = inputs.indexOf(e.target);
+                    
+                    if (currentIndex > -1 && currentIndex < inputs.length - 1) {
+                        // Enfocar el siguiente input
+                        inputs[currentIndex + 1].focus();
+                    }
+                }
+            });
+        });
+    </script>
     <div class="space-y-6">
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
             {{ $this->form }}
@@ -29,7 +71,15 @@
                     </div>
                     <div class="col-span-2">
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Proveedor</label>
-                        <input type="text" wire:model="parsedData.supplier" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Nombre del proveedor">
+                        <select wire:model="parsedData.supplier_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="">-- Seleccionar Proveedor --</option>
+                            @foreach($suppliers as $supplier)
+                                <option value="{{ $supplier->id }}">{{ $supplier->nombre_comercial }} @if($supplier->nif_cif)({{ $supplier->nif_cif }})@endif</option>
+                            @endforeach
+                        </select>
+                        @if(!empty($parsedData['supplier']))
+                            <p class="text-xs text-gray-500 mt-1">Detectado por OCR: {{ $parsedData['supplier'] }}</p>
+                        @endif
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">NIF/CIF</label>
@@ -48,46 +98,142 @@
                                 Añadir Línea
                             </x-filament::button>
                         </div>
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <div class="overflow-x-auto table-container">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 ocr-table">
                                 <thead class="bg-gray-50 dark:bg-gray-900">
                                     <tr>
-                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-32">Ref/SKU</th>
-                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Descripción</th>
-                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-24">Cantidad</th>
-                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-32">P. Compra</th>
-                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-24">Margen %</th>
-                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-32">PVP</th>
-                                        <th class="px-3 py-2 w-10"></th>
+                                        <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-24">Ref/SKU</th>
+                                        <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Descripción</th>
+                                        <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-16">Cant.</th>
+                                        <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-24">P. Compra</th>
+                                        <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-20">Marg %</th>
+                                        <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-24">Beneficio</th>
+                                        <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-20">IVA</th>
+                                        <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-24">P. Venta</th>
+                                        <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-24">Imp. total</th>
+                                        <th class="px-2 py-2 w-8"></th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
                                     @foreach($parsedData['items'] as $index => $item)
-                                        <tr>
-                                            <td class="px-3 py-2">
-                                                <input type="text" wire:model="parsedData.items.{{ $index }}.reference" class="block w-full text-sm rounded border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="REF">
+                                        <tr x-data="{
+                                            index: {{ $index }},
+                                            taxRate: {{ $item['vat_rate'] ?? 21 }},
+                                            
+                                            updatePriceFromMargin() {
+                                                const purchasePrice = parseFloat(this.$refs.purchasePrice.value) || 0;
+                                                const margin = parseFloat(this.$refs.margin.value) || 0;
+                                                
+                                                if (margin >= 100) {
+                                                    this.$refs.margin.value = 99;
+                                                    return;
+                                                }
+                                                
+                                                const priceWithoutVat = purchasePrice / (1 - (margin / 100));
+                                                const benefit = priceWithoutVat - purchasePrice;
+                                                const vatAmount = priceWithoutVat * (this.taxRate / 100);
+                                                const salePrice = priceWithoutVat * (1 + (this.taxRate / 100));
+                                                
+                                                this.$refs.salePrice.value = salePrice.toFixed(2);
+                                                $wire.set('parsedData.items.{{ $index }}.benefit', benefit);
+                                                $wire.set('parsedData.items.{{ $index }}.vat_amount', vatAmount);
+                                                $wire.set('parsedData.items.{{ $index }}.sale_price', salePrice);
+                                            },
+                                            
+                                            updateMarginFromPrice() {
+                                                const purchasePrice = parseFloat(this.$refs.purchasePrice.value) || 0;
+                                                const salePrice = parseFloat(this.$refs.salePrice.value) || 0;
+                                                
+                                                if (salePrice > 0 && purchasePrice > 0) {
+                                                    const priceWithoutVat = salePrice / (1 + (this.taxRate / 100));
+                                                    const margin = (1 - (purchasePrice / priceWithoutVat)) * 100;
+                                                    const benefit = priceWithoutVat - purchasePrice;
+                                                    const vatAmount = priceWithoutVat * (this.taxRate / 100);
+                                                    
+                                                    this.$refs.margin.value = margin.toFixed(2);
+                                                    $wire.set('parsedData.items.{{ $index }}.margin', margin);
+                                                    $wire.set('parsedData.items.{{ $index }}.benefit', benefit);
+                                                    $wire.set('parsedData.items.{{ $index }}.vat_amount', vatAmount);
+                                                }
+                                            }
+                                        }">
+                                            <td class="px-2 py-2">
+                                                <input type="text" wire:model="parsedData.items.{{ $index }}.reference" onfocus="this.select()" class="block w-full text-sm rounded border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="REF">
                                             </td>
-                                            <td class="px-3 py-2">
-                                                <input type="text" wire:model="parsedData.items.{{ $index }}.description" class="block w-full text-sm rounded border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                            <td class="px-2 py-2">
+                                                <input type="text" wire:model="parsedData.items.{{ $index }}.description" onfocus="this.select()" class="block w-full text-sm rounded border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                                             </td>
-                                            <td class="px-3 py-2">
-                                                <input type="number" step="0.01" wire:model="parsedData.items.{{ $index }}.quantity" class="block w-full text-sm rounded border-gray-300 text-right dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                            <td class="px-2 py-2">
+                                                <input 
+                                                    type="number" 
+                                                    step="0.01" 
+                                                    wire:model="parsedData.items.{{ $index }}.quantity" 
+                                                    onfocus="this.select()"
+                                                    class="block w-full text-sm rounded border-gray-300 text-right dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                                >
                                             </td>
-                                            <td class="px-3 py-2">
-                                                <input type="number" step="0.01" wire:model="parsedData.items.{{ $index }}.unit_price" class="block w-full text-sm rounded border-gray-300 text-right dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                            <td class="px-2 py-2">
+                                                <input 
+                                                    type="number" 
+                                                    step="0.01" 
+                                                    wire:model="parsedData.items.{{ $index }}.unit_price" 
+                                                    x-ref="purchasePrice"
+                                                    @input="updatePriceFromMargin()"
+                                                    onfocus="this.select()"
+                                                    class="block w-full text-sm rounded border-gray-300 text-right dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                                >
                                             </td>
-                                            <td class="px-3 py-2">
-                                                <input type="number" step="0.01" min="0" max="1000" wire:model="parsedData.items.{{ $index }}.margin" class="block w-full text-sm rounded border-gray-300 text-right dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="30">
+                                            <td class="px-2 py-2">
+                                                <input 
+                                                    type="number" 
+                                                    step="0.01" 
+                                                    min="0" 
+                                                    max="1000" 
+                                                    wire:model="parsedData.items.{{ $index }}.margin" 
+                                                    x-ref="margin"
+                                                    @input="updatePriceFromMargin()"
+                                                    onfocus="this.select()"
+                                                    class="block w-full text-sm rounded border-gray-300 text-right dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                                                    placeholder="30"
+                                                >
                                             </td>
-                                            <td class="px-3 py-2 text-sm text-right font-medium dark:text-white">
+                                            <td class="px-2 py-2 text-sm text-right font-medium dark:text-white">
                                                 @php
-                                                    $unitPrice = $item['unit_price'] ?? 0;
-                                                    $margin = $item['margin'] ?? 30;
-                                                    $pvp = $unitPrice * (1 + ($margin / 100));
+                                                    $purchasePrice = (float)($item['unit_price'] ?? 0);
+                                                    $margin = (float)($item['margin'] ?? 30);
+                                                    if ($margin >= 100) $margin = 99;
+                                                    $priceWithoutVat = $purchasePrice / (1 - ($margin / 100));
+                                                    $benefit = $priceWithoutVat - $purchasePrice;
                                                 @endphp
-                                                {{ number_format($pvp, 2) }} €
+                                                {{ number_format($benefit, 2) }} €
                                             </td>
-                                            <td class="px-3 py-2 text-center">
+                                            <td class="px-2 py-2 text-sm text-right font-medium dark:text-white">
+                                                @php
+                                                    $taxRate = (float)($item['vat_rate'] ?? 21);
+                                                    $vatAmount = $priceWithoutVat * ($taxRate / 100);
+                                                @endphp
+                                                {{ number_format($vatAmount, 2) }} €
+                                            </td>
+                                            <td class="px-2 py-2">
+                                                <input 
+                                                    type="number" 
+                                                    step="0.01" 
+                                                    wire:model="parsedData.items.{{ $index }}.sale_price" 
+                                                    x-ref="salePrice"
+                                                    @input="updateMarginFromPrice()"
+                                                    onfocus="this.select()"
+                                                    class="block w-full text-sm rounded border-gray-300 text-right dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                                >
+                                            </td>
+                                            <td class="px-2 py-2 text-sm text-right font-medium dark:text-white">
+                                                @php
+                                                    $quantity = (float)($item['quantity'] ?? 1);
+                                                    $unitPrice = (float)($item['unit_price'] ?? 0);
+                                                    $total = $quantity * $unitPrice;
+                                                @endphp
+                                                {{ number_format($total, 2) }} €
+                                            </td>
+                                            <td class="px-2 py-2 text-center">
                                                 <button type="button" wire:click="removeItem({{ $index }})" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
                                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>

@@ -1,4 +1,4 @@
 #!/bin/bash
-echo "*** Iniciando nexERP ***"
-php bin/nexerp-tui.php
+echo "*** Iniciando sientiaERP ***"
+php bin/sientiaerp-tui.php
 echo "*** Fin del programa ***"

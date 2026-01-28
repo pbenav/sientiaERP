@@ -42,7 +42,7 @@ sudo mv composer.phar /usr/local/bin/composer
 server {
     listen 80;
     server_name tu-dominio.com;
-    root /var/www/nexerp/public;
+    root /var/www/sientiaerp/public;
 
     add_header X-Frame-Options "SAMEORIGIN";
     add_header X-Content-Type-Options "nosniff";
@@ -77,9 +77,9 @@ server {
 ```bash
 # Clonar/copiar proyecto
 cd /var/www
-sudo mkdir nexerp
-sudo chown $USER:$USER nexerp
-cd nexerp
+sudo mkdir sientiaerp
+sudo chown $USER:$USER sientiaerp
+cd sientiaerp
 
 # Instalar dependencias
 composer install --optimize-autoloader --no-dev
@@ -99,8 +99,8 @@ APP_URL=https://tu-dominio.com
 
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
-DB_DATABASE=nexerp_pos
-DB_USERNAME=nexerp_user
+DB_DATABASE=sientiaerp_pos
+DB_USERNAME=sientiaerp_user
 DB_PASSWORD=contraseña_segura
 
 CACHE_STORE=redis
@@ -126,13 +126,13 @@ php artisan make:filament-user
 #### Configurar Supervisor para Queues
 
 ```bash
-sudo nano /etc/supervisor/conf.d/nexerp-worker.conf
+sudo nano /etc/supervisor/conf.d/sientiaerp-worker.conf
 ```
 
 ```ini
-[program:nexerp-worker]
+[program:sientiaerp-worker]
 process_name=%(program_name)s_%(process_num)02d
-command=php /var/www/nexerp/artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+command=php /var/www/sientiaerp/artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
 autostart=true
 autorestart=true
 stopasgroup=true
@@ -140,14 +140,14 @@ killasgroup=true
 user=www-data
 numprocs=2
 redirect_stderr=true
-stdout_logfile=/var/www/nexerp/storage/logs/worker.log
+stdout_logfile=/var/www/sientiaerp/storage/logs/worker.log
 stopwaitsecs=3600
 ```
 
 ```bash
 sudo supervisorctl reread
 sudo supervisorctl update
-sudo supervisorctl start nexerp-worker:*
+sudo supervisorctl start sientiaerp-worker:*
 ```
 
 ### 2. Terminales POS
@@ -157,8 +157,8 @@ sudo supervisorctl start nexerp-worker:*
 ```bash
 # En cada terminal de caja
 cd /opt
-sudo git clone https://tu-repo.git nexerp-pos
-cd nexerp-pos
+sudo git clone https://tu-repo.git sientiaerp-pos
+cd sientiaerp-pos
 
 # Instalar solo dependencias necesarias
 composer install --no-dev --optimize-autoloader
@@ -171,7 +171,7 @@ source ~/.bashrc
 chmod +x bin/pos-tui.php
 
 # Crear alias para fácil acceso
-echo 'alias pos="php /opt/nexerp-pos/bin/pos-tui.php"' >> ~/.bashrc
+echo 'alias pos="php /opt/sientiaerp-pos/bin/pos-tui.php"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
@@ -187,7 +187,7 @@ sudo nano /usr/local/bin/pos-autostart
 ```bash
 #!/bin/bash
 sleep 5  # Esperar a que el sistema esté listo
-cd /opt/nexerp-pos
+cd /opt/sientiaerp-pos
 php bin/pos-tui.php
 ```
 
@@ -242,33 +242,33 @@ Route::middleware(['throttle:60,1'])->group(function () {
 #### Script de Backup Automático
 
 ```bash
-sudo nano /usr/local/bin/nexerp-backup
+sudo nano /usr/local/bin/sientiaerp-backup
 ```
 
 ```bash
 #!/bin/bash
-BACKUP_DIR="/var/backups/nexerp"
+BACKUP_DIR="/var/backups/sientiaerp"
 DATE=$(date +%Y%m%d_%H%M%S)
 
 mkdir -p $BACKUP_DIR
 
 # Backup de base de datos
-mysqldump -u nexerp_user -p'contraseña' nexerp_pos | gzip > $BACKUP_DIR/db_$DATE.sql.gz
+mysqldump -u sientiaerp_user -p'contraseña' sientiaerp_pos | gzip > $BACKUP_DIR/db_$DATE.sql.gz
 
 # Backup de archivos
-tar -czf $BACKUP_DIR/files_$DATE.tar.gz /var/www/nexerp/storage
+tar -czf $BACKUP_DIR/files_$DATE.tar.gz /var/www/sientiaerp/storage
 
 # Limpiar backups antiguos (más de 30 días)
 find $BACKUP_DIR -name "*.gz" -mtime +30 -delete
 ```
 
 ```bash
-sudo chmod +x /usr/local/bin/nexerp-backup
+sudo chmod +x /usr/local/bin/sientiaerp-backup
 
 # Programar backup diario
 sudo crontab -e
 # Añadir:
-0 2 * * * /usr/local/bin/nexerp-backup
+0 2 * * * /usr/local/bin/sientiaerp-backup
 ```
 
 ### 5. Monitoreo
@@ -277,14 +277,14 @@ sudo crontab -e
 
 ```bash
 # Ver logs de Laravel
-tail -f /var/www/nexerp/storage/logs/laravel.log
+tail -f /var/www/sientiaerp/storage/logs/laravel.log
 
 # Ver logs de Nginx
 tail -f /var/log/nginx/access.log
 tail -f /var/log/nginx/error.log
 
 # Ver logs de workers
-tail -f /var/www/nexerp/storage/logs/worker.log
+tail -f /var/www/sientiaerp/storage/logs/worker.log
 ```
 
 #### Health Check
@@ -305,7 +305,7 @@ Route::get('/health', function () {
 ### 6. Actualización
 
 ```bash
-cd /var/www/nexerp
+cd /var/www/sientiaerp
 
 # Modo mantenimiento
 php artisan down
@@ -348,7 +348,7 @@ sudo chown -R www-data:www-data storage bootstrap/cache
 sudo systemctl status mysql
 
 # Probar conexión
-mysql -u nexerp_user -p -h 127.0.0.1 nexerp_pos
+mysql -u sientiaerp_user -p -h 127.0.0.1 sientiaerp_pos
 ```
 
 ### Redis no conecta

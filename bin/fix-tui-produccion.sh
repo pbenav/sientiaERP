@@ -1,7 +1,7 @@
 #!/bin/bash
 # Script de solución rápida para TUI en producción
 
-echo "=== Solución rápida TUI nexERP ==="
+echo "=== Solución rápida TUI sientiaERP ==="
 echo ""
 
 # 1. Actualizar código
@@ -28,9 +28,9 @@ echo ""
 
 # 4. Verificar que el código está actualizado
 echo "4. Verificando código actualizado:"
-grep "'api_url'" bin/nexerp-tui.php | head -1
+grep "'api_url'" bin/sientiaerp-tui.php | head -1
 echo ""
 
 echo "=== Solución completada ==="
 echo ""
-echo "Ahora puedes ejecutar: php bin/nexerp-tui.php"
+echo "Ahora puedes ejecutar: php bin/sientiaerp-tui.php"

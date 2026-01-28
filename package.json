@@ -1,5 +1,6 @@
 {
     "private": true,
+    "name": "sientiaerp",
     "type": "module",
     "scripts": {
         "build": "vite build",

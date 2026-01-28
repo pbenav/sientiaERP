@@ -1,4 +1,4 @@
-# nexERP - Resumen de Implementación
+# sientiaERP - Resumen de Implementación
 
 ## ✅ Sistema Completado
 

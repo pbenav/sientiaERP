@@ -1,4 +1,4 @@
-# Cliente TUI para ERP - nexERP
+# Cliente TUI para ERP - sientiaERP
 
 Cliente de terminal con interfaz dividida usando tmux para gestión de terceros y documentos de negocio.
 
@@ -76,7 +76,7 @@ El cliente crea automáticamente una sesión tmux con 3 paneles:
 
 - Presiona `Q` en el menú principal
 - O presiona `Ctrl+B` luego `D` para detach de tmux
-- Para matar la sesión: `tmux kill-session -t nexerp-tui`
+- Para matar la sesión: `tmux kill-session -t sientiaerp-tui`
 
 ## Estructura
 
@@ -130,7 +130,7 @@ chmod +x bin/erp-tui*.php
 ### Sesión tmux colgada
 
 ```bash
-tmux kill-session -t nexerp-tui
+tmux kill-session -t sientiaerp-tui
 ```
 
 ### Paneles no se muestran correctamente

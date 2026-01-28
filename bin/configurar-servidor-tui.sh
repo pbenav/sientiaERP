@@ -1,8 +1,8 @@
 #!/bin/bash
-# Script de configuración del servidor TUI de nexERP
+# Script de configuración del servidor TUI de sientiaERP
 
 echo "╔═══════════════════════════════════════════════════════════╗"
-echo "║     Configuración del Servidor TUI de nexERP              ║"
+echo "║     Configuración del Servidor TUI de sientiaERP          ║"
 echo "╚═══════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -58,7 +58,7 @@ esac
 
 # Crear o actualizar el archivo .tui.env
 cat > "$TUI_ENV_FILE" << EOF
-# Configuracion del Cliente TUI de nexERP
+# Configuracion del Cliente TUI de sientiaERP
 # Este archivo permite configurar la URL del servidor API para el cliente TUI
 
 # URL del servidor API (sin barra final)
@@ -76,7 +76,7 @@ echo ""
 echo "📝 URL configurada: $URL"
 echo ""
 echo "Ahora puedes ejecutar el TUI con:"
-echo "  php bin/nexerp-tui.php"
+echo "  php bin/sientiaerp-tui.php"
 echo ""
 
 # Verificar conectividad (opcional)

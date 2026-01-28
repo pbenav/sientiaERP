@@ -31,14 +31,28 @@ class OcrImport extends Page implements HasForms
         'total' => null,
         'nif' => null,
         'supplier' => null,
+        'supplier_id' => null,
         'document_number' => null,
         'items' => [],
     ];
+    
+    public $suppliers = [];
 
     public function mount(): void
     {
         $this->form->fill();
         $this->maxUploadSize = ini_get('upload_max_filesize');
+        
+        // Cargar proveedores
+        $this->suppliers = \App\Models\Tercero::whereHas('tipos', function($q) {
+            $q->where('codigo', 'PRO');
+        })->orderBy('nombre_comercial')->get();
+        
+        // Establecer proveedor por defecto
+        $defaultSupplierId = \App\Models\Setting::get('default_supplier_id');
+        if ($defaultSupplierId) {
+            $this->parsedData['supplier_id'] = $defaultSupplierId;
+        }
     }
 
     public function form(Form $form): Form
@@ -117,15 +131,41 @@ class OcrImport extends Page implements HasForms
             
             $formattedItems = [];
             if (!empty($result['items'])) {
-                $defaultMargin = \App\Models\Setting::get('default_commercial_margin', 30);
+                $defaultMargin = (float)\App\Models\Setting::get('default_commercial_margin', 30);
+                $defaultTaxRate = (float)\App\Models\Setting::get('default_tax_rate', 21);
+                
                 foreach ($result['items'] as $item) {
-                     $formattedItems[] = [
+                    $purchasePrice = (float)($item['unit_price'] ?? 0);
+                    $margin = $defaultMargin;
+                    
+                    // Validar que el margen no sea 100% o mayor para evitar división por cero
+                    if ($margin >= 100) {
+                        $margin = 99;
+                    }
+                    
+                    // Precio sin IVA
+                    $priceWithoutVat = $purchasePrice / (1 - ($margin / 100));
+                    
+                    // Beneficio
+                    $benefit = $priceWithoutVat - $purchasePrice;
+                    
+                    // Importe IVA
+                    $vatAmount = $priceWithoutVat * ($defaultTaxRate / 100);
+                    
+                    // Precio final con IVA
+                    $salePrice = round($priceWithoutVat * (1 + ($defaultTaxRate / 100)), 2);
+                    
+                    $formattedItems[] = [
                         'description' => $item['description'] ?? '',
                         'reference' => $item['reference'] ?? $item['product_code'] ?? '',
                         'product_code' => $item['product_code'] ?? $item['reference'] ?? '',
-                        'quantity' => $item['quantity'] ?? 1,
-                        'unit_price' => $item['unit_price'] ?? 0,
-                        'margin' => $defaultMargin,
+                        'quantity' => (float)($item['quantity'] ?? 1),
+                        'unit_price' => $purchasePrice,
+                        'margin' => $margin,
+                        'benefit' => $benefit,
+                        'vat_rate' => $defaultTaxRate,
+                        'vat_amount' => $vatAmount,
+                        'sale_price' => $salePrice,
                         'matched_product_id' => $item['matched_product_id'] ?? null,
                     ];
                 }
@@ -153,13 +193,36 @@ class OcrImport extends Page implements HasForms
 
     public function addItem()
     {
-        $defaultMargin = \App\Models\Setting::get('default_commercial_margin', 30);
+        $defaultMargin = (float)\App\Models\Setting::get('default_commercial_margin', 30);
+        $defaultTaxRate = (float)\App\Models\Setting::get('default_tax_rate', 21);
+        
+        // Validar que el margen no sea 100% o mayor
+        if ($defaultMargin >= 100) {
+            $defaultMargin = 99;
+        }
+        
+        // Precio sin IVA
+        $priceWithoutVat = 0 / (1 - ($defaultMargin / 100));
+        
+        // Beneficio
+        $benefit = $priceWithoutVat - 0;
+        
+        // Importe IVA
+        $vatAmount = $priceWithoutVat * ($defaultTaxRate / 100);
+        
+        // Precio final con IVA
+        $salePrice = round($priceWithoutVat * (1 + ($defaultTaxRate / 100)), 2);
+        
         $this->parsedData['items'][] = [
             'description' => '',
             'reference' => '',
-            'quantity' => 1,
-            'unit_price' => 0,
+            'quantity' => 1.0,
+            'unit_price' => 0.0,
             'margin' => $defaultMargin,
+            'benefit' => $benefit,
+            'vat_rate' => $defaultTaxRate,
+            'vat_amount' => $vatAmount,
+            'sale_price' => $salePrice,
             'matched_product_id' => null,
         ];
     }
@@ -205,7 +268,7 @@ class OcrImport extends Page implements HasForms
             'user_id' => auth()->id(),
             'fecha' => $this->parsedData['date'] ?? now(),
             'serie' => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A',
-            'tercero_id' => $this->parsedData['matched_provider_id'] ?? null,
+            'tercero_id' => $this->parsedData['supplier_id'] ?? $this->parsedData['matched_provider_id'] ?? null,
             'referencia_proveedor' => (string) ($this->parsedData['document_number'] ?? 'REF-' . strtoupper(uniqid())),
             'archivo' => $finalPath,
         ];
@@ -251,11 +314,26 @@ class OcrImport extends Page implements HasForms
                             $existingProduct = \App\Models\Product::findByCode($productRef);
                             if ($existingProduct) {
                                 $item['matched_product_id'] = $existingProduct->id;
-                                \Illuminate\Support\Facades\Log::info('Product matched by code', [
-                                    'code' => $productRef,
-                                    'product_id' => $existingProduct->id
+                                
+                                // Actualizar producto existente con nuevos datos
+                                $purchasePrice = $item['unit_price'] ?? 0;
+                                $margin = $item['margin'] ?? 30;
+                                $retailPrice = $item['sale_price'] ?? \App\Models\Product::calculateRetailPrice($purchasePrice, $margin);
+                                
+                                $existingProduct->update([
+                                    'name' => $item['description'] ?? $existingProduct->name,
+                                    'description' => $item['description'] ?? $existingProduct->description,
+                                    'price' => $retailPrice,
+                                    'purchase_price' => $purchasePrice,
                                 ]);
-                                continue; // Skip creation, product found
+                                
+                                \Illuminate\Support\Facades\Log::info('Product updated with new data', [
+                                    'code' => $productRef,
+                                    'product_id' => $existingProduct->id,
+                                    'new_price' => $retailPrice,
+                                    'new_purchase_price' => $purchasePrice
+                                ]);
+                                continue; // Skip creation, product updated
                             }
                         }
                         
@@ -274,10 +352,10 @@ class OcrImport extends Page implements HasForms
                                 $productRef = 'AUTO-' . strtoupper(uniqid());
                             }
                             
-                            // Calcular PVP aplicando margen
+                            // Usar el precio de venta editado por el usuario
                             $purchasePrice = $price;
                             $margin = $item['margin'] ?? 30;
-                            $retailPrice = \App\Models\Product::calculateRetailPrice($purchasePrice, $margin);
+                            $retailPrice = $item['sale_price'] ?? \App\Models\Product::calculateRetailPrice($purchasePrice, $margin);
                             
                             $newProduct = \App\Models\Product::create([
                                 'name' => $desc,
