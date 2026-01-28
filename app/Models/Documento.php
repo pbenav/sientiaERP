@@ -20,6 +20,7 @@ class Documento extends Model
         'tipo', 'numero', 'serie', 'fecha', 'tercero_id', 'user_id',
         'documento_origen_id', 'estado',
         'subtotal', 'descuento', 'base_imponible', 'iva', 'irpf', 'porcentaje_irpf', 'recargo_equivalencia', 'total',
+        'stock_actualizado',
         'forma_pago_id',
         'observaciones', 'observaciones_internas',
         'fecha_validez', 'fecha_entrega', 'fecha_vencimiento',
@@ -43,6 +44,7 @@ class Documento extends Model
         'recargo_equivalencia' => 'decimal:2',
         'total' => 'decimal:2',
         'es_rectificativa' => 'boolean',
+        'stock_actualizado' => 'boolean',
     ];
 
     protected static function boot()
@@ -276,6 +278,14 @@ class Documento extends Model
 
             $this->update($data);
 
+            // ACTUALIZACIÓN DE STOCK
+            try {
+                $stockService = new \App\Services\StockService();
+                $stockService->actualizarStockDesdeDocumento($this);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Error actualizando stock al confirmar documento ' . $this->id . ': ' . $e->getMessage());
+            }
+
             // Generar recibos automáticamente si es factura
             if (in_array($this->tipo, ['factura', 'factura_compra'])) {
                 try {
@@ -290,8 +300,6 @@ class Documento extends Model
                         $service->generarRecibosDesdeFactura($this);
                     }
                 } catch (\Exception $e) {
-                    // Log error o continuar silenciosamente. 
-                    // No queremos romper la confirmación si falla la generación automática de recibos.
                     \Illuminate\Support\Facades\Log::error('Error generando recibos automáticos al confirmar factura ' . $this->id . ': ' . $e->getMessage());
                 }
             }
@@ -303,6 +311,16 @@ class Documento extends Model
      */
     public function anular(): void
     {
+        // Solo se puede anular si está confirmado o procesado
+        if (!in_array($this->estado, ['confirmado', 'procesado'])) {
+            throw new \Exception('Solo pueden anularse documentos confirmados o procesados.');
+        }
+
+        // Verificar si tiene derivado que no esté anulado (Usa el Trait BloqueoDocumentos)
+        if ($this->tieneDocumentosDerivados()) {
+            throw new \Exception('No se puede anular el documento porque tiene documentos derivados activos.');
+        }
+
         // Validar recibos si es factura
         if (in_array($this->tipo, ['factura', 'factura_compra'])) {
             $recibosPagados = self::where('documento_origen_id', $this->id)
@@ -315,7 +333,23 @@ class Documento extends Model
             }
         }
         
-        $this->update(['estado' => 'anulado']);
+        DB::transaction(function() {
+            // REVERTIR STOCK si aplica
+            if ($this->stock_actualizado) {
+                $stockService = new \App\Services\StockService();
+                $stockService->actualizarStockDesdeDocumento($this, true);
+            }
+
+            $this->update(['estado' => 'anulado']);
+
+            // DESBLOQUEAR EL ORIGEN (si existe)
+            if ($this->documento_origen_id) {
+                $origen = $this->documentoOrigen;
+                if ($origen && $origen->estado === 'procesado') {
+                    $origen->update(['estado' => 'confirmado']);
+                }
+            }
+        });
     }
 
     /**
@@ -323,21 +357,35 @@ class Documento extends Model
      */
     public function convertirA(string $tipoDestino): self
     {
-        $nuevoDocumento = $this->replicate();
-        $nuevoDocumento->tipo = $tipoDestino;
-        $nuevoDocumento->numero = null; // Se generará automáticamente
-        $nuevoDocumento->documento_origen_id = $this->id;
-        $nuevoDocumento->estado = 'borrador';
-        $nuevoDocumento->save();
-
-        // Copiar líneas
-        foreach ($this->lineas as $linea) {
-            $nuevaLinea = $linea->replicate();
-            $nuevaLinea->documento_id = $nuevoDocumento->id;
-            $nuevaLinea->save();
+        if ($this->estado === 'anulado') {
+            throw new \Exception('No se puede convertir un documento anulado.');
         }
 
-        $nuevoDocumento->recalcularTotales();
+        $nuevoDocumento = DB::transaction(function() use ($tipoDestino) {
+            $nuevo = $this->replicate();
+            $nuevo->tipo = $tipoDestino;
+            $nuevo->numero = null; // Se generará automáticamente
+            $nuevo->documento_origen_id = $this->id;
+            $nuevo->estado = 'borrador';
+            $nuevo->stock_actualizado = false;
+            $nuevo->save();
+
+            // Copiar líneas
+            foreach ($this->lineas as $linea) {
+                $nuevaLinea = $linea->replicate();
+                $nuevaLinea->documento_id = $nuevo->id;
+                $nuevaLinea->save();
+            }
+
+            $nuevo->recalcularTotales();
+
+            // Actualizar estado del origen a 'procesado' si estaba confirmado
+            if ($this->estado === 'confirmado') {
+                $this->update(['estado' => 'procesado']);
+            }
+
+            return $nuevo;
+        });
 
         return $nuevoDocumento;
     }

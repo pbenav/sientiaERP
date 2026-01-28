@@ -24,8 +24,7 @@ trait BloqueoDocumentos
      */
     public function puedeEditarse(): bool
     {
-        // 1. Si tiene documentos derivados, NO se puede editar nunca
-        // (Ignoramos etiquetas para el bloqueo de edición del albarán)
+        // 1. Si tiene documentos derivados activos, NO se puede editar nunca
         if ($this->tieneDocumentosDerivados()) {
             return false;
         }
@@ -35,28 +34,23 @@ trait BloqueoDocumentos
             return true;
         }
 
-        // 3. Regla de Oro para Facturas: Si tiene número (está confirmada), NO se edita jamás
-        // EXCEPCIÓN: Las facturas de compra se permiten editar para ajustes
+        // 3. Si el estado es procesado o anulado, NO se edita
+        if (in_array(strtolower($this->estado), ['procesado', 'anulado'])) {
+            return false;
+        }
+
+        // 4. Regla de Oro para Facturas: Si tiene número (está confirmada), NO se edita jamás
         if ($this->tipo === 'factura' && !empty($this->numero)) {
             return false;
         }
         
-        // 4. Si no tiene documento origen, sí se puede editar
-        if (!$this->documento_origen_id && $this->documentosOrigenMultiples->isEmpty()) {
-            return true;
-        }
-        
-        // 5. Excepciones de cadena
+        // 5. Excepciones para Pedidos procedentes de Presupuestos
         if ($this->tipo === 'pedido' && $this->documentoOrigen?->tipo === 'presupuesto') {
             return true;
         }
         
-        if ($this->documentosOrigenMultiples->count() > 1) {
-            return true;
-        }
-        
-        // 6. Por defecto, si viene de otro documento y no es borrador, bloqueamos para mantener la integridad
-        if ($this->documento_origen_id) {
+        // 6. Por defecto, si está confirmado y viene de un origen, bloqueamos
+        if ($this->documento_origen_id && $this->estado === 'confirmado') {
             return false;
         }
         
@@ -65,19 +59,47 @@ trait BloqueoDocumentos
 
     /**
      * Determinar si el documento puede eliminarse
-     * 
-     * Un documento solo puede eliminarse si no tiene documentos derivados.
-     * Las facturas confirmadas JAMÁS se eliminan.
      */
     public function puedeEliminarse(): bool
     {
-        // Regla de Oro para Facturas: Si tiene número (está confirmada), NO se elimina jamás
-        // EXCEPCIÓN: Las facturas de compra SÍ se pueden eliminar para revertir flujos
+        // No se elimina si está anulado o procesado
+        if (in_array(strtolower($this->estado), ['procesado', 'anulado'])) {
+            return false;
+        }
+
+        // Regla de Oro para Facturas
         if ($this->tipo === 'factura' && !empty($this->numero)) {
             return false;
         }
 
         return !$this->tieneDocumentosDerivados();
+    }
+
+    /**
+     * Boot trait para manejar eliminación y desbloqueo
+     */
+    public static function bootBloqueoDocumentos()
+    {
+        static::deleting(function ($model) {
+            // REVERTIR STOCK al eliminar (si no estaba anulado ya)
+            if ($model->stock_actualizado && $model->estado !== 'anulado') {
+                $stockService = new \App\Services\StockService();
+                $stockService->actualizarStockDesdeDocumento($model, true);
+            }
+        });
+
+        static::deleted(function ($model) {
+            // DESBLOQUEAR EL ORIGEN
+            if ($model->documento_origen_id) {
+                $origen = $model->documentoOrigen;
+                if ($origen && $origen->estado === 'procesado') {
+                    // Solo si no hay otros derivados activos aparte de este que estamos borrando
+                    if (!$origen->tieneDocumentosDerivados()) {
+                        $origen->update(['estado' => 'confirmado']);
+                    }
+                }
+            }
+        });
     }
 
     /**
