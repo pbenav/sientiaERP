@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>{{ config('app.name', 'sienteERP') }} - Gestión Empresarial Inteligente</title>", "StartLine": 6
+        <title>{{ config('app.name', 'sienteERP') }} - Gestión Empresarial Inteligente</title>
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -48,7 +48,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                 </div>
-                <span class="text-2xl font-bold tracking-tight text-white">nex<span class="text-blue-400">ERP</span></span>
+                <span class="text-2xl font-bold tracking-tight text-white">siente<span class="text-blue-400">ERP</span></span>
             </div>
             
             <a href="{{ url('/admin/login') }}" class="group relative px-6 py-2.5 rounded-full overflow-hidden bg-white/10 hover:bg-white/20 transition-all duration-300 border border-white/5 hover:border-white/20">
@@ -127,7 +127,7 @@
         <footer class="relative z-10 border-t border-white/5 py-12 px-6 bg-slate-950/50 backdrop-blur-lg mt-auto">
             <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
                 <div class="flex items-center gap-2">
-                     <span class="text-xl font-bold tracking-tight text-white">nex<span class="text-blue-400">ERP</span></span>
+                     <span class="text-xl font-bold tracking-tight text-white">siente<span class="text-blue-400">ERP</span></span>
                      <span class="text-slate-600 mx-2">|</span>
                      <span class="text-sm text-slate-500">&copy; {{ date('Y') }} Todos los derechos reservados.</span>
                 </div>
