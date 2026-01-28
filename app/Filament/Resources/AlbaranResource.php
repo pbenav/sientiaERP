@@ -96,9 +96,27 @@ class AlbaranResource extends Resource
                         
                     ])->columns(3)->compact(),
 
-                // SECCIÓN 3: PRODUCTOS (Movido a RelationManager)
-                // Forms\Components\View::make('filament.components.document-lines')
-                //     ->columnSpanFull(),
+                // SECCIÓN 3: PRODUCTOS
+                Forms\Components\View::make('filament.components.document-lines')
+                    ->columnSpanFull(),
+
+                Forms\Components\Section::make('Totales')
+                    ->schema([
+                        Forms\Components\Placeholder::make('subtotal_display')
+                            ->label('Subtotal')
+                            ->content(fn($record) => $record ? number_format($record->subtotal, 2, ',', '.') . ' €' : '0,00 €'),
+                        
+                        Forms\Components\Placeholder::make('iva_display')
+                            ->label('IVA')
+                            ->content(fn($record) => $record ? number_format($record->iva, 2, ',', '.') . ' €' : '0,00 €'),
+
+                        Forms\Components\Placeholder::make('total_display')
+                            ->label('TOTAL')
+                            ->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €')
+                            ->extraAttributes(['class' => 'text-xl font-bold text-primary-600']),
+                    ])->columns(3)
+                    ->visibleOn('edit')
+                    ->collapsible(),
 
                 // SECCIÓN 4: OBSERVACIONES
                 Forms\Components\Section::make('Observaciones')

@@ -62,8 +62,6 @@ class AlbaranCompraResource extends Resource
             Forms\Components\View::make('filament.components.document-lines')
                 ->columnSpanFull(),
 
-            Forms\Components\Textarea::make('observaciones')->label('Observaciones')->rows(2)->columnSpanFull(),
-
             // SECCIÓN 5: TOTALES (solo en edición)
             Forms\Components\Section::make('Totales')
                 ->schema([
@@ -77,10 +75,19 @@ class AlbaranCompraResource extends Resource
                     
                     Forms\Components\Placeholder::make('total_display')
                         ->label('TOTAL')
-                        ->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €'),
+                        ->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €')
+                        ->extraAttributes(['class' => 'text-xl font-bold text-primary-600']),
                 ])->columns(3)
                 ->visibleOn('edit')
                 ->collapsible(),
+
+            Forms\Components\Section::make('Observaciones')
+                ->schema([
+                    Forms\Components\Textarea::make('observaciones')
+                        ->label('Observaciones (visibles en el documento)')
+                        ->rows(2)
+                        ->columnSpanFull(),
+                ])->collapsible(),
         ]);
     }
 

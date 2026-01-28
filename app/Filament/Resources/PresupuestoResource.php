@@ -96,9 +96,9 @@ class PresupuestoResource extends Resource
                             ->required(),
                     ])->columns(3),
 
-                // SECCIÓN 2: PRODUCTOS (Movido a RelationManager)
-                // Forms\Components\View::make('filament.components.document-lines')
-                //     ->columnSpanFull(),
+                // SECCIÓN 2: PRODUCTOS
+                Forms\Components\View::make('filament.components.document-lines')
+                    ->columnSpanFull(),
 
                 Forms\Components\Section::make('Totales')
                     ->schema([
@@ -112,8 +112,11 @@ class PresupuestoResource extends Resource
                         
                         Forms\Components\Placeholder::make('total_display')
                             ->label('TOTAL')
-                            ->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €'),
-                    ])->columns(3),
+                            ->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €')
+                            ->extraAttributes(['class' => 'text-xl font-bold text-primary-600']),
+                    ])->columns(3)
+                    ->visibleOn('edit')
+                    ->collapsible(),
 
                 Forms\Components\Section::make('Observaciones')
                     ->schema([

@@ -125,18 +125,9 @@ class PedidoResource extends Resource
                         
                     ])->columns(3)->compact(),
 
-                // SECCIÓN 3: PRODUCTOS (Movido a RelationManager)
-                // Forms\Components\View::make('filament.components.document-lines')
-                //    ->columnSpanFull(),
-
-                // SECCIÓN 4: OBSERVACIONES
-                Forms\Components\Section::make('Observaciones')
-                    ->schema([
-                        Forms\Components\Textarea::make('observaciones')
-                            ->label('Observaciones (visibles en el documento)')
-                            ->rows(2)
-                            ->columnSpanFull(),
-                    ])->collapsible(),
+                // SECCIÓN 3: PRODUCTOS
+                Forms\Components\View::make('filament.components.document-lines')
+                    ->columnSpanFull(),
 
                 // SECCIÓN 5: TOTALES (solo en edición)
                 Forms\Components\Section::make('Totales')
@@ -151,10 +142,20 @@ class PedidoResource extends Resource
                         
                         Forms\Components\Placeholder::make('total_display')
                             ->label('TOTAL')
-                            ->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €'),
+                            ->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €')
+                            ->extraAttributes(['class' => 'text-xl font-bold text-primary-600']),
                     ])->columns(3)
                     ->visibleOn('edit')
                     ->collapsible(),
+
+                // SECCIÓN 4: OBSERVACIONES
+                Forms\Components\Section::make('Observaciones')
+                    ->schema([
+                        Forms\Components\Textarea::make('observaciones')
+                            ->label('Observaciones (visibles en el documento)')
+                            ->rows(2)
+                            ->columnSpanFull(),
+                    ])->collapsible(),
             ]);
     }
 

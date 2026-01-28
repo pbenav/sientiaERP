@@ -148,17 +148,9 @@ class FacturaResource extends Resource
                             ->disabled(fn ($record) => $record && $record->estado !== 'borrador'),
                     ]),
 
-                // SECCIÓN 3: PRODUCTOS - Manejadas por LineasRelationManager (tab abajo)
-                // Forms\Components\View::make('filament.components.document-lines')
-                //     ->columnSpanFull(),
-
-                Forms\Components\Section::make('Observaciones')
-                    ->schema([
-                        Forms\Components\Textarea::make('observaciones')
-                            ->label('Observaciones (visibles en el documento)')
-                            ->rows(3)
-                            ->columnSpanFull(),
-                    ]),
+                // SECCIÓN 3: PRODUCTOS
+                Forms\Components\View::make('filament.components.document-lines')
+                    ->columnSpanFull(),
 
                 Forms\Components\Section::make('Totales')
                     ->schema([
@@ -182,6 +174,14 @@ class FacturaResource extends Resource
                     ])->columns(4)
                     ->visibleOn('edit')
                     ->collapsible(),
+
+                Forms\Components\Section::make('Observaciones')
+                    ->schema([
+                        Forms\Components\Textarea::make('observaciones')
+                            ->label('Observaciones (visibles en el documento)')
+                            ->rows(3)
+                            ->columnSpanFull(),
+                    ]),
             ]);
     }
 
