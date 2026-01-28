@@ -20,6 +20,11 @@
         .table-container {
             overflow-x: auto;
         }
+        
+        /* Mayúsculas globales si está habilitado */
+        .uppercase-display {
+            text-transform: uppercase;
+        }
     </style>
     
     <script>
@@ -71,7 +76,7 @@
                     </div>
                     <div class="col-span-2">
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Proveedor</label>
-                        <select wire:model="parsedData.supplier_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <select wire:model="parsedData.supplier_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white {{ $displayUppercase ? 'uppercase-display' : '' }}">
                             <option value="">-- Seleccionar Proveedor --</option>
                             @foreach($suppliers as $supplier)
                                 <option value="{{ $supplier->id }}">{{ $supplier->nombre_comercial }} @if($supplier->nif_cif)({{ $supplier->nif_cif }})@endif</option>
@@ -158,10 +163,10 @@
                                             }
                                         }">
                                             <td class="px-2 py-2">
-                                                <input type="text" wire:model="parsedData.items.{{ $index }}.reference" onfocus="this.select()" class="block w-full text-sm rounded border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="REF">
+                                                <input type="text" wire:model="parsedData.items.{{ $index }}.reference" onfocus="this.select()" class="block w-full text-sm rounded border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white {{ $displayUppercase ? 'uppercase-display' : '' }}" placeholder="REF">
                                             </td>
                                             <td class="px-2 py-2">
-                                                <input type="text" wire:model="parsedData.items.{{ $index }}.description" onfocus="this.select()" class="block w-full text-sm rounded border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                                <input type="text" wire:model="parsedData.items.{{ $index }}.description" onfocus="this.select()" class="block w-full text-sm rounded border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white {{ $displayUppercase ? 'uppercase-display' : '' }}">
                                             </td>
                                             <td class="px-2 py-2">
                                                 <input 

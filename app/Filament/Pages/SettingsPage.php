@@ -45,6 +45,10 @@ class SettingsPage extends Page
             'timezone' => Setting::get('timezone', 'Europe/Madrid'),
             'pos_default_tercero_id' => Setting::get('pos_default_tercero_id'),
             'default_commercial_margin' => Setting::get('default_commercial_margin', 30),
+            'default_supplier_id' => Setting::get('default_supplier_id'),
+            'default_tax_rate' => Setting::get('default_tax_rate', 21),
+            'display_uppercase' => Setting::get('display_uppercase', 'false'),
+            'barcode_type' => Setting::get('barcode_type', 'code128'),
             // AI Settings
             'ai_provider' => Setting::get('ai_provider', 'gemini'),
             'ai_backup_provider' => Setting::get('ai_backup_provider', 'none'),
@@ -186,6 +190,28 @@ class SettingsPage extends Page
                             ->searchable()
                             ->helperText('Zona horaria para fechas y horas')
                             ->columnSpan(1),
+                        
+                        Select::make('display_uppercase')
+                            ->label('Mostrar Todo en Mayúsculas')
+                            ->options([
+                                'false' => 'No - Capitalización normal',
+                                'true' => 'Sí - Todo en MAYÚSCULAS',
+                            ])
+                            ->default('false')
+                            ->helperText('Si está activado, todos los textos (nombres, descripciones, etc.) se mostrarán en MAYÚSCULAS')
+                            ->columnSpanFull(),
+                        
+                        Select::make('barcode_type')
+                            ->label('Tipo de Código de Barras (Etiquetas)')
+                            ->options([
+                                'code128' => 'Code 128',
+                                'code39' => 'Code 39',
+                                'ean13' => 'EAN-13',
+                                'qr' => 'QR Code',
+                            ])
+                            ->default('code128')
+                            ->helperText('Formato de código de barras para imprimir en etiquetas de productos')
+                            ->columnSpanFull(),
                     ])
                     ->columns(2)
                     ->collapsible(),
@@ -200,6 +226,14 @@ class SettingsPage extends Page
                             ->preload()
                             ->helperText('Cliente que se selecciona automáticamente al crear un nuevo ticket')
                             ->columnSpanFull(),
+                        
+                        Select::make('default_supplier_id')
+                            ->label('Proveedor por Defecto (OCR)')
+                            ->options(fn() => \App\Models\Tercero::proveedores()->pluck('nombre_comercial', 'id'))
+                            ->searchable()
+                            ->preload()
+                            ->helperText('Proveedor que se selecciona automáticamente al importar un albarán vía OCR')
+                            ->columnSpanFull(),
                     ]),
 
                 Section::make('Importación OCR')
@@ -213,8 +247,19 @@ class SettingsPage extends Page
                             ->default(30)
                             ->suffix('%')
                             ->helperText('Margen que se aplicará automáticamente a los productos importados vía OCR para calcular el PVP')
-                            ->columnSpanFull(),
-                    ]),
+                            ->columnSpan(1),
+                        
+                        TextInput::make('default_tax_rate')
+                            ->label('IVA por Defecto (%)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(100)
+                            ->default(21)
+                            ->suffix('%')
+                            ->helperText('Tasa de IVA que se aplicará por defecto en los cálculos de precio de venta')
+                            ->columnSpan(1),
+                    ])
+                    ->columns(2),
 
                 Section::make('Orden y Tiempos')
                     ->schema([
@@ -346,7 +391,11 @@ class SettingsPage extends Page
                 'locale' => 'Localización',
                 'timezone' => 'Localización',
                 'pos_default_tercero_id' => 'POS',
+                'default_supplier_id' => 'POS',
                 'default_commercial_margin' => 'OCR',
+                'default_tax_rate' => 'OCR',
+                'display_uppercase' => 'Localización',
+                'barcode_type' => 'Localización',
                 // AI Settings
                 'ai_provider' => 'IA',
                 'ai_backup_provider' => 'IA',

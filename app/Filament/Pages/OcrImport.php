@@ -37,6 +37,7 @@ class OcrImport extends Page implements HasForms
     ];
     
     public $suppliers = [];
+    public $displayUppercase = false;
 
     public function mount(): void
     {
@@ -53,6 +54,9 @@ class OcrImport extends Page implements HasForms
         if ($defaultSupplierId) {
             $this->parsedData['supplier_id'] = $defaultSupplierId;
         }
+        
+        // Cargar preferencia de mayúsculas
+        $this->displayUppercase = \App\Models\Setting::get('display_uppercase', 'false') === 'true';
     }
 
     public function form(Form $form): Form
