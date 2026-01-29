@@ -9,6 +9,10 @@
     padding: 0 !important;
     margin-bottom: 0 !important;
     border-bottom: 1px solid #f3f4f6 !important;
+    display: flex !important;
+    flex-direction: row-reverse !important;
+    /* Mueve el botón de eliminar (header) al final */
+    align-items: center !important;
 }
 
 .dark .document-lines-repeater .fi-fo-repeater-item {
@@ -19,22 +23,32 @@
 .document-lines-repeater .fi-fo-grid {
     gap: 4px !important;
     padding: 0 !important;
+    flex: 1 !important;
 }
 
-/* VERY IMPORTANT: Remove the default padding of the item container which throws off headers */
-.document-lines-repeater .fi-fo-repeater-item-content {
-    padding: 2px 0 !important;
-    /* Minimal vertical padding, NO horizontal */
-    display: flex !important;
-    align-items: center !important;
-    width: 100% !important;
+/* El header del item contiene el botón de eliminar */
+.document-lines-repeater .fi-fo-repeater-item-header {
+    margin: 0 !important;
+    padding: 0 4px !important;
+    background: transparent !important;
+    border: none !important;
+    width: 32px !important;
+    min-height: 0 !important;
+}
+
+/* Esconder todo en el header excepto las acciones */
+.document-lines-repeater .fi-fo-repeater-item-header>*:not(.fi-fo-repeater-item-header-actions) {
+    display: none !important;
+}
+
+.document-lines-repeater .fi-fo-repeater-item-header-actions {
+    margin: 0 !important;
 }
 
 /* Compact inputs */
 .document-lines-repeater .fi-input-wrp {
     box-shadow: none !important;
     background-color: white !important;
-    /* Ensure visibility */
     border: 1px solid #e5e7eb !important;
     height: 30px !important;
 }
@@ -50,12 +64,6 @@
     font-size: 0.875rem !important;
 }
 
-/* Mask selects to look like inputs more */
-.document-lines-repeater select {
-    height: 30px !important;
-    padding: 0 8px !important;
-}
-
 /* Hide Labels */
 .document-lines-repeater .fi-fo-field-wrp-label {
     display: none !important;
@@ -69,46 +77,7 @@
     pointer-events: none !important;
 }
 
-/* Action alignment (Delete button) */
-.document-lines-repeater .fi-fo-repeater-item-action-wrp {
-    width: 32px !important;
-    margin: 0 !important;
-    padding: 0 4px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    align-self: center !important;
-    /* Forzar alineación con el centro de la fila */
-}
-
-/* En versiones recientes de Filament, el botón puede estar envuelto en otro div */
-.document-lines-repeater .fi-fo-repeater-item-header {
-    margin: 0 !important;
-    padding: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-}
-
-/* The Grid (Content) takes remaining space */
-.document-lines-repeater .fi-fo-repeater-item-content>.fi-fo-grid {
-    flex: 1 !important;
-}
-
-/* Hide dashed border / background of repeater main container */
-.document-lines-repeater {
-    box-shadow: none !important;
-    border: none !important;
-    background: transparent !important;
-}
-
-/* Header Component Tweaks */
-.document-lines-header-container {
-    padding-right: 32px;
-    /* Compensation for the delete button width */
-}
-
 /* Hide clear buttons and prevent focus */
-.document-lines-repeater .fi-select-input-clear-btn,
 .document-lines-repeater .choices__button {
     display: none !important;
     pointer-events: none !important;
@@ -128,4 +97,11 @@
 
 .document-lines-repeater .fi-input-wrp input[style*="text-align: right"] {
     text-align: right !important;
+}
+
+/* Hide dashed border / background of repeater main container */
+.document-lines-repeater {
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
 }

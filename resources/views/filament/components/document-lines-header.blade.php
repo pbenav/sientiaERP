@@ -6,7 +6,7 @@
         <div style="grid-column: span 1 / span 1; text-align: right;">PRECIO</div>
         <div style="grid-column: span 1 / span 1; text-align: center;">DTO.%</div>
         <div style="grid-column: span 1 / span 1; text-align: center;">IVA</div>
-        <div style="grid-column: span 2 / span 2; text-align: right; padding-right: 0.5rem;">BASE IMP.</div>
+        <div style="grid-column: span 2 / span 2; text-align: right; padding-right: 0.5rem;">IMPORTE</div>
     </div>
     <div style="width: 32px;"></div>
 </div>
