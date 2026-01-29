@@ -18,8 +18,7 @@
 /* Enforce Grid Gap and PADDING REMOVAL */
 .document-lines-repeater .fi-fo-grid {
     gap: 4px !important;
-    padding: 0 8px !important;
-    /* Match header padding */
+    padding: 0 !important;
 }
 
 /* VERY IMPORTANT: Remove the default padding of the item container which throws off headers */
