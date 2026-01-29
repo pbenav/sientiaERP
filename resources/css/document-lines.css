@@ -10,7 +10,8 @@
     margin-bottom: 0 !important;
     border-bottom: 1px solid #f3f4f6 !important;
     display: flex !important;
-    flex-direction: row-reverse !important;
+    flex-direction: row !important;
+    /* Standard direction for easier alignment */
     align-items: center !important;
     flex-wrap: nowrap !important;
     min-width: 0 !important;
@@ -47,8 +48,8 @@
     /* Fill height to center button */
 }
 
-/* Esconder todo en el header excepto las acciones */
-.document-lines-repeater .fi-fo-repeater-item-header>*:not(.fi-fo-repeater-item-header-actions) {
+/* Esconder el número de índice y el handle de arrastre, pero PERMITIR el botón de borrar */
+.document-lines-repeater .fi-fo-repeater-item-header>*:not(.fi-fo-repeater-item-header-actions):not(button) {
     display: none !important;
 }
 
@@ -57,6 +58,11 @@
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+}
+
+/* Red trash icon styling for consistency */
+.document-lines-repeater .fi-icon-btn.fi-color-danger {
+    color: #ef4444 !important;
 }
 
 /* Compact inputs */
