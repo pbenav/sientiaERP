@@ -72,7 +72,6 @@ class AlbaranCompraResource extends Resource
                 ->columnSpanFull(),
 
 
-            // SECCIÓN 5: TOTALES (solo en edición)
             Forms\Components\Section::make('Totales')
                 ->schema([
                     Forms\Components\Placeholder::make('totales_calculados')
@@ -95,7 +94,6 @@ class AlbaranCompraResource extends Resource
                         })
                         ->columnSpanFull(),
                 ])->columns(3)
-                ->visibleOn('edit')
                 ->collapsible(),
 
             Forms\Components\Section::make('Observaciones')

@@ -61,8 +61,8 @@ class AdminPanelProvider extends PanelProvider
             ->navigationGroups([
                 'Ventas',
                 'Compras',
-                'Gestión',
                 'Almacén',
+                'Gestión',
                 'Configuración',
             ])
             ->renderHook(

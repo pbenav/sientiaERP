@@ -25,7 +25,7 @@ class ImpuestoResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Impuestos';
 
-    protected static ?string $navigationGroup = 'Configuración';
+    protected static ?string $navigationGroup = 'Gestión';
 
     protected static ?int $navigationSort = 30;
 

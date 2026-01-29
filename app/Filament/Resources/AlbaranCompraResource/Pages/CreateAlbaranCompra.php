@@ -9,6 +9,8 @@ class CreateAlbaranCompra extends CreateRecord
 {
     protected static string $resource = AlbaranCompraResource::class;
 
+    protected $listeners = ['refresh-document-totals' => '$refresh'];
+
     protected function getHeaderActions(): array
     {
         return [

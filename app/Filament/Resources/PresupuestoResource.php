@@ -60,7 +60,10 @@ class PresupuestoResource extends Resource
                         
                         Forms\Components\DatePicker::make('fecha_validez')
                             ->label('Válido hasta')
-                            ->default(fn() => now()->addDays((int)\App\Models\Setting::get('presupuesto_validez_dias', 5)))
+                            ->default(function() {
+                                $diasValidez = (int)\App\Models\Setting::get('presupuesto_validez_dias', 5);
+                                return now()->addDays($diasValidez);
+                            })
                             ->required(),
                         
                         Forms\Components\Select::make('tercero_id')
