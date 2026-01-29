@@ -31,7 +31,7 @@ class LineasRelationManager extends RelationManager
     public static function getLineFormSchema(bool $isLabel = false): array
     {
         return [
-            Forms\Components\Grid::make(12)
+            Forms\Components\Grid::make(['default' => 12])
                 ->schema([
                     // CÓDIGO (Span 2) - Sufficient for the dropdown arrow
                     Forms\Components\Select::make('codigo')

@@ -60,8 +60,56 @@
 
 .document-lines-repeater input {
     height: 30px !important;
-    padding: 4px 8px !important;
-    font-size: 0.875rem !important;
+    padding: 4px 6px !important;
+    font-size: 0.8125rem !important;
+    /* Slightly smaller for density */
+    min-width: 0 !important;
+}
+
+/* Ensure Select components can shrink */
+.document-lines-repeater .fi-select-input-wrp {
+    min-width: 0 !important;
+}
+
+.document-lines-repeater .choices__inner {
+    min-height: 28px !important;
+    padding: 0 4px !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.document-lines-repeater .choices__list--single {
+    padding: 0 !important;
+}
+
+.document-lines-repeater .choices__item {
+    font-size: 0.8125rem !important;
+}
+
+/* Responsive adjustments for narrow screens */
+@media (max-width: 1024px) {
+
+    .document-lines-repeater input,
+    .document-lines-repeater .choices__item {
+        font-size: 0.75rem !important;
+        padding: 4px 2px !important;
+    }
+
+    .document-lines-header-container {
+        font-size: 0.6rem !important;
+    }
+}
+
+@media (max-width: 768px) {
+
+    .document-lines-repeater input,
+    .document-lines-repeater .choices__item {
+        font-size: 0.7rem !important;
+    }
+
+    .document-lines-header-container {
+        letter-spacing: 0 !important;
+    }
 }
 
 /* Hide Labels */
