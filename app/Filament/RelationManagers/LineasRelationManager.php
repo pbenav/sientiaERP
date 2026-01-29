@@ -33,7 +33,7 @@ class LineasRelationManager extends RelationManager
         return [
             Forms\Components\Grid::make(12)
                 ->schema([
-                    // CÓDIGO (Span 2)
+                    // CÓDIGO (Span 1)
                     Forms\Components\Select::make('codigo')
                         ->hiddenLabel()
                         ->searchable()
@@ -81,9 +81,10 @@ class LineasRelationManager extends RelationManager
                                 }
                             }
                         })
-                        ->columnSpan(2),
+                        ->extraAttributes(['class' => 'hide-select-clear'])
+                        ->columnSpan(1),
                     
-                    // DESCRIPCIÓN (Span 4)
+                    // DESCRIPCIÓN (Span 3)
                     Forms\Components\Select::make('descripcion')
                         ->hiddenLabel()
                         ->required()
@@ -132,7 +133,8 @@ class LineasRelationManager extends RelationManager
                                 }
                             }
                         })
-                        ->columnSpan(5),
+                        ->extraAttributes(['class' => 'hide-select-clear'])
+                        ->columnSpan(3),
                     
                     Forms\Components\Hidden::make('product_id'),
                     
@@ -146,13 +148,14 @@ class LineasRelationManager extends RelationManager
                         ->default(1)
                         ->columnSpan(1)
                         ->live(onBlur: true)
+                        ->extraInputAttributes(['class' => 'text-center'])
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 0))
                         ->dehydrateStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::parseNumber($state))
                         ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
                             self::calcularLinea($set, $get);
                         }),
                     
-                    // PRECIO (Span 1)
+                    // PRECIO (Span 2)
                     Forms\Components\TextInput::make('precio_unitario')
                         ->hiddenLabel()
                         ->type('text')
@@ -160,8 +163,9 @@ class LineasRelationManager extends RelationManager
                         ->maxValue(9999999999)
                         ->required()
                         ->live(onBlur: true)
-                        ->columnSpan(1)
+                        ->columnSpan(2)
                         ->visible(!$isLabel)
+                        ->extraInputAttributes(['class' => 'text-right'])
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
                         ->dehydrateStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::parseNumber($state))
                         ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
@@ -178,6 +182,7 @@ class LineasRelationManager extends RelationManager
                         ->live(onBlur: true)
                         ->columnSpan(1)
                         ->visible(!$isLabel)
+                        ->extraInputAttributes(['class' => 'text-center'])
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
                         ->dehydrateStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::parseNumber($state))
                         ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
@@ -204,9 +209,9 @@ class LineasRelationManager extends RelationManager
  
                     Forms\Components\TextInput::make('subtotal')
                         ->hiddenLabel()
-                        ->extraInputAttributes(['readonly' => true]) // Readonly en vez de disabled para mejor reactividad visual
+                        ->extraInputAttributes(['readonly' => true, 'class' => 'text-right']) // Readonly en vez de disabled para mejor reactividad visual
                         ->dehydrated() // Permitir que viaje en el estado para el calculador
-                        ->columnSpan(1)
+                        ->columnSpan(3) // Increased to 3 for massive millions
                         ->visible(!$isLabel)
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2)),
 
