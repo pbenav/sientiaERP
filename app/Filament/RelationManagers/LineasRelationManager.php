@@ -61,7 +61,7 @@ class LineasRelationManager extends RelationManager
                                 if ($producto) {
                                     $set('product_id', $producto->id);
                                     $set('descripcion', $producto->name);
-                                    $set('precio_unitario', $producto->price);
+                                    $set('precio_unitario', \App\Helpers\NumberFormatHelper::formatNumber($producto->price, 2));
                                     
                                     // IVA del producto o por defecto
                                     $taxRate = number_format($producto->tax_rate, 2, '.', '');
@@ -112,7 +112,7 @@ class LineasRelationManager extends RelationManager
                                     if (!$get('codigo')) {
                                         $set('codigo', $producto->sku);
                                     }
-                                    $set('precio_unitario', $producto->price);
+                                    $set('precio_unitario', \App\Helpers\NumberFormatHelper::formatNumber($producto->price, 2));
                                     
                                     // IVA del producto o por defecto
                                     $taxRate = number_format($producto->tax_rate, 2, '.', '');
@@ -202,11 +202,9 @@ class LineasRelationManager extends RelationManager
                             return $serie && !$serie->devenga_iva ? 0 : $globalDefault;
                         }),
  
-                    // TOTAL (Span 2)
-                    // SUBTOTAL (Base Imponible) (Span 2)
                     Forms\Components\TextInput::make('subtotal')
                         ->hiddenLabel()
-                        ->disabled()
+                        ->extraInputAttributes(['readonly' => true]) // Readonly en vez de disabled para mejor reactividad visual
                         ->dehydrated() // Permitir que viaje en el estado para el calculador
                         ->columnSpan(2)
                         ->visible(!$isLabel)

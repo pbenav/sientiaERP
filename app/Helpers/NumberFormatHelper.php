@@ -61,20 +61,32 @@ class NumberFormatHelper
      * @param string $value
      * @return float
      */
-    public static function parseNumber(string $value): float
+    public static function parseNumber($value): float
     {
         if (empty($value)) {
             return 0.0;
         }
 
-        // Remover separadores de miles
+        if (is_numeric($value)) {
+            return (float) $value;
+        }
+
+        $value = (string) $value;
+        $decimalSep = self::getDecimalSeparator();
         $thousandsSep = self::getThousandsSeparator();
+
+        // Si tenemos un punto y el ERP usa comas para decimales, pero NO hay ninguna coma en el texto,
+        // asumimos que el punto es el separador decimal (entrada del usuario o float directo).
+        if ($decimalSep === ',' && str_contains($value, '.') && !str_contains($value, ',')) {
+            return (float) $value;
+        }
+
+        // Remover separadores de miles
         if ($thousandsSep !== '') {
             $value = str_replace($thousandsSep, '', $value);
         }
 
         // Convertir separador decimal al punto
-        $decimalSep = self::getDecimalSeparator();
         if ($decimalSep !== '.') {
             $value = str_replace($decimalSep, '.', $value);
         }
