@@ -77,6 +77,16 @@
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    align-self: center !important;
+    /* Forzar alineación con el centro de la fila */
+}
+
+/* En versiones recientes de Filament, el botón puede estar envuelto en otro div */
+.document-lines-repeater .fi-fo-repeater-item-header {
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
 }
 
 /* The Grid (Content) takes remaining space */
