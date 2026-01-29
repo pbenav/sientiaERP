@@ -33,7 +33,7 @@ class LineasRelationManager extends RelationManager
         return [
             Forms\Components\Grid::make(12)
                 ->schema([
-                    // CÓDIGO (Span 1)
+                    // CÓDIGO (Span 2) - Sufficient for the dropdown arrow
                     Forms\Components\Select::make('codigo')
                         ->hiddenLabel()
                         ->searchable()
@@ -81,10 +81,10 @@ class LineasRelationManager extends RelationManager
                                 }
                             }
                         })
-                        ->extraAttributes(['class' => 'hide-select-clear', 'style' => 'min-width: 0;'])
-                        ->columnSpan(1),
+                        ->extraAttributes(['class' => 'hide-select-clear'])
+                        ->columnSpan(2),
                     
-                    // DESCRIPCIÓN (Span 4)
+                    // DESCRIPCIÓN (Span 4) - Good for long names
                     Forms\Components\Select::make('descripcion')
                         ->hiddenLabel()
                         ->required()
@@ -138,7 +138,7 @@ class LineasRelationManager extends RelationManager
                     
                     Forms\Components\Hidden::make('product_id'),
                     
-                    // CANTIDAD (Span 1)
+                    // CANTIDAD (Span 1) - Sufficient for small numbers
                     Forms\Components\TextInput::make('cantidad')
                         ->hiddenLabel()
                         ->type('text')
@@ -155,7 +155,7 @@ class LineasRelationManager extends RelationManager
                             self::calcularLinea($set, $get);
                         }),
                     
-                    // PRECIO (Span 2)
+                    // PRECIO (Span 2) - Right aligned
                     Forms\Components\TextInput::make('precio_unitario')
                         ->hiddenLabel()
                         ->type('text')
@@ -172,7 +172,7 @@ class LineasRelationManager extends RelationManager
                             self::calcularLinea($set, $get);
                         }),
                     
-                    // DESCUENTO (Span 1)
+                    // DESCUENTO (Span 1) - Minimal space
                     Forms\Components\TextInput::make('descuento')
                         ->hiddenLabel()
                         ->type('text')
@@ -207,16 +207,16 @@ class LineasRelationManager extends RelationManager
                             return $serie && !$serie->devenga_iva ? 0 : $globalDefault;
                         }),
  
-                    // IMPORTE (Span 1)
+                    // IMPORTE (Span 1) - Reverting to span 1 but with absolute right alignment
                     Forms\Components\TextInput::make('subtotal')
                         ->hiddenLabel()
                         ->extraInputAttributes(['readonly' => true, 'class' => 'text-right'])
                         ->dehydrated() 
-                        ->columnSpan(2) 
+                        ->columnSpan(1) 
                         ->visible(!$isLabel)
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2)),
 
-                    // IVA (Span 1)
+                    // IVA (Span 1) - Minimal space
                     Forms\Components\Placeholder::make('iva_display')
                         ->hiddenLabel()
                         ->content(fn ($get) => number_format((float)$get('iva'), 0) . '%')
