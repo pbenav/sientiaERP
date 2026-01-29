@@ -11,8 +11,9 @@
     border-bottom: 1px solid #f3f4f6 !important;
     display: flex !important;
     flex-direction: row-reverse !important;
-    /* Mueve el botón de eliminar (header) al final */
     align-items: center !important;
+    flex-wrap: nowrap !important;
+    min-width: 0 !important;
 }
 
 .dark .document-lines-repeater .fi-fo-repeater-item {
@@ -23,7 +24,8 @@
 .document-lines-repeater .fi-fo-grid {
     gap: 4px !important;
     padding: 0 !important;
-    flex: 1 !important;
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
 }
 
 /* El header del item contiene el botón de eliminar */
@@ -32,8 +34,17 @@
     padding: 0 4px !important;
     background: transparent !important;
     border: none !important;
-    width: 32px !important;
+    width: 36px !important;
+    /* Slightly wider for better hitbox */
+    min-width: 36px !important;
+    flex-shrink: 0 !important;
+    /* NEVER SHRINK THE DELETE BUTTON */
     min-height: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    align-self: stretch !important;
+    /* Fill height to center button */
 }
 
 /* Esconder todo en el header excepto las acciones */
@@ -43,6 +54,9 @@
 
 .document-lines-repeater .fi-fo-repeater-item-header-actions {
     margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
 /* Compact inputs */
