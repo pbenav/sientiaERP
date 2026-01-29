@@ -233,7 +233,7 @@ class LineasRelationManager extends RelationManager
         $importeIva = $subtotal * ($iva / 100);
         $total = $subtotal + $importeIva;
 
-        $set('subtotal', round($subtotal, 3));
+        $set('subtotal', \App\Helpers\NumberFormatHelper::formatNumber($subtotal, 2));
         $set('importe_iva', round($importeIva, 3));
         $set('total', round($total, 3));
     }
