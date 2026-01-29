@@ -155,7 +155,7 @@ class LineasRelationManager extends RelationManager
                             self::calcularLinea($set, $get);
                         }),
                     
-                    // PRECIO (Span 2) - Right aligned
+                    // PRECIO (Span 1) - Sufficient for unit prices
                     Forms\Components\TextInput::make('precio_unitario')
                         ->hiddenLabel()
                         ->type('text')
@@ -163,7 +163,7 @@ class LineasRelationManager extends RelationManager
                         ->maxValue(9999999999)
                         ->required()
                         ->live(onBlur: true)
-                        ->columnSpan(2)
+                        ->columnSpan(1)
                         ->visible(!$isLabel)
                         ->extraInputAttributes(['class' => 'text-right'])
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
@@ -207,12 +207,12 @@ class LineasRelationManager extends RelationManager
                             return $serie && !$serie->devenga_iva ? 0 : $globalDefault;
                         }),
  
-                    // IMPORTE (Span 1) - Reverting to span 1 but with absolute right alignment
+                    // IMPORTE (Span 2) - Priority for large totals
                     Forms\Components\TextInput::make('subtotal')
                         ->hiddenLabel()
                         ->extraInputAttributes(['readonly' => true, 'class' => 'text-right'])
                         ->dehydrated() 
-                        ->columnSpan(1) 
+                        ->columnSpan(2) 
                         ->visible(!$isLabel)
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2)),
 

@@ -3,9 +3,9 @@
         <div style="grid-column: span 2 / span 2; padding-left: 0.5rem;">CÓD.</div>
         <div style="grid-column: span 4 / span 4;">DESCRIPCIÓN</div>
         <div style="grid-column: span 1 / span 1; text-align: center;">CANT.</div>
-        <div style="grid-column: span 2 / span 2; text-align: right;">PRECIO</div>
+        <div style="grid-column: span 1 / span 1; text-align: right;">PRECIO</div>
         <div style="grid-column: span 1 / span 1; text-align: center;">DTO.%</div>
-        <div style="grid-column: span 1 / span 1; text-align: right;">IMPORTE</div>
+        <div style="grid-column: span 2 / span 2; text-align: right;">IMPORTE</div>
         <div style="grid-column: span 1 / span 1; text-align: center; padding-right: 0.5rem;">%IVA</div>
     </div>
     <div style="width: 32px;"></div>
