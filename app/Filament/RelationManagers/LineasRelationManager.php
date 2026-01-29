@@ -206,14 +206,14 @@ class LineasRelationManager extends RelationManager
                         ->hiddenLabel()
                         ->extraInputAttributes(['readonly' => true]) // Readonly en vez de disabled para mejor reactividad visual
                         ->dehydrated() // Permitir que viaje en el estado para el calculador
-                        ->columnSpan(2)
+                        ->columnSpan(1)
                         ->visible(!$isLabel)
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2)),
 
                     Forms\Components\Placeholder::make('iva_display')
                         ->hiddenLabel()
                         ->content(fn ($get) => number_format((float)$get('iva'), 0) . '%')
-                        ->extraAttributes(['class' => 'text-right pt-2 px-2', 'style' => 'font-size: 0.8rem;'])
+                        ->extraAttributes(['class' => 'text-center pt-2', 'style' => 'font-size: 0.85rem; font-weight: 500; color: #6b7280;'])
                         ->columnSpan(1)
                         ->visible(!$isLabel),
                 ]),
