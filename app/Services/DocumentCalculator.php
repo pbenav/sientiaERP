@@ -29,9 +29,9 @@ class DocumentCalculator
             $ivaRate = floatval(str_replace(',', '.', $linea['iva'] ?? 0));
             
             // Calculate base for this line
-            $baseLinea = round($cantidad * $precio, 2);
+            $baseLinea = round($cantidad * $precio, 3);
             if ($descuento > 0) {
-                $baseLinea = round($baseLinea * (1 - ($descuento / 100)), 2);
+                $baseLinea = round($baseLinea * (1 - ($descuento / 100)), 3);
             }
             
             // Key for grouping: Tax Rate
@@ -58,10 +58,10 @@ class DocumentCalculator
 
         // Now calculate quotas on the summed bases (or sum line quotas? standard is sum bases -> calc quota)
         foreach ($breakdown as $key => &$data) {
-            $data['cuota_iva'] = round($data['base'] * ($data['iva'] / 100), 2);
+            $data['cuota_iva'] = round($data['base'] * ($data['iva'] / 100), 3);
             
             if ($tieneRecargo) {
-                $data['cuota_re'] = round($data['base'] * ($data['re'] / 100), 2);
+                $data['cuota_re'] = round($data['base'] * ($data['re'] / 100), 3);
             }
             
             $data['total'] = $data['base'] + $data['cuota_iva'] + $data['cuota_re'];

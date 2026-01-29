@@ -115,7 +115,7 @@ class AlbaranCompraResource extends Resource
             Tables\Columns\TextColumn::make('numero')->label('Número')->searchable()->sortable(),
             Tables\Columns\TextColumn::make('fecha')->label('Fecha')->date('d/m/Y')->sortable(),
             Tables\Columns\TextColumn::make('tercero.nombre_comercial')->label('Proveedor')->searchable()->sortable()->limit(30),
-            Tables\Columns\TextColumn::make('total')->label('Total')->money('EUR')->sortable(),
+            Tables\Columns\TextColumn::make('total')->label('Total')->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatCurrency($state))->sortable(),
             Tables\Columns\BadgeColumn::make('estado')->label('Estado')->colors([
                 'secondary' => 'borrador', 'success' => 'confirmado', 'danger' => 'anulado',
             ]),

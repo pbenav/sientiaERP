@@ -236,9 +236,9 @@ class LineasRelationManager extends RelationManager
         $importeIva = $subtotal * ($iva / 100);
         $total = $subtotal + $importeIva;
 
-        $set('subtotal', round($subtotal, 2));
-        $set('importe_iva', round($importeIva, 2));
-        $set('total', round($total, 2));
+        $set('subtotal', round($subtotal, 3));
+        $set('importe_iva', round($importeIva, 3));
+        $set('total', round($total, 3));
     }
 
     public function table(Table $table): Table
@@ -276,7 +276,7 @@ class LineasRelationManager extends RelationManager
                     ->extraAttributes(['style' => 'width: 110px; min-width: 110px; max-width: 110px'])
                     ->sortable()
                     ->visible(!$isLabel)
-                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
+                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatCurrency($state))
                     ->alignRight(),
                 
                 Tables\Columns\TextColumn::make('descuento')
@@ -293,7 +293,7 @@ class LineasRelationManager extends RelationManager
                     ->extraAttributes(['style' => 'width: 120px; min-width: 120px; max-width: 120px'])
                     ->sortable()
                     ->visible(!$isLabel)
-                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2) . ' €')
+                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatCurrency($state))
                     ->alignRight(),
                 
                 Tables\Columns\TextColumn::make('iva')

@@ -19,48 +19,42 @@
                     <th scope="col" class="px-6 py-3 text-right">Total</th>
                 </tr>
             </thead>
-            <tbody>
-                @forelse($breakdown['impuestos'] as $impuesto)
-                    <tr class="border-b bg-white dark:border-gray-700 dark:bg-gray-800">
-                        <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                            {{ number_format($impuesto['base'], 2, ',', '.') }} €
-                        </td>
-                        <td class="px-6 py-4 text-center">
-                            {{ number_format($impuesto['iva'], 0) }}%
-                        </td>
-                        <td class="px-6 py-4 text-right">
-                            {{ number_format($impuesto['cuota_iva'], 2, ',', '.') }} €
-                        </td>
-                        @if($tieneRecargo)
+                <tbody>
+                    @foreach($breakdown['impuestos'] as $impuesto)
+                        <tr class="border-b bg-white dark:border-gray-700 dark:bg-gray-800">
+                            <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                                {{ \App\Helpers\NumberFormatHelper::formatCurrency($impuesto['base']) }}
+                            </td>
                             <td class="px-6 py-4 text-center">
-                                {{ number_format($impuesto['re'], 2) }}%
+                                {{ number_format($impuesto['iva'], 0) }}%
                             </td>
                             <td class="px-6 py-4 text-right">
-                                {{ number_format($impuesto['cuota_re'], 2, ',', '.') }} €
+                                {{ \App\Helpers\NumberFormatHelper::formatCurrency($impuesto['cuota_iva']) }}
                             </td>
-                        @endif
-                        <td class="px-6 py-4 text-right font-bold">
-                            {{ number_format($impuesto['total'], 2, ',', '.') }} €
+                            @if($tieneRecargo)
+                                <td class="px-6 py-4 text-center">
+                                    {{ number_format($impuesto['re'], 2) }}%
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    {{ \App\Helpers\NumberFormatHelper::formatCurrency($impuesto['cuota_re']) }}
+                                </td>
+                            @endif
+                            <td class="px-6 py-4 text-right font-bold">
+                                {{ \App\Helpers\NumberFormatHelper::formatCurrency($impuesto['total']) }}
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+                <tfoot class="bg-gray-50 font-semibold text-gray-900 dark:bg-gray-700 dark:text-white">
+                   <tr>
+                        <td class="px-6 py-3 text-right" colspan="{{ $tieneRecargo ? 5 : 3 }}">
+                            TOTAL DOCUMENTO
                         </td>
-                    </tr>
-                @empty
-                    <tr class="border-b bg-white dark:border-gray-700 dark:bg-gray-800">
-                        <td colspan="{{ $tieneRecargo ? 6 : 4 }}" class="px-6 py-4 text-center text-gray-500">
-                            Sin líneas
+                        <td class="px-6 py-3 text-right text-lg text-primary-600">
+                            {{ \App\Helpers\NumberFormatHelper::formatCurrency($breakdown['total_documento']) }}
                         </td>
-                    </tr>
-                @endforelse
-            </tbody>
-            <tfoot class="bg-gray-50 font-semibold text-gray-900 dark:bg-gray-700 dark:text-white">
-               <tr>
-                    <td class="px-6 py-3 text-right" colspan="{{ $tieneRecargo ? 5 : 3 }}">
-                        TOTAL DOCUMENTO
-                    </td>
-                    <td class="px-6 py-3 text-right text-lg text-primary-600">
-                        {{ number_format($breakdown['total_documento'], 2, ',', '.') }} €
-                    </td>
-               </tr>
-            </tfoot>
+                   </tr>
+                </tfoot>
         </table>
     </div>
 </div>
