@@ -46,6 +46,7 @@ class SettingsPage extends Page
             'pos_default_tercero_id' => Setting::get('pos_default_tercero_id'),
             'default_commercial_margin' => Setting::get('default_commercial_margin', 30),
             'default_supplier_id' => Setting::get('default_supplier_id'),
+            'presupuesto_validez_dias' => Setting::get('presupuesto_validez_dias', 5),
             'default_tax_rate' => Setting::get('default_tax_rate', 21),
             'display_uppercase' => Setting::get('display_uppercase', 'false'),
             'barcode_type' => Setting::get('barcode_type', 'code128'),
@@ -261,10 +262,17 @@ class SettingsPage extends Page
                     ])
                     ->columns(2),
 
-                Section::make('Orden y Tiempos')
+                Section::make('Configuración de Ventas')
                     ->schema([
-                         // ... existing logic if any, or just close previous section
-                    ])->hidden(), // Placeholder if needed or just remove closing bracket issue
+                         TextInput::make('presupuesto_validez_dias')
+                            ->label('Validez de Presupuestos (días)')
+                            ->numeric()
+                            ->minValue(1)
+                            ->maxValue(365)
+                            ->default(5)
+                            ->helperText('Días de validez por defecto al crear un nuevo presupuesto')
+                            ->columnSpanFull(),
+                    ]),
 
                 Section::make('Automatización e Inteligencia Artificial')
                     ->description('Configura los proveedores de IA para procesar documentos automáticamente.')
@@ -375,6 +383,7 @@ class SettingsPage extends Page
                 'locale' => 'Idioma',
                 'timezone' => 'Zona Horaria',
                 'pos_default_tercero_id' => 'Cliente por Defecto POS',
+                'presupuesto_validez_dias' => 'Días Validez Presupuesto',
                 'default_commercial_margin' => 'Margen Comercial por Defecto',
             ];
             
@@ -392,6 +401,7 @@ class SettingsPage extends Page
                 'timezone' => 'Localización',
                 'pos_default_tercero_id' => 'POS',
                 'default_supplier_id' => 'POS',
+                'presupuesto_validez_dias' => 'Ventas',
                 'default_commercial_margin' => 'OCR',
                 'default_tax_rate' => 'OCR',
                 'display_uppercase' => 'Localización',

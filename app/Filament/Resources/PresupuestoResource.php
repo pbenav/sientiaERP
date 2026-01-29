@@ -60,7 +60,7 @@ class PresupuestoResource extends Resource
                         
                         Forms\Components\DatePicker::make('fecha_validez')
                             ->label('Válido hasta')
-                            ->default(fn() => now()->addDays((int)\App\Models\Setting::get('presupuesto_validez_dias', 15)))
+                            ->default(fn() => now()->addDays((int)\App\Models\Setting::get('presupuesto_validez_dias', 5)))
                             ->required(),
                         
                         Forms\Components\Select::make('tercero_id')
@@ -81,8 +81,9 @@ class PresupuestoResource extends Resource
                             ->label('Forma de Pago')
                             ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
                             ->searchable()
+                            ->searchable()
                             ->preload()
-                            ->default(1)
+                            ->default(fn() => \App\Models\FormaPago::activas()->first()?->id ?? 1)
                             ->required(),
                         
                         Forms\Components\Select::make('estado')
@@ -96,9 +97,19 @@ class PresupuestoResource extends Resource
                             ->required(),
                     ])->columns(3),
 
-                // SECCIÓN 2: PRODUCTOS
-                Forms\Components\View::make('filament.components.document-lines')
+                Forms\Components\View::make('filament.components.document-lines-header')
                     ->columnSpanFull(),
+
+                Forms\Components\Repeater::make('lineas')
+                    ->relationship()
+                    ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
+                    ->columns(1)
+                    ->defaultItems(0)
+                    ->live()
+                    ->hiddenLabel()
+                    ->extraAttributes(['class' => 'document-lines-repeater'])
+                    ->columnSpanFull(),
+
 
                 Forms\Components\Section::make('Totales')
                     ->schema([
@@ -123,26 +134,7 @@ class PresupuestoResource extends Resource
             ]);
     }
 
-    protected static function calcularLinea(Forms\Set $set, Forms\Get $get): void
-    {
-        $cantidad = floatval($get('cantidad') ?? 0);
-        $precio = floatval($get('precio_unitario') ?? 0);
-        $descuento = floatval($get('descuento') ?? 0);
-        $iva = floatval($get('iva') ?? 0);
 
-        $subtotal = $cantidad * $precio;
-        
-        if ($descuento > 0) {
-            $subtotal = $subtotal * (1 - ($descuento / 100));
-        }
-
-        $importeIva = $subtotal * ($iva / 100);
-        $total = $subtotal + $importeIva;
-
-        $set('subtotal', round($subtotal, 2));
-        $set('importe_iva', round($importeIva, 2));
-        $set('total', round($total, 2));
-    }
 
     public static function table(Table $table): Table
     {

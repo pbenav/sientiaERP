@@ -56,6 +56,11 @@ class PedidoCompraResource extends Resource
                         return $tercero->id;
                     }),
                 
+                Forms\Components\Select::make('forma_pago_id')->label('Forma de Pago')
+                    ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
+                    ->searchable()->preload()->default(fn() => \App\Models\FormaPago::activas()->first()?->id ?? 1)->required()
+                    ->columnSpan(2),
+
                 Forms\Components\Select::make('estado')->label('Estado')->options([
                     'borrador' => 'Borrador', 'confirmado' => 'Confirmado', 'parcial' => 'Parcial',
                     'completado' => 'Completado', 'anulado' => 'Anulado',
@@ -63,8 +68,19 @@ class PedidoCompraResource extends Resource
             ])->columns(3)->compact(),
 
             // SECCIÓN 3: PRODUCTOS
-            Forms\Components\View::make('filament.components.document-lines')
+            Forms\Components\View::make('filament.components.document-lines-header')
                 ->columnSpanFull(),
+
+            Forms\Components\Repeater::make('lineas')
+                ->relationship()
+                ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
+                ->columns(1)
+                ->defaultItems(0)
+                ->live()
+                ->hiddenLabel()
+                ->extraAttributes(['class' => 'document-lines-repeater'])
+                ->columnSpanFull(),
+
 
             // SECCIÓN 5: TOTALES (solo en edición)
             Forms\Components\Section::make('Totales')

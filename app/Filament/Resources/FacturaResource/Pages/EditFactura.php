@@ -106,14 +106,16 @@ class EditFactura extends EditRecord
         $this->record->recalcularTotales();
     }
 
+    public function save(bool $shouldRedirect = true, bool $shouldSendSavedNotification = true): void
+    {
+        parent::save($shouldRedirect, $shouldSendSavedNotification);
+        $this->redirect($this->getResource()::getUrl('index'));
+    }
+
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
     }
 
-    protected function getSaveFormAction(): \Filament\Actions\Action
-    {
-        return parent::getSaveFormAction()
-            ->successRedirectUrl($this->getRedirectUrl());
-    }
+
 }

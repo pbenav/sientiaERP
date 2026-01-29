@@ -70,8 +70,8 @@ class EtiquetaResource extends Resource
                             ->default('etiqueta'),
                     ])->columns(3),
 
-                Forms\Components\View::make('filament.components.document-lines')
-                    ->columnSpanFull(),
+//                Forms\Components\View::make('filament.components.document-lines')
+//                    ->columnSpanFull(),
 
                 Forms\Components\Section::make('Observaciones')
                     ->schema([

@@ -119,15 +119,26 @@ class PedidoResource extends Resource
                             ->label('Forma de Pago')
                             ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
                             ->searchable()
+                            ->searchable()
                             ->preload()
-                            ->default(1)
+                            ->default(fn() => \App\Models\FormaPago::activas()->first()?->id ?? 1)
                             ->required(),
                         
                     ])->columns(3)->compact(),
 
-                // SECCIÓN 3: PRODUCTOS
-                Forms\Components\View::make('filament.components.document-lines')
+                Forms\Components\View::make('filament.components.document-lines-header')
                     ->columnSpanFull(),
+
+                Forms\Components\Repeater::make('lineas')
+                    ->relationship()
+                    ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
+                    ->columns(1)
+                    ->defaultItems(0)
+                    ->live()
+                    ->hiddenLabel()
+                    ->extraAttributes(['class' => 'document-lines-repeater'])
+                    ->columnSpanFull(),
+
 
                 // SECCIÓN 5: TOTALES (solo en edición)
                 Forms\Components\Section::make('Totales')

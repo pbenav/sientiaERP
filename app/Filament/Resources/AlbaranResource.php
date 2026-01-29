@@ -96,9 +96,19 @@ class AlbaranResource extends Resource
                         
                     ])->columns(3)->compact(),
 
-                // SECCIÓN 3: PRODUCTOS
-                Forms\Components\View::make('filament.components.document-lines')
+                Forms\Components\View::make('filament.components.document-lines-header')
                     ->columnSpanFull(),
+
+                Forms\Components\Repeater::make('lineas')
+                    ->relationship()
+                    ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
+                    ->columns(1)
+                    ->defaultItems(0)
+                    ->live()
+                    ->hiddenLabel()
+                    ->extraAttributes(['class' => 'document-lines-repeater'])
+                    ->columnSpanFull(),
+
 
                 Forms\Components\Section::make('Totales')
                     ->schema([

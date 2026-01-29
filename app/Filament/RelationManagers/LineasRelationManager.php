@@ -31,11 +31,11 @@ class LineasRelationManager extends RelationManager
     public static function getLineFormSchema(bool $isLabel = false): array
     {
         return [
-            Forms\Components\Grid::make(6)
+            Forms\Components\Grid::make(12)
                 ->schema([
-                    // CÓDIGO como campo principal de búsqueda (similar al POS)
+                    // CÓDIGO (Span 2)
                     Forms\Components\Select::make('codigo')
-                        ->label('Código/SKU')
+                        ->hiddenLabel()
                         ->searchable()
                         ->options(function () {
                             return \App\Models\Product::query()
@@ -79,9 +79,9 @@ class LineasRelationManager extends RelationManager
                         })
                         ->columnSpan(2),
                     
-                    // DESCRIPCIÓN como campo secundario (también permite búsqueda)
+                    // DESCRIPCIÓN (Span 4)
                     Forms\Components\Select::make('descripcion')
-                        ->label('Descripción')
+                        ->hiddenLabel()
                         ->required()
                         ->searchable()
                         ->options(function () {
@@ -128,8 +128,9 @@ class LineasRelationManager extends RelationManager
                     
                     Forms\Components\Hidden::make('product_id'),
                     
+                    // CANTIDAD (Span 1)
                     Forms\Components\TextInput::make('cantidad')
-                        ->label('Cant.')
+                        ->hiddenLabel()
                         ->type('text')
                         ->inputMode('decimal')
                         ->maxValue(9999999)
@@ -137,49 +138,54 @@ class LineasRelationManager extends RelationManager
                         ->default(1)
                         ->columnSpan(1)
                         ->live(onBlur: true)
-                        ->extraInputAttributes(['style' => 'width: 120px'])
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 0))
                         ->dehydrateStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::parseNumber($state))
                         ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
                             self::calcularLinea($set, $get);
                         }),
                     
+                    // PRECIO (Span 1)
                     Forms\Components\TextInput::make('precio_unitario')
-                        ->label('Precio')
+                        ->hiddenLabel()
                         ->type('text')
                         ->inputMode('decimal')
                         ->maxValue(9999999999)
                         ->required()
                         ->live()
                         ->columnSpan(1)
-                        ->extraInputAttributes(['style' => 'width: 110px'])
                         ->visible(!$isLabel)
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
                         ->dehydrateStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::parseNumber($state))
                         ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                             self::calcularLinea($set, $get)),
                     
+                    // DESCUENTO (Span 1)
                     Forms\Components\TextInput::make('descuento')
-                        ->label('Dto.')
+                        ->hiddenLabel()
                         ->type('text')
                         ->inputMode('decimal')
                         ->maxValue(100)
                         ->default(fn() => \App\Models\Descuento::where('es_predeterminado', true)->where('activo', true)->first()?->valor ?? 0)
                         ->live()
                         ->columnSpan(1)
-                        ->extraInputAttributes(['style' => 'width: 110px'])
                         ->visible(!$isLabel)
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
                         ->dehydrateStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::parseNumber($state))
                         ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                             self::calcularLinea($set, $get)),
                     
+                    // IVA (Span 1)
                     Forms\Components\Select::make('iva')
-                        ->label('IVA %')
+                        ->hiddenLabel()
                         ->options(\App\Models\Impuesto::where('tipo', 'iva')->where('activo', true)->pluck('nombre', 'valor'))
-                        ->default(function (RelationManager $livewire, Forms\Get $get) {
-                            $doc = $livewire->getOwnerRecord();
-                            $serie = \App\Models\BillingSerie::where('codigo', $doc->serie)->first();
+                        ->default(function ($livewire, Forms\Get $get) {
+                            $doc = method_exists($livewire, 'getOwnerRecord') 
+                                ? $livewire->getOwnerRecord() 
+                                : ($livewire->record ?? null);
+                            
+                            if (!$doc) return 21;
+
+                            $serie = \App\Models\BillingSerie::where('codigo', $doc->serie ?? 'A')->first();
                             $globalDefault = \App\Models\Impuesto::where('tipo', 'iva')->where('es_predeterminado', true)->where('activo', true)->first()?->valor ?? 21;
                             
                             if ($serie && $serie->devenga_iva) {
@@ -191,17 +197,16 @@ class LineasRelationManager extends RelationManager
                         ->live()
                         ->columnSpan(1)
                         ->visible(!$isLabel)
-                        ->extraInputAttributes(['style' => 'width: 120px'])
                         ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                             self::calcularLinea($set, $get)),
  
+                    // TOTAL (Span 2)
                     Forms\Components\TextInput::make('total')
-                        ->label('Total')
+                        ->hiddenLabel()
                         ->disabled()
-                        ->dehydrated()
-                        ->columnSpan(1)
+                        ->dehydrated(false)
+                        ->columnSpan(2)
                         ->visible(!$isLabel)
-                        ->extraInputAttributes(['style' => 'width: 140px'])
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2)),
                 ]),
         ];
@@ -211,7 +216,7 @@ class LineasRelationManager extends RelationManager
 
 
 
-    protected static function calcularLinea(Forms\Set $set, Forms\Get $get): void
+    public static function calcularLinea(Forms\Set $set, Forms\Get $get): void
     {
         $cantidad = floatval($get('cantidad') ?? 0);
         $precio = floatval($get('precio_unitario') ?? 0);

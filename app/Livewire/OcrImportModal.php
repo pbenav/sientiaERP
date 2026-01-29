@@ -149,6 +149,7 @@ class OcrImportModal extends Component implements HasForms
                         'quantity' => $item['quantity'] ?? 1,
                         'unit_price' => $item['unit_price'] ?? 0,
                         'matched_product_id' => $item['matched_product_id'] ?? null,
+                        'reference' => $item['reference'] ?? $item['product_code'] ?? null,
                     ];
                 }
             }
@@ -301,7 +302,7 @@ class OcrImportModal extends Component implements HasForms
                                 'tax_rate' => 21.00, // Default tax
                                 'active' => true,
                                 'stock' => 0,
-                                'sku' => 'AUTO-' . strtoupper(uniqid()), // Temp SKU
+                                'sku' => $item['reference'] ?? ('AUTO-' . strtoupper(uniqid())), // Use Reference if available
                             ]);
                             
                             $item['matched_product_id'] = $newProduct->id;
@@ -328,6 +329,7 @@ class OcrImportModal extends Component implements HasForms
                     if (empty($desc)) $desc = 'Línea importada'; // Fallback
                     
                     $taxRate = 0.21;
+                    $prod = null;
                     if (!empty($item['matched_product_id'])) {
                         $prod = \App\Models\Product::find($item['matched_product_id']);
                         if ($prod) {
@@ -337,6 +339,7 @@ class OcrImportModal extends Component implements HasForms
 
                     $record->lineas()->create([
                         'product_id' => $item['matched_product_id'] ?? null,
+                        'codigo' => !empty($item['reference']) ? $item['reference'] : ($prod?->sku ?? $prod?->code ?? null),
                         'descripcion' => $desc, 
                         'cantidad' => $qty,
                         'unidad' => 'Ud', // Default

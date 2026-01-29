@@ -28,9 +28,9 @@ class EditEtiqueta extends EditRecord
         ];
     }
 
-    public function save(bool $shouldRedirect = true): void
+    public function save(bool $shouldRedirect = true, bool $shouldSendSavedNotification = true): void
     {
-        parent::save($shouldRedirect);
+        parent::save($shouldRedirect, $shouldSendSavedNotification);
         $this->redirect($this->getResource()::getUrl('index'));
     }
 

@@ -56,7 +56,7 @@ class FacturaCompraResource extends Resource
                 
                 Forms\Components\Select::make('forma_pago_id')->label('Forma de Pago')
                     ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
-                    ->searchable()->preload()->default(1)->required()
+                    ->searchable()->preload()->default(fn() => \App\Models\FormaPago::activas()->first()?->id ?? 1)->required()
                     ->columnSpan(2),
                 
                 Forms\Components\Select::make('estado')->label('Estado')->options([
@@ -64,9 +64,19 @@ class FacturaCompraResource extends Resource
                 ])->default('borrador')->required()->columnSpan(2),
             ])->columns(3)->compact(),
             
-            // SECCIÓN 3: PRODUCTOS
-            Forms\Components\View::make('filament.components.document-lines')
+            Forms\Components\View::make('filament.components.document-lines-header')
                 ->columnSpanFull(),
+
+            Forms\Components\Repeater::make('lineas')
+                ->relationship()
+                ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
+                ->columns(1)
+                ->defaultItems(0)
+                ->live()
+                ->hiddenLabel()
+                ->extraAttributes(['class' => 'document-lines-repeater'])
+                ->columnSpanFull(),
+
 
             // SECCIÓN 5: TOTALES (solo en edición)
             Forms\Components\Section::make('Totales')

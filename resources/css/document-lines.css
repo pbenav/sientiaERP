@@ -1,0 +1,75 @@
+/* Document Lines Repeater Styling */
+.document-lines-repeater .fi-fo-repeater-item-content {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    padding: 2px !important;
+    border: none !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    /* Separator line */
+    border-radius: 0 !important;
+}
+
+.document-lines-repeater .fi-fo-repeater-item {
+    margin-bottom: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+/* Remove card rings */
+.document-lines-repeater .ring-1,
+.document-lines-repeater .ring-gray-950\/5,
+.document-lines-repeater .dark\:ring-white\/10 {
+    box-shadow: none !important;
+    --tw-ring-color: transparent !important;
+}
+
+/* Compact padding inside inputs */
+.document-lines-repeater input.fi-input,
+.document-lines-repeater select.fi-select-input {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+    height: 32px !important;
+    /* Forced compact height */
+    font-size: 0.875rem !important;
+    /* text-sm */
+}
+
+/* Align delete button inline at the end */
+.document-lines-repeater .fi-fo-repeater-item-action-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 !important;
+    margin-top: 0 !important;
+    height: 32px;
+    /* Match input height */
+}
+
+/* Ensure the delete button container doesn't take up a full row */
+.document-lines-repeater .fi-fo-repeater-item>div>div.grid {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Make grid columns flex to accommodate the button at the end better if needed, 
+   but since Filament uses grid, we might need to target the action wrapper specifically 
+   to sit in the last column. 
+   Actually, Filament puts actions in a separate div often. 
+   We try to force the internal grid to behave more compactly. 
+*/
+
+.document-lines-repeater .fi-input-wrp {
+    min-height: 32px !important;
+}
+
+.document-lines-repeater .fi-fo-repeater-item {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    border-bottom: 1px solid #f3f4f6 !important;
+}
+
+/* Remove label spacing if any remains */
+.document-lines-repeater .fi-fo-field-wrp-label {
+    display: none !important;
+}
