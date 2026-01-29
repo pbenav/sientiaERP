@@ -31,9 +31,9 @@ class LineasRelationManager extends RelationManager
     public static function getLineFormSchema(bool $isLabel = false): array
     {
         return [
-            Forms\Components\Grid::make(24) // Switching to 24 columns for half-unit precision
+            Forms\Components\Grid::make(12)
                 ->schema([
-                    // CÓDIGO (Span 1 of 24 = ~4%)
+                    // CÓDIGO (Span 1)
                     Forms\Components\Select::make('codigo')
                         ->hiddenLabel()
                         ->searchable()
@@ -51,7 +51,7 @@ class LineasRelationManager extends RelationManager
                         })
                         ->live()
                         ->nullable(false)
-                        ->placeholder('Código')
+                        ->placeholder('Cód.')
                         ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
                             if ($state) {
                                 // Buscar producto por SKU o código de barras
@@ -81,10 +81,10 @@ class LineasRelationManager extends RelationManager
                                 }
                             }
                         })
-                        ->extraAttributes(['class' => 'hide-select-clear'])
-                        ->columnSpan(1), // 1/24 is very small, perfect for short SKU
+                        ->extraAttributes(['class' => 'hide-select-clear', 'style' => 'min-width: 0;'])
+                        ->columnSpan(1),
                     
-                    // DESCRIPCIÓN (Span 8 of 24 = 33%)
+                    // DESCRIPCIÓN (Span 4)
                     Forms\Components\Select::make('descripcion')
                         ->hiddenLabel()
                         ->required()
@@ -134,11 +134,11 @@ class LineasRelationManager extends RelationManager
                             }
                         })
                         ->extraAttributes(['class' => 'hide-select-clear'])
-                        ->columnSpan(8), // Increased for better text read
+                        ->columnSpan(4),
                     
                     Forms\Components\Hidden::make('product_id'),
                     
-                    // CANTIDAD (Span 2 of 24 = ~8%)
+                    // CANTIDAD (Span 1)
                     Forms\Components\TextInput::make('cantidad')
                         ->hiddenLabel()
                         ->type('text')
@@ -146,7 +146,7 @@ class LineasRelationManager extends RelationManager
                         ->maxValue(9999999)
                         ->required()
                         ->default(1)
-                        ->columnSpan(2) 
+                        ->columnSpan(1)
                         ->live(onBlur: true)
                         ->extraInputAttributes(['class' => 'text-center'])
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 0))
@@ -155,7 +155,7 @@ class LineasRelationManager extends RelationManager
                             self::calcularLinea($set, $get);
                         }),
                     
-                    // PRECIO (Span 4 of 24 = ~16%)
+                    // PRECIO (Span 2)
                     Forms\Components\TextInput::make('precio_unitario')
                         ->hiddenLabel()
                         ->type('text')
@@ -163,7 +163,7 @@ class LineasRelationManager extends RelationManager
                         ->maxValue(9999999999)
                         ->required()
                         ->live(onBlur: true)
-                        ->columnSpan(4)
+                        ->columnSpan(2)
                         ->visible(!$isLabel)
                         ->extraInputAttributes(['class' => 'text-right'])
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
@@ -172,7 +172,7 @@ class LineasRelationManager extends RelationManager
                             self::calcularLinea($set, $get);
                         }),
                     
-                    // DESCUENTO (Span 2 of 24 = ~8%)
+                    // DESCUENTO (Span 1)
                     Forms\Components\TextInput::make('descuento')
                         ->hiddenLabel()
                         ->type('text')
@@ -180,7 +180,7 @@ class LineasRelationManager extends RelationManager
                         ->maxValue(100)
                         ->default(fn() => \App\Models\Descuento::where('es_predeterminado', true)->where('activo', true)->first()?->valor ?? 0)
                         ->live(onBlur: true)
-                        ->columnSpan(2)
+                        ->columnSpan(1)
                         ->visible(!$isLabel)
                         ->extraInputAttributes(['class' => 'text-center'])
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
@@ -207,21 +207,21 @@ class LineasRelationManager extends RelationManager
                             return $serie && !$serie->devenga_iva ? 0 : $globalDefault;
                         }),
  
-                    // IMPORTE (Span 5 of 24 = ~21%)
+                    // IMPORTE (Span 1)
                     Forms\Components\TextInput::make('subtotal')
                         ->hiddenLabel()
                         ->extraInputAttributes(['readonly' => true, 'class' => 'text-right'])
                         ->dehydrated() 
-                        ->columnSpan(5) 
+                        ->columnSpan(2) 
                         ->visible(!$isLabel)
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2)),
 
-                    // IVA (Span 2 of 24 = ~8%)
+                    // IVA (Span 1)
                     Forms\Components\Placeholder::make('iva_display')
                         ->hiddenLabel()
                         ->content(fn ($get) => number_format((float)$get('iva'), 0) . '%')
                         ->extraAttributes(['class' => 'text-center pt-2', 'style' => 'font-size: 0.85rem; font-weight: 500; color: #6b7280;'])
-                        ->columnSpan(2)
+                        ->columnSpan(1)
                         ->visible(!$isLabel),
                 ]),
         ];
