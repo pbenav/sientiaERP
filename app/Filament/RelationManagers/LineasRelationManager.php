@@ -50,7 +50,7 @@ class LineasRelationManager extends RelationManager
                                 ->pluck('sku', 'sku');
                         })
                         ->live()
-                        ->clearable(false)
+                        ->nullable(false)
                         ->afterStateUpdated(function ($state, Forms\Set $set) {
                             if ($state) {
                                 // Buscar producto por SKU o código de barras
@@ -97,7 +97,7 @@ class LineasRelationManager extends RelationManager
                                 ->pluck('name', 'name');
                         })
                         ->live()
-                        ->clearable(false)
+                        ->nullable(false)
                         ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
                             if ($state) {
                                 // Buscar producto por nombre
@@ -197,7 +197,7 @@ class LineasRelationManager extends RelationManager
                         })
                         ->required()
                         ->live()
-                        ->clearable(false)
+                        ->nullable(false)
                         ->columnSpan(1)
                         ->visible(!$isLabel)
                         ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
