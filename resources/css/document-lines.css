@@ -18,6 +18,8 @@
 /* Enforce Grid Gap and PADDING REMOVAL */
 .document-lines-repeater .fi-fo-grid {
     gap: 4px !important;
+    padding-left: 2px !important;
+    /* Tiny alignment fix */
 }
 
 /* VERY IMPORTANT: Remove the default padding of the item container which throws off headers */
@@ -86,4 +88,27 @@
 .document-lines-header-container {
     padding-right: 32px;
     /* Compensation for the delete button width */
+}
+
+/* Hide clear buttons and prevent focus */
+.document-lines-repeater .fi-select-input-clear-btn,
+.document-lines-repeater .choices__button {
+    display: none !important;
+    pointer-events: none !important;
+}
+
+/* Prevent focus on internal select elements if triggered by tab */
+.document-lines-repeater select:focus,
+.document-lines-repeater button:focus {
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgb(var(--primary-600)) !important;
+}
+
+/* Ensure aligned text in inputs */
+.document-lines-repeater .fi-input-wrp input[style*="text-align: center"] {
+    text-align: center !important;
+}
+
+.document-lines-repeater .fi-input-wrp input[style*="text-align: right"] {
+    text-align: right !important;
 }
