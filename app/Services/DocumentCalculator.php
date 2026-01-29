@@ -23,28 +23,17 @@ class DocumentCalculator
             // Normalize input from form state (which might use keys like 'cantidad', 'precio_unitario', etc.)
             // Note: Repeater state keys match database columns usually
             
-            $cantidad = floatval($linea['cantidad'] ?? 0);
-            $precio = floatval($linea['precio_unitario'] ?? 0); // Can be 'precio_unitario' or 'precio' depending on context? In Manager it is 'precio_unitario'.
-            $descuento = floatval($linea['descuento'] ?? 0);
-            $ivaRate = floatval($linea['iva'] ?? 0);
+            $cantidad = floatval(str_replace(',', '.', $linea['cantidad'] ?? 0));
+            $precio = floatval(str_replace(',', '.', $linea['precio_unitario'] ?? 0));
+            $descuento = floatval(str_replace(',', '.', $linea['descuento'] ?? 0));
+            $ivaRate = floatval(str_replace(',', '.', $linea['iva'] ?? 0));
             
             // Calculate base for this line
-            $baseLinea = $cantidad * $precio;
+            $baseLinea = round($cantidad * $precio, 2);
             if ($descuento > 0) {
-                $baseLinea = $baseLinea * (1 - ($descuento / 100));
+                $baseLinea = round($baseLinea * (1 - ($descuento / 100)), 2);
             }
-            // Round base per line as per standard invoicing? usually row total is rounded.
-            // But for tax grouping, we sum bases? or sum quotas?
-            // Spanish law: Can calculate line by line or by total base.
-            // SientiaERP convention: seems to calculate per line in Manager (round(2)).
-            // We'll trust the input subtotal if available, otherwise recalculate.
             
-            if (isset($linea['subtotal'])) {
-                 $baseLinea = floatval($linea['subtotal']);
-            } else {
-                 $baseLinea = round($baseLinea, 2);
-            }
-
             // Key for grouping: Tax Rate
             $key = (string)$ivaRate;
             

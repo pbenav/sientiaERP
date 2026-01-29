@@ -1,4 +1,4 @@
-<div class="flex items-center gap-[4px] px-0 py-2 bg-gray-50 dark:bg-gray-900 font-medium text-xs text-gray-600 dark:text-gray-400 rounded-t-lg border-b dark:border-gray-800">
+<div class="document-lines-header-container flex items-center gap-[4px] px-0 py-2 bg-gray-50 dark:bg-gray-900 font-medium text-xs text-gray-600 dark:text-gray-400 rounded-t-lg border-b dark:border-gray-800">
     <!-- Grid matching the Repeater Content -->
     <div class="grid grid-cols-12 gap-[4px] flex-1">
         <div class="col-span-2 pl-2">Código</div>

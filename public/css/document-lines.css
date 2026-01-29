@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
-/* Scope everything to the repeater to avoid global side effects */
+/* Scope everything to the repeater */
+
 .document-lines-repeater .fi-fo-repeater-item {
     background-color: transparent !important;
     box-shadow: none !important;
@@ -8,84 +9,81 @@
     padding: 0 !important;
     margin-bottom: 0 !important;
     border-bottom: 1px solid #f3f4f6 !important;
-    /* Light gray separator */
 }
 
 .dark .document-lines-repeater .fi-fo-repeater-item {
     border-bottom-color: #374151 !important;
 }
 
-/* Enforce Grid Gap to match Header (4px) */
+/* Enforce Grid Gap and PADDING REMOVAL */
 .document-lines-repeater .fi-fo-grid {
     gap: 4px !important;
+}
+
+/* VERY IMPORTANT: Remove the default padding of the item container which throws off headers */
+.document-lines-repeater .fi-fo-repeater-item-content {
+    padding: 2px 0 !important;
+    /* Minimal vertical padding, NO horizontal */
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
 }
 
 /* Compact inputs */
 .document-lines-repeater .fi-input-wrp {
     box-shadow: none !important;
-    background-color: transparent !important;
-    border: none !important;
-    padding: 0 !important;
-    height: auto !important;
-    min-height: 30px !important;
-}
-
-/* Remove ring/focus outlines (optional, for very clean look) */
-.document-lines-repeater .fi-input-wrp:focus-within {
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
-}
-
-/* Input text alignment and padding */
-.document-lines-repeater input {
-    padding-top: 4px !important;
-    padding-bottom: 4px !important;
-    padding-left: 8px !important;
-    padding-right: 8px !important;
+    background-color: white !important;
+    /* Ensure visibility */
+    border: 1px solid #e5e7eb !important;
     height: 30px !important;
-    font-size: 0.875rem !important;
-    /* text-sm */
-    line-height: 1.25rem !important;
 }
 
+.dark .document-lines-repeater .fi-input-wrp {
+    background-color: #1f2937 !important;
+    border-color: #374151 !important;
+}
 
-/* Hide Labels within Repeater (Double check) */
+.document-lines-repeater input {
+    height: 30px !important;
+    padding: 4px 8px !important;
+    font-size: 0.875rem !important;
+}
+
+/* Mask selects to look like inputs more */
+.document-lines-repeater select {
+    height: 30px !important;
+    padding: 0 8px !important;
+}
+
+/* Hide Labels */
 .document-lines-repeater .fi-fo-field-wrp-label {
     display: none !important;
 }
 
-/* Hide Select Clear Button (X) */
-.document-lines-repeater .fi-select-input-clear-btn {
-    display: none !important;
-}
-
-/* Inline Delete Button Alignment */
-/* The delete button is usually in the item actions container */
+/* Action alignment (Delete button) */
 .document-lines-repeater .fi-fo-repeater-item-action-wrp {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding: 0 !important;
-    width: 32px;
-    /* Fixed width for delete button column */
-    margin-left: 4px;
-    /* Gap */
-}
-
-/* Make the repeater content flex row to put delete button at end */
-.document-lines-repeater .fi-fo-repeater-item-content {
-    display: flex;
-    align-items: flex-start;
-    /* Align top */
-    width: 100%;
+    width: 32px !important;
+    margin: 0 !important;
+    padding: 0 4px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
 /* The Grid (Content) takes remaining space */
 .document-lines-repeater .fi-fo-repeater-item-content>.fi-fo-grid {
-    flex: 1;
+    flex: 1 !important;
 }
 
-/* Hide dashed border of repeater */
+/* Hide dashed border / background of repeater main container */
 .document-lines-repeater {
     box-shadow: none !important;
     border: none !important;
+    background: transparent !important;
+}
+
+/* Header Component Tweaks */
+.document-lines-header-container {
+    padding-right: 32px;
+    /* Compensation for the delete button width */
 }

@@ -195,6 +195,7 @@ class LineasRelationManager extends RelationManager
                         })
                         ->required()
                         ->live()
+                        ->clearable(false)
                         ->columnSpan(1)
                         ->visible(!$isLabel)
                         ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
@@ -205,7 +206,7 @@ class LineasRelationManager extends RelationManager
                     Forms\Components\TextInput::make('subtotal')
                         ->hiddenLabel()
                         ->disabled()
-                        ->dehydrated(false) // No guardar directamente este campo, se calcula
+                        ->dehydrated() // Permitir que viaje en el estado para el calculador
                         ->columnSpan(2)
                         ->visible(!$isLabel)
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2)),
