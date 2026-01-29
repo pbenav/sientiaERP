@@ -11,8 +11,13 @@ class NumberFormatHelper
      */
     public static function getDecimalSeparator(): string
     {
-        $format = Setting::get('decimal_separator', 'comma');
-        return $format === 'comma' ? ',' : '.';
+        $format = Setting::get('decimal_separator', ',');
+        
+        // Handle both the character and the name
+        if ($format === 'dot' || $format === '.') return '.';
+        if ($format === 'comma' || $format === ',') return ',';
+        
+        return ','; // Default
     }
 
     /**
@@ -20,13 +25,13 @@ class NumberFormatHelper
      */
     public static function getThousandsSeparator(): string
     {
-        $format = Setting::get('thousands_separator', 'dot');
+        $format = Setting::get('thousands_separator', '.');
         
         return match($format) {
-            'comma' => ',',
-            'dot' => '.',
-            'space' => ' ',
-            'none' => '',
+            'comma', ',' => ',',
+            'dot', '.' => '.',
+            'space', ' ' => ' ',
+            'none', '' => '',
             default => '.',
         };
     }
@@ -63,33 +68,40 @@ class NumberFormatHelper
      */
     public static function parseNumber($value): float
     {
-        if (empty($value)) {
-            return 0.0;
-        }
-
         if (is_numeric($value)) {
             return (float) $value;
+        }
+
+        if (empty($value)) {
+            return 0.0;
         }
 
         $value = (string) $value;
         $decimalSep = self::getDecimalSeparator();
         $thousandsSep = self::getThousandsSeparator();
 
-        // Si tenemos un punto y el ERP usa comas para decimales, pero NO hay ninguna coma en el texto,
-        // asumimos que el punto es el separador decimal (entrada del usuario o float directo).
+        // 1. Clean up spaces
+        $value = trim($value);
+
+        // 2. Identify if the input uses a "standard" dot as decimal regardless of settings
+        // (common when users paste or browser autofills)
         if ($decimalSep === ',' && str_contains($value, '.') && !str_contains($value, ',')) {
+            // It has a dot but no comma, likely a standard float representation
             return (float) $value;
         }
 
-        // Remover separadores de miles
+        // 3. Remove thousands separator
         if ($thousandsSep !== '') {
             $value = str_replace($thousandsSep, '', $value);
         }
 
-        // Convertir separador decimal al punto
+        // 4. Convert decimal separator to standard dot
         if ($decimalSep !== '.') {
             $value = str_replace($decimalSep, '.', $value);
         }
+
+        // 5. Final cleanup of any non-numeric remains (except dot and minus)
+        $value = preg_replace('/[^0-9.-]/', '', $value);
 
         return (float) $value;
     }
