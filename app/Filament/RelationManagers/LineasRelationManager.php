@@ -210,15 +210,12 @@ class LineasRelationManager extends RelationManager
                         ->visible(!$isLabel)
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2)),
 
-                    Forms\Components\TextInput::make('iva_display')
-                        ->label('IVA%')
+                    Forms\Components\Placeholder::make('iva_display')
                         ->hiddenLabel()
-                        ->extraInputAttributes(['readonly' => true])
-                        ->dehydrated(false)
+                        ->content(fn ($get) => number_format((float)$get('iva'), 0) . '%')
+                        ->extraAttributes(['class' => 'text-right pt-2 px-2', 'style' => 'font-size: 0.8rem;'])
                         ->columnSpan(1)
-                        ->visible(!$isLabel)
-                        ->statePath('iva') // It shows the 'iva' value
-                        ->suffix('%'),
+                        ->visible(!$isLabel),
                 ]),
         ];
     }
