@@ -71,7 +71,7 @@ class AdminPanelProvider extends PanelProvider
             )
             ->renderHook(
                 'panels::head.end',
-                fn () => new HtmlString('<link rel="stylesheet" href="' . asset('css/document-lines.css') . '">')
+                fn () => new HtmlString(Blade::render("@vite('resources/css/document-lines.css')"))
             );
     }
 }

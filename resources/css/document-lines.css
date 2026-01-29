@@ -6,7 +6,8 @@
     background-color: transparent !important;
     box-shadow: none !important;
     border: none !important;
-    padding: 0 !important;
+    padding: 2px 0 !important;
+    /* Minimal vertical padding */
     margin-bottom: 0 !important;
     border-bottom: 1px solid #f3f4f6 !important;
     display: flex !important;
@@ -48,12 +49,13 @@
     /* Fill height to center button */
 }
 
-/* Esconder el número de índice y el handle de arrastre, pero PERMITIR el botón de borrar */
-.document-lines-repeater .fi-fo-repeater-item-header>*:not(.fi-fo-repeater-item-header-actions):not(button) {
+/* Esconder el número de índice y el handle de arrastre, pero PERMITIR el botón de borrar y su contenedor */
+.document-lines-repeater .fi-fo-repeater-item-header>*:not(.fi-fo-repeater-item-header-actions):not(ul):not(button) {
     display: none !important;
 }
 
-.document-lines-repeater .fi-fo-repeater-item-header-actions {
+.document-lines-repeater .fi-fo-repeater-item-header-actions,
+.document-lines-repeater .fi-fo-repeater-item-header ul {
     margin: 0 !important;
     display: flex !important;
     align-items: center !important;
