@@ -51,7 +51,7 @@ class LineasRelationManager extends RelationManager
                         })
                         ->live()
                         ->nullable(false)
-                        ->afterStateUpdated(function ($state, Forms\Set $set) {
+                        ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
                             if ($state) {
                                 // Buscar producto por SKU o código de barras
                                 $producto = \App\Models\Product::where('sku', $state)

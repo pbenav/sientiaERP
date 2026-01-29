@@ -18,8 +18,6 @@
 /* Enforce Grid Gap and PADDING REMOVAL */
 .document-lines-repeater .fi-fo-grid {
     gap: 4px !important;
-    padding-left: 2px !important;
-    /* Tiny alignment fix */
 }
 
 /* VERY IMPORTANT: Remove the default padding of the item container which throws off headers */
@@ -60,6 +58,14 @@
 /* Hide Labels */
 .document-lines-repeater .fi-fo-field-wrp-label {
     display: none !important;
+}
+
+/* Force hide clear buttons on selects */
+.document-lines-repeater .fi-select-input-clear-btn {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
 }
 
 /* Action alignment (Delete button) */
