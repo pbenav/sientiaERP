@@ -70,8 +70,19 @@ class EtiquetaResource extends Resource
                             ->default('etiqueta'),
                     ])->columns(3),
 
-//                Forms\Components\View::make('filament.components.document-lines')
-//                    ->columnSpanFull(),
+                Forms\Components\View::make('filament.components.document-lines-header')
+                    ->columnSpanFull()
+                    ->viewData(['isLabel' => true]),
+
+                Forms\Components\Repeater::make('lineas')
+                    ->relationship()
+                    ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema(isLabel: true))
+                    ->columns(1)
+                    ->defaultItems(0)
+                    ->live()
+                    ->hiddenLabel()
+                    ->extraAttributes(['class' => 'document-lines-repeater'])
+                    ->columnSpanFull(),
 
                 Forms\Components\Section::make('Observaciones')
                     ->schema([
