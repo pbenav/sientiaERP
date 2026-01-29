@@ -201,10 +201,11 @@ class LineasRelationManager extends RelationManager
                             self::calcularLinea($set, $get)),
  
                     // TOTAL (Span 2)
-                    Forms\Components\TextInput::make('total')
+                    // SUBTOTAL (Base Imponible) (Span 2)
+                    Forms\Components\TextInput::make('subtotal')
                         ->hiddenLabel()
                         ->disabled()
-                        ->dehydrated(false)
+                        ->dehydrated(false) // No guardar directamente este campo, se calcula
                         ->columnSpan(2)
                         ->visible(!$isLabel)
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2)),

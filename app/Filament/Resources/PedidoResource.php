@@ -143,7 +143,24 @@ class PedidoResource extends Resource
                 // SECCIÓN 5: TOTALES (solo en edición)
                 Forms\Components\Section::make('Totales')
                     ->schema([
-                        Forms\Components\View::make('filament.components.tax-breakdown')
+                        Forms\Components\Placeholder::make('totales_calculados')
+                            ->hiddenLabel()
+                            ->content(function (Forms\Get $get) {
+                                $lineas = $get('lineas') ?? [];
+                                $terceroId = $get('tercero_id');
+                                $tieneRecargo = false;
+                                if ($terceroId) {
+                                    $tercero = \App\Models\Tercero::find($terceroId);
+                                    $tieneRecargo = $tercero?->recargo_equivalencia ?? false;
+                                }
+                                
+                                $breakdown = \App\Services\DocumentCalculator::calculate($lineas, $tieneRecargo);
+                                
+                                return view('filament.components.tax-breakdown-live', [
+                                    'breakdown' => $breakdown, 
+                                    'tieneRecargo' => $tieneRecargo
+                                ]);
+                            })
                             ->columnSpanFull(),
                     ])
                     ->visibleOn('edit')

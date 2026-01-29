@@ -1,75 +1,91 @@
-/* Document Lines Repeater Styling */
-.document-lines-repeater .fi-fo-repeater-item-content {
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+/* Scope everything to the repeater to avoid global side effects */
+.document-lines-repeater .fi-fo-repeater-item {
     background-color: transparent !important;
     box-shadow: none !important;
-    padding: 2px !important;
     border: none !important;
-    border-bottom: 1px solid #e5e7eb !important;
-    /* Separator line */
-    border-radius: 0 !important;
-}
-
-.document-lines-repeater .fi-fo-repeater-item {
+    padding: 0 !important;
     margin-bottom: 0 !important;
-    background: transparent !important;
-    box-shadow: none !important;
+    border-bottom: 1px solid #f3f4f6 !important;
+    /* Light gray separator */
 }
 
-/* Remove card rings */
-.document-lines-repeater .ring-1,
-.document-lines-repeater .ring-gray-950\/5,
-.document-lines-repeater .dark\:ring-white\/10 {
-    box-shadow: none !important;
-    --tw-ring-color: transparent !important;
+.dark .document-lines-repeater .fi-fo-repeater-item {
+    border-bottom-color: #374151 !important;
 }
 
-/* Compact padding inside inputs */
-.document-lines-repeater input.fi-input,
-.document-lines-repeater select.fi-select-input {
+/* Enforce Grid Gap to match Header (4px) */
+.document-lines-repeater .fi-fo-grid {
+    gap: 4px !important;
+}
+
+/* Compact inputs */
+.document-lines-repeater .fi-input-wrp {
+    box-shadow: none !important;
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 30px !important;
+}
+
+/* Remove ring/focus outlines (optional, for very clean look) */
+.document-lines-repeater .fi-input-wrp:focus-within {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Input text alignment and padding */
+.document-lines-repeater input {
     padding-top: 4px !important;
     padding-bottom: 4px !important;
-    height: 32px !important;
-    /* Forced compact height */
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    height: 30px !important;
     font-size: 0.875rem !important;
     /* text-sm */
+    line-height: 1.25rem !important;
 }
 
-/* Align delete button inline at the end */
-.document-lines-repeater .fi-fo-repeater-item-action-wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 !important;
-    margin-top: 0 !important;
-    height: 32px;
-    /* Match input height */
-}
 
-/* Ensure the delete button container doesn't take up a full row */
-.document-lines-repeater .fi-fo-repeater-item>div>div.grid {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-/* Make grid columns flex to accommodate the button at the end better if needed, 
-   but since Filament uses grid, we might need to target the action wrapper specifically 
-   to sit in the last column. 
-   Actually, Filament puts actions in a separate div often. 
-   We try to force the internal grid to behave more compactly. 
-*/
-
-.document-lines-repeater .fi-input-wrp {
-    min-height: 32px !important;
-}
-
-.document-lines-repeater .fi-fo-repeater-item {
-    padding-top: 2px !important;
-    padding-bottom: 2px !important;
-    border-bottom: 1px solid #f3f4f6 !important;
-}
-
-/* Remove label spacing if any remains */
+/* Hide Labels within Repeater (Double check) */
 .document-lines-repeater .fi-fo-field-wrp-label {
     display: none !important;
+}
+
+/* Hide Select Clear Button (X) */
+.document-lines-repeater .fi-select-input-clear-btn {
+    display: none !important;
+}
+
+/* Inline Delete Button Alignment */
+/* The delete button is usually in the item actions container */
+.document-lines-repeater .fi-fo-repeater-item-action-wrp {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 !important;
+    width: 32px;
+    /* Fixed width for delete button column */
+    margin-left: 4px;
+    /* Gap */
+}
+
+/* Make the repeater content flex row to put delete button at end */
+.document-lines-repeater .fi-fo-repeater-item-content {
+    display: flex;
+    align-items: flex-start;
+    /* Align top */
+    width: 100%;
+}
+
+/* The Grid (Content) takes remaining space */
+.document-lines-repeater .fi-fo-repeater-item-content>.fi-fo-grid {
+    flex: 1;
+}
+
+/* Hide dashed border of repeater */
+.document-lines-repeater {
+    box-shadow: none !important;
+    border: none !important;
 }
