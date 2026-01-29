@@ -162,9 +162,10 @@ class LineasRelationManager extends RelationManager
                         ->inputMode('decimal')
                         ->maxValue(9999999999)
                         ->required()
+                        ->default(0)
                         ->live(onBlur: true)
                         ->columnSpan(1)
-                        ->visible(!$isLabel)
+                        ->hidden($isLabel)
                         ->extraInputAttributes(['class' => 'text-right'])
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
                         ->dehydrateStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::parseNumber($state))
@@ -178,10 +179,10 @@ class LineasRelationManager extends RelationManager
                         ->type('text')
                         ->inputMode('decimal')
                         ->maxValue(100)
-                        ->default(fn() => \App\Models\Descuento::where('es_predeterminado', true)->where('activo', true)->first()?->valor ?? 0)
+                        ->default(0)
                         ->live(onBlur: true)
                         ->columnSpan(1)
-                        ->visible(!$isLabel)
+                        ->hidden($isLabel)
                         ->extraInputAttributes(['class' => 'text-center'])
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
                         ->dehydrateStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::parseNumber($state))
@@ -211,9 +212,10 @@ class LineasRelationManager extends RelationManager
                     Forms\Components\TextInput::make('subtotal')
                         ->hiddenLabel()
                         ->extraInputAttributes(['readonly' => true, 'class' => 'text-right'])
+                        ->default(0)
                         ->dehydrated() 
                         ->columnSpan(2) 
-                        ->visible(!$isLabel)
+                        ->hidden($isLabel)
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2)),
 
                     // IVA (Span 1) - Minimal space
@@ -222,7 +224,14 @@ class LineasRelationManager extends RelationManager
                         ->content(fn ($get) => number_format((float)$get('iva'), 0) . '%')
                         ->extraAttributes(['class' => 'text-center pt-2', 'style' => 'font-size: 0.85rem; font-weight: 500; color: #6b7280;'])
                         ->columnSpan(1)
-                        ->visible(!$isLabel),
+                        ->hidden($isLabel),
+
+                    Forms\Components\Hidden::make('total')->default(0),
+                    Forms\Components\Hidden::make('importe_iva')->default(0),
+                    Forms\Components\Hidden::make('importe_recargo_equivalencia')->default(0),
+                    Forms\Components\Hidden::make('recargo_equivalencia')->default(0),
+                    Forms\Components\Hidden::make('irpf')->default(0),
+                    Forms\Components\Hidden::make('importe_irpf')->default(0),
                 ]),
         ];
     }
