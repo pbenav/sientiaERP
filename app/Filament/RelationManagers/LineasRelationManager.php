@@ -31,9 +31,9 @@ class LineasRelationManager extends RelationManager
     public static function getLineFormSchema(bool $isLabel = false): array
     {
         return [
-            Forms\Components\Grid::make(12)
+            Forms\Components\Grid::make(24) // Switching to 24 columns for half-unit precision
                 ->schema([
-                    // CÓDIGO (Span 1)
+                    // CÓDIGO (Span 1 of 24 = ~4%)
                     Forms\Components\Select::make('codigo')
                         ->hiddenLabel()
                         ->searchable()
@@ -82,9 +82,9 @@ class LineasRelationManager extends RelationManager
                             }
                         })
                         ->extraAttributes(['class' => 'hide-select-clear'])
-                        ->columnSpan(1),
+                        ->columnSpan(1), // 1/24 is very small, perfect for short SKU
                     
-                    // DESCRIPCIÓN (Span 3)
+                    // DESCRIPCIÓN (Span 8 of 24 = 33%)
                     Forms\Components\Select::make('descripcion')
                         ->hiddenLabel()
                         ->required()
@@ -134,11 +134,11 @@ class LineasRelationManager extends RelationManager
                             }
                         })
                         ->extraAttributes(['class' => 'hide-select-clear'])
-                        ->columnSpan(3),
+                        ->columnSpan(8), // Increased for better text read
                     
                     Forms\Components\Hidden::make('product_id'),
                     
-                    // CANTIDAD (Span 1)
+                    // CANTIDAD (Span 2 of 24 = ~8%)
                     Forms\Components\TextInput::make('cantidad')
                         ->hiddenLabel()
                         ->type('text')
@@ -146,7 +146,7 @@ class LineasRelationManager extends RelationManager
                         ->maxValue(9999999)
                         ->required()
                         ->default(1)
-                        ->columnSpan(1)
+                        ->columnSpan(2) 
                         ->live(onBlur: true)
                         ->extraInputAttributes(['class' => 'text-center'])
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 0))
@@ -155,7 +155,7 @@ class LineasRelationManager extends RelationManager
                             self::calcularLinea($set, $get);
                         }),
                     
-                    // PRECIO (Span 2)
+                    // PRECIO (Span 4 of 24 = ~16%)
                     Forms\Components\TextInput::make('precio_unitario')
                         ->hiddenLabel()
                         ->type('text')
@@ -163,7 +163,7 @@ class LineasRelationManager extends RelationManager
                         ->maxValue(9999999999)
                         ->required()
                         ->live(onBlur: true)
-                        ->columnSpan(2)
+                        ->columnSpan(4)
                         ->visible(!$isLabel)
                         ->extraInputAttributes(['class' => 'text-right'])
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
@@ -172,7 +172,7 @@ class LineasRelationManager extends RelationManager
                             self::calcularLinea($set, $get);
                         }),
                     
-                    // DESCUENTO (Span 1)
+                    // DESCUENTO (Span 2 of 24 = ~8%)
                     Forms\Components\TextInput::make('descuento')
                         ->hiddenLabel()
                         ->type('text')
@@ -180,7 +180,7 @@ class LineasRelationManager extends RelationManager
                         ->maxValue(100)
                         ->default(fn() => \App\Models\Descuento::where('es_predeterminado', true)->where('activo', true)->first()?->valor ?? 0)
                         ->live(onBlur: true)
-                        ->columnSpan(1)
+                        ->columnSpan(2)
                         ->visible(!$isLabel)
                         ->extraInputAttributes(['class' => 'text-center'])
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
@@ -189,7 +189,7 @@ class LineasRelationManager extends RelationManager
                             self::calcularLinea($set, $get);
                         }),
                     
-                    // IVA HIDDEN (instead of select)
+                    // IVA HIDDEN
                     Forms\Components\Hidden::make('iva')
                         ->default(function ($livewire, Forms\Get $get) {
                             $doc = method_exists($livewire, 'getOwnerRecord') 
@@ -207,19 +207,21 @@ class LineasRelationManager extends RelationManager
                             return $serie && !$serie->devenga_iva ? 0 : $globalDefault;
                         }),
  
+                    // IMPORTE (Span 5 of 24 = ~21%)
                     Forms\Components\TextInput::make('subtotal')
                         ->hiddenLabel()
-                        ->extraInputAttributes(['readonly' => true, 'class' => 'text-right']) // Readonly en vez de disabled para mejor reactividad visual
-                        ->dehydrated() // Permitir que viaje en el estado para el calculador
-                        ->columnSpan(3) // Increased to 3 for massive millions
+                        ->extraInputAttributes(['readonly' => true, 'class' => 'text-right'])
+                        ->dehydrated() 
+                        ->columnSpan(5) 
                         ->visible(!$isLabel)
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2)),
 
+                    // IVA (Span 2 of 24 = ~8%)
                     Forms\Components\Placeholder::make('iva_display')
                         ->hiddenLabel()
                         ->content(fn ($get) => number_format((float)$get('iva'), 0) . '%')
                         ->extraAttributes(['class' => 'text-center pt-2', 'style' => 'font-size: 0.85rem; font-weight: 500; color: #6b7280;'])
-                        ->columnSpan(1)
+                        ->columnSpan(2)
                         ->visible(!$isLabel),
                 ]),
         ];
