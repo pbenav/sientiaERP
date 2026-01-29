@@ -164,8 +164,9 @@ class LineasRelationManager extends RelationManager
                         ->visible(!$isLabel)
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
                         ->dehydrateStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::parseNumber($state))
-                        ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
-                            self::calcularLinea($set, $get)),
+                        ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+                            self::calcularLinea($set, $get);
+                        }),
                     
                     // DESCUENTO (Span 1)
                     Forms\Components\TextInput::make('descuento')
@@ -179,8 +180,9 @@ class LineasRelationManager extends RelationManager
                         ->visible(!$isLabel)
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
                         ->dehydrateStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::parseNumber($state))
-                        ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
-                            self::calcularLinea($set, $get)),
+                        ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+                            self::calcularLinea($set, $get);
+                        }),
                     
                     // IVA HIDDEN (instead of select)
                     Forms\Components\Hidden::make('iva')
