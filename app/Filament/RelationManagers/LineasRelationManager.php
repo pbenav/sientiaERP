@@ -51,6 +51,7 @@ class LineasRelationManager extends RelationManager
                         })
                         ->live()
                         ->nullable(false)
+                        ->placeholder('Código')
                         ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
                             if ($state) {
                                 // Buscar producto por SKU o código de barras
@@ -75,6 +76,8 @@ class LineasRelationManager extends RelationManager
                                             ->first()?->valor ?? 21.00;
                                         $set('iva', number_format($globalDefault, 2, '.', ''));
                                     }
+
+                                    self::calcularLinea($set, $get);
                                 }
                             }
                         })
@@ -98,6 +101,7 @@ class LineasRelationManager extends RelationManager
                         })
                         ->live()
                         ->nullable(false)
+                        ->placeholder('Descripción')
                         ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
                             if ($state) {
                                 // Buscar producto por nombre
@@ -123,10 +127,12 @@ class LineasRelationManager extends RelationManager
                                             ->first()?->valor ?? 21.00;
                                         $set('iva', number_format($globalDefault, 2, '.', ''));
                                     }
+
+                                    self::calcularLinea($set, $get);
                                 }
                             }
                         })
-                        ->columnSpan(4),
+                        ->columnSpan(5),
                     
                     Forms\Components\Hidden::make('product_id'),
                     
@@ -176,10 +182,8 @@ class LineasRelationManager extends RelationManager
                         ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
                             self::calcularLinea($set, $get)),
                     
-                    // IVA (Span 1)
-                    Forms\Components\Select::make('iva')
-                        ->hiddenLabel()
-                        ->options(\App\Models\Impuesto::where('tipo', 'iva')->where('activo', true)->pluck('nombre', 'valor'))
+                    // IVA HIDDEN (instead of select)
+                    Forms\Components\Hidden::make('iva')
                         ->default(function ($livewire, Forms\Get $get) {
                             $doc = method_exists($livewire, 'getOwnerRecord') 
                                 ? $livewire->getOwnerRecord() 
@@ -194,14 +198,7 @@ class LineasRelationManager extends RelationManager
                                 return $serie->ivaDefecto?->valor ?? $globalDefault;
                             }
                             return $serie && !$serie->devenga_iva ? 0 : $globalDefault;
-                        })
-                        ->required()
-                        ->live(onBlur: true)
-                        ->nullable(false)
-                        ->columnSpan(1)
-                        ->visible(!$isLabel)
-                        ->afterStateUpdated(fn($state, Forms\Set $set, Forms\Get $get) => 
-                            self::calcularLinea($set, $get)),
+                        }),
  
                     // TOTAL (Span 2)
                     // SUBTOTAL (Base Imponible) (Span 2)
@@ -222,10 +219,10 @@ class LineasRelationManager extends RelationManager
 
     public static function calcularLinea(Forms\Set $set, Forms\Get $get): void
     {
-        $cantidad = floatval($get('cantidad') ?? 0);
-        $precio = floatval($get('precio_unitario') ?? 0);
-        $descuento = floatval($get('descuento') ?? 0);
-        $iva = floatval($get('iva') ?? 0);
+        $cantidad = \App\Helpers\NumberFormatHelper::parseNumber($get('cantidad') ?? '0');
+        $precio = \App\Helpers\NumberFormatHelper::parseNumber($get('precio_unitario') ?? '0');
+        $descuento = \App\Helpers\NumberFormatHelper::parseNumber($get('descuento') ?? '0');
+        $iva = \App\Helpers\NumberFormatHelper::parseNumber($get('iva') ?? '0');
 
         $subtotal = $cantidad * $precio;
         
