@@ -131,15 +131,18 @@
                                             
                                             updatePriceFromMargin() {
                                                 const purchasePrice = parseFloat(this.$refs.purchasePrice.value) || 0;
+                                                const discount = parseFloat(this.$refs.discount.value) || 0;
                                                 const margin = parseFloat(this.$refs.margin.value) || 0;
+                                                
+                                                const netCost = purchasePrice * (1 - (discount / 100));
                                                 
                                                 if (margin >= 100) {
                                                     this.$refs.margin.value = 99;
                                                     return;
                                                 }
                                                 
-                                                const priceWithoutVat = purchasePrice / (1 - (margin / 100));
-                                                const benefit = priceWithoutVat - purchasePrice;
+                                                const priceWithoutVat = netCost / (1 - (margin / 100));
+                                                const benefit = priceWithoutVat - netCost;
                                                 const vatAmount = priceWithoutVat * (this.taxRate / 100);
                                                 const salePrice = priceWithoutVat * (1 + (this.taxRate / 100));
                                                 
@@ -151,18 +154,24 @@
                                             
                                             updateMarginFromPrice() {
                                                 const purchasePrice = parseFloat(this.$refs.purchasePrice.value) || 0;
+                                                const discount = parseFloat(this.$refs.discount.value) || 0;
                                                 const salePrice = parseFloat(this.$refs.salePrice.value) || 0;
                                                 
-                                                if (salePrice > 0 && purchasePrice > 0) {
+                                                const netCost = purchasePrice * (1 - (discount / 100));
+                                                
+                                                if (salePrice > 0 && netCost >= 0) {
                                                     const priceWithoutVat = salePrice / (1 + (this.taxRate / 100));
-                                                    const margin = (1 - (purchasePrice / priceWithoutVat)) * 100;
-                                                    const benefit = priceWithoutVat - purchasePrice;
+                                                    const margin = (1 - (netCost / priceWithoutVat)) * 100;
+                                                    const benefit = priceWithoutVat - netCost;
                                                     const vatAmount = priceWithoutVat * (this.taxRate / 100);
                                                     
                                                     this.$refs.margin.value = margin.toFixed(2);
                                                     $wire.set('parsedData.items.{{ $index }}.margin', margin);
                                                     $wire.set('parsedData.items.{{ $index }}.benefit', benefit);
                                                     $wire.set('parsedData.items.{{ $index }}.vat_amount', vatAmount);
+                                                } else if (salePrice > 0 && netCost === 0) {
+                                                    this.$refs.margin.value = 100;
+                                                    $wire.set('parsedData.items.{{ $index }}.margin', 100);
                                                 }
                                             }
                                         }">
@@ -200,6 +209,8 @@
                                                     type="number" 
                                                     step="0.01" 
                                                     wire:model="parsedData.items.{{ $index }}.discount" 
+                                                    x-ref="discount"
+                                                    @input="updatePriceFromMargin()"
                                                     onfocus="this.select()"
                                                     class="block w-full text-sm rounded border-gray-300 text-right dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                                     placeholder="0"
@@ -222,10 +233,12 @@
                                             <td class="px-2 py-2 text-sm text-right font-medium dark:text-white">
                                                 @php
                                                     $purchasePrice = (float)($item['unit_price'] ?? 0);
+                                                    $discount = (float)($item['discount'] ?? 0);
+                                                    $netCost = $purchasePrice * (1 - ($discount / 100));
                                                     $margin = (float)($item['margin'] ?? 30);
                                                     if ($margin >= 100) $margin = 99;
-                                                    $priceWithoutVat = $purchasePrice / (1 - ($margin / 100));
-                                                    $benefit = $priceWithoutVat - $purchasePrice;
+                                                    $priceWithoutVat = $netCost / (1 - ($margin / 100));
+                                                    $benefit = $priceWithoutVat - $netCost;
                                                 @endphp
                                                 {{ number_format($benefit, 2) }} €
                                             </td>
