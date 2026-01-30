@@ -148,6 +148,8 @@ class OcrImport extends Page implements HasForms
                 
                 foreach ($result['items'] as $item) {
                     $purchasePrice = (float)($item['unit_price'] ?? 0);
+                    $discount = (float)($item['discount'] ?? 0);
+                    $netCost = $purchasePrice * (1 - ($discount / 100));
                     $margin = $defaultMargin;
                     
                     // Validar que el margen no sea 100% o mayor para evitar división por cero
@@ -155,8 +157,8 @@ class OcrImport extends Page implements HasForms
                         $margin = 99;
                     }
                     
-                    // Precio sin IVA INICIAL (Calculado con margen deseado)
-                    $initialPriceWithoutVat = $purchasePrice / (1 - ($margin / 100));
+                    // Precio sin IVA INICIAL (Calculado con margen deseado sobre COSTE NETO)
+                    $initialPriceWithoutVat = $netCost / (1 - ($margin / 100));
                     
                     // Precio de venta TEÓRICO con IVA
                     $theoreticalSalePrice = $initialPriceWithoutVat * (1 + ($defaultTaxRate / 100));
@@ -168,15 +170,15 @@ class OcrImport extends Page implements HasForms
                     $priceWithoutVat = $salePrice / (1 + ($defaultTaxRate / 100));
                     
                     // Nuevo Margen Real
-                    // Margin = 1 - (Cost / PriceWithoutVat)
+                    // Margin = 1 - (NetCost / PriceWithoutVat)
                     if ($priceWithoutVat > 0) {
-                        $margin = (1 - ($purchasePrice / $priceWithoutVat)) * 100;
+                        $margin = (1 - ($netCost / $priceWithoutVat)) * 100;
                     } else {
                         $margin = 0;
                     }
                     
                     // Beneficio Real
-                    $benefit = $priceWithoutVat - $purchasePrice;
+                    $benefit = $priceWithoutVat - $netCost;
                     
                     // Importe IVA Real
                     $vatAmount = $priceWithoutVat * ($defaultTaxRate / 100);
@@ -187,7 +189,7 @@ class OcrImport extends Page implements HasForms
                         'product_code' => $item['product_code'] ?? $item['reference'] ?? '',
                         'quantity' => (float)($item['quantity'] ?? 1),
                         'unit_price' => $purchasePrice,
-                        'discount' => 0.0,
+                        'discount' => $discount,
                         'margin' => round($margin, 3), // Redondeo interno a 3 decimales
                         'benefit' => $benefit,
                         'vat_rate' => $defaultTaxRate,

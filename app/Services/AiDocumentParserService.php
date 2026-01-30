@@ -259,6 +259,7 @@ Analyze this image and extract ALL the information into a JSON object with this 
       "reference": "string or null",
       "quantity": number,
       "unit_price": number,
+      "discount": number,
       "line_total": number
     }
   ]
@@ -266,10 +267,10 @@ Analyze this image and extract ALL the information into a JSON object with this 
 
 CRITICAL INSTRUCTIONS:
 1. Extract ALL line items you can see in the document.
-2. For "unit_price", extract the SUPPLIER COST per unit (Precio de compra/coste). 
+2. For "unit_price", extract the SUPPLIER COST per unit BEFORE any line discount (Precio bruto). 
    WARNING: Do NOT extract "PVP", "Suggested Price", or "Retail Price" as unit_price.
-3. If there is a discount per line, try to extract the base unit price BEFORE the discount if possible.
-4. "line_total" should be the subtotal for that line in the document.
+3. For "discount", extract the percentage discount per line if present (e.g., 10.5 for 10.5%). If no discount is explicitly stated per line, use 0.
+4. "line_total" should be the subtotal for that line in the document (quantity * unit_price * (1 - discount/100)).
 5. Return ONLY valid JSON, nothing else.
 6. You may wrap the JSON in ```json ``` markdown if needed.
 EOT;
