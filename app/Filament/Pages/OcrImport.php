@@ -187,6 +187,7 @@ class OcrImport extends Page implements HasForms
                         'product_code' => $item['product_code'] ?? $item['reference'] ?? '',
                         'quantity' => (float)($item['quantity'] ?? 1),
                         'unit_price' => $purchasePrice,
+                        'discount' => 0.0,
                         'margin' => round($margin, 3), // Redondeo interno a 3 decimales
                         'benefit' => $benefit,
                         'vat_rate' => $defaultTaxRate,
@@ -280,6 +281,7 @@ class OcrImport extends Page implements HasForms
             'reference' => '',
             'quantity' => 1.0,
             'unit_price' => 0.0,
+            'discount' => 0.0,
             'margin' => $defaultMargin,
             'benefit' => $benefit,
             'vat_rate' => $defaultTaxRate,
@@ -388,13 +390,17 @@ class OcrImport extends Page implements HasForms
                                 // Actualizar producto existente con nuevos datos
                                 $purchasePrice = $item['unit_price'] ?? 0;
                                 $margin = $item['margin'] ?? 30;
+                                // El precio de venta (PVP) es el que el usuario ve/edita en la tabla
                                 $retailPrice = $item['sale_price'] ?? \App\Models\Product::calculateRetailPrice($purchasePrice, $margin);
                                 
                                 $existingProduct->update([
                                     'name' => $item['description'] ?? $existingProduct->name,
                                     'description' => $item['description'] ?? $existingProduct->description,
-                                    'price' => $retailPrice,
-                                    'purchase_price' => $purchasePrice,
+                                    'price' => $retailPrice, // Guardamos el PVP (con IVA)
+                                    'metadata' => array_merge($existingProduct->metadata ?? [], [
+                                        'purchase_price' => $purchasePrice,
+                                        'commercial_margin' => $margin,
+                                    ]),
                                 ]);
                                 
                                 \Illuminate\Support\Facades\Log::info('Product updated with new data', [
@@ -430,7 +436,7 @@ class OcrImport extends Page implements HasForms
                             $newProduct = \App\Models\Product::create([
                                 'name' => $desc,
                                 'description' => $desc,
-                                'price' => $retailPrice, // PVP calculado con margen
+                                'price' => $retailPrice, // PVP guardado en campo price
                                 'tax_rate' => 21.00,
                                 'active' => true,
                                 'stock' => 0,
@@ -459,6 +465,7 @@ class OcrImport extends Page implements HasForms
             foreach ($this->parsedData['items'] as $item) {
                 $qty = $item['quantity'] ?? 1;
                 $price = $item['unit_price'] ?? 0;
+                $discount = $item['discount'] ?? 0;
                 $desc = $item['description'] ?? 'Producto incorrecto';
                 if (empty($desc)) $desc = 'Línea importada';
 
@@ -472,6 +479,11 @@ class OcrImport extends Page implements HasForms
                     }
                 }
 
+                $subtotal = $qty * $price;
+                if ($discount > 0) {
+                    $subtotal = $subtotal * (1 - ($discount / 100));
+                }
+
                 $record->lineas()->create([
                     'product_id' => $item['matched_product_id'] ?? null,
                     'codigo' => !empty($item['reference']) ? $item['reference'] : ($prod?->sku ?? $prod?->code ?? null),
@@ -479,13 +491,13 @@ class OcrImport extends Page implements HasForms
                     'cantidad' => $qty,
                     'unidad' => 'Ud',
                     'precio_unitario' => $price,
-                    'descuento' => 0,
-                    'subtotal' => $qty * $price,
+                    'descuento' => $discount,
+                    'subtotal' => $subtotal,
                     'iva' => $taxRate * 100,
-                    'importe_iva' => ($qty * $price) * $taxRate,
+                    'importe_iva' => $subtotal * $taxRate,
                     'irpf' => 0,
                     'importe_irpf' => 0,
-                    'total' => ($qty * $price) * (1 + $taxRate),
+                    'total' => $subtotal * (1 + $taxRate),
                 ]);
             }
 

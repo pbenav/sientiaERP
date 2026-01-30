@@ -56,7 +56,7 @@ class ProductResource extends Resource
                 Forms\Components\Section::make('Precios y Stock')
                     ->schema([
                         Forms\Components\TextInput::make('price')
-                            ->label('Precio (sin IVA)')
+                            ->label('Precio de Venta (PVP)')
                             ->required()
                             ->type('text')
                             ->inputMode('decimal')

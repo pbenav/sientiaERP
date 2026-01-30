@@ -114,11 +114,12 @@
                                         <th class="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Descripción</th>
                                         <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-16">Cant.</th>
                                         <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-24">P. Compra</th>
+                                        <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-16">Dto % (%)</th>
                                         <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-20">Marg %</th>
                                         <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-24">Beneficio</th>
                                         <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-20">IVA</th>
                                         <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-24">P. Venta</th>
-                                        <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-24">Imp. total</th>
+                                        <th class="px-2 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-32">Imp. total</th>
                                         <th class="px-2 py-2 w-8"></th>
                                     </tr>
                                 </thead>
@@ -198,6 +199,16 @@
                                                 <input 
                                                     type="number" 
                                                     step="0.01" 
+                                                    wire:model="parsedData.items.{{ $index }}.discount" 
+                                                    onfocus="this.select()"
+                                                    class="block w-full text-sm rounded border-gray-300 text-right dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                                    placeholder="0"
+                                                >
+                                            </td>
+                                            <td class="px-2 py-2">
+                                                <input 
+                                                    type="number" 
+                                                    step="0.01" 
                                                     min="0" 
                                                     max="1000" 
                                                     wire:model="parsedData.items.{{ $index }}.margin" 
@@ -240,9 +251,13 @@
                                                 @php
                                                     $quantity = (float)($item['quantity'] ?? 1);
                                                     $unitPrice = (float)($item['unit_price'] ?? 0);
-                                                    $total = $quantity * $unitPrice;
+                                                    $discount = (float)($item['discount'] ?? 0);
+                                                    $subtotal = $quantity * $unitPrice;
+                                                    if ($discount > 0) {
+                                                        $subtotal = $subtotal * (1 - ($discount / 100));
+                                                    }
                                                 @endphp
-                                                {{ number_format($total, 2) }} €
+                                                {{ number_format($subtotal, 2) }} €
                                             </td>
                                             <td class="px-2 py-2 text-center">
                                                 <button type="button" wire:click="removeItem({{ $index }})" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">

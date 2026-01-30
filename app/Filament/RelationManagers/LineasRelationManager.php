@@ -61,7 +61,20 @@ class LineasRelationManager extends RelationManager
                                 if ($producto) {
                                     $set('product_id', $producto->id);
                                     $set('descripcion', $producto->name);
-                                    $set('precio_unitario', \App\Helpers\NumberFormatHelper::formatNumber($producto->price, 2));
+
+                                    // Determine price based on document type
+                                    $doc = method_exists($livewire, 'getOwnerRecord') ? $livewire->getOwnerRecord() : ($livewire->record ?? null);
+                                    $isPurchase = $doc && str_ends_with($doc->tipo, '_compra');
+                                    
+                                    if ($isPurchase) {
+                                        $cost = $producto->metadata['purchase_price'] ?? 0;
+                                        $set('precio_unitario', \App\Helpers\NumberFormatHelper::formatNumber($cost, 2));
+                                    } else {
+                                        // Sale or other: convert PVP to base price
+                                        $taxRate = (float)$producto->tax_rate;
+                                        $basePrice = $producto->price / (1 + ($taxRate / 100));
+                                        $set('precio_unitario', \App\Helpers\NumberFormatHelper::formatNumber($basePrice, 2));
+                                    }
                                     
                                     // IVA del producto o por defecto
                                     $taxRate = number_format($producto->tax_rate, 2, '.', '');
@@ -113,7 +126,20 @@ class LineasRelationManager extends RelationManager
                                     if (!$get('codigo')) {
                                         $set('codigo', $producto->sku);
                                     }
-                                    $set('precio_unitario', \App\Helpers\NumberFormatHelper::formatNumber($producto->price, 2));
+                                    
+                                    // Determine price based on document type
+                                    $doc = method_exists($livewire, 'getOwnerRecord') ? $livewire->getOwnerRecord() : ($livewire->record ?? null);
+                                    $isPurchase = $doc && str_ends_with($doc->tipo, '_compra');
+                                    
+                                    if ($isPurchase) {
+                                        $cost = $producto->metadata['purchase_price'] ?? 0;
+                                        $set('precio_unitario', \App\Helpers\NumberFormatHelper::formatNumber($cost, 2));
+                                    } else {
+                                        // Sale or other: convert PVP to base price
+                                        $taxRate = (float)$producto->tax_rate;
+                                        $basePrice = $producto->price / (1 + ($taxRate / 100));
+                                        $set('precio_unitario', \App\Helpers\NumberFormatHelper::formatNumber($basePrice, 2));
+                                    }
                                     
                                     // IVA del producto o por defecto
                                     $taxRate = number_format($producto->tax_rate, 2, '.', '');
