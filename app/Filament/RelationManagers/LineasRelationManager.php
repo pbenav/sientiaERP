@@ -76,6 +76,7 @@ class LineasRelationManager extends RelationManager
                             $product = \App\Models\Product::create($data);
                             return $product->sku;
                         })
+                        ->createOptionAction(fn (Forms\Components\Actions\Action $action) => $action->modalHeading('Nuevo Producto')->label('Nuevo Producto'))
                         ->live()
                         ->nullable(false)
                         ->placeholder('Cód.')
@@ -181,6 +182,7 @@ class LineasRelationManager extends RelationManager
                             $product = \App\Models\Product::create($data);
                             return $product->name;
                         })
+                        ->createOptionAction(fn (Forms\Components\Actions\Action $action) => $action->modalHeading('Nuevo Producto')->label('Nuevo Producto'))
                         ->live()
                         ->nullable(false)
                         ->placeholder('Descripción')
