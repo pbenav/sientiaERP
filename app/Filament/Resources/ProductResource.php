@@ -65,16 +65,20 @@ class ProductResource extends Resource
                             ->prefix('€')
                             ->extraInputAttributes(['style' => 'width: 140px']),
                         
-                        Forms\Components\TextInput::make('tax_rate')
+                        Forms\Components\Select::make('tax_rate')
                             ->label('IVA (%)')
+                            ->options(\App\Models\Impuesto::where('tipo', 'iva')->where('activo', true)->pluck('nombre', 'valor'))
                             ->required()
-                            ->type('text')
-                            ->inputMode('decimal')
-                            ->numeric()
-                            ->maxValue(100)
+                            ->searchable()
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('nombre')->required(),
+                                Forms\Components\TextInput::make('valor')->numeric()->required()->suffix('%'),
+                            ])
+                            ->createOptionUsing(function (array $data) {
+                                return \App\Models\Impuesto::create([...$data, 'tipo' => 'iva', 'activo' => true])->valor;
+                            })
                             ->default(fn() => \App\Models\Impuesto::where('tipo', 'iva')->where('es_predeterminado', true)->where('activo', true)->first()?->valor ?? 21.00)
-                            ->suffix('%')
-                            ->extraInputAttributes(['style' => 'width: 120px']),
+                            ->extraInputAttributes(['style' => 'width: 220px']),
                         
                         Forms\Components\TextInput::make('stock')
                             ->label('Stock')

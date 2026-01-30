@@ -170,16 +170,22 @@ class TerceroResource extends Resource
 
                 Forms\Components\Section::make('Condiciones Comerciales')
                     ->schema([
-                        Forms\Components\Select::make('forma_pago')
+                        Forms\Components\Select::make('forma_pago_id')
                             ->label('Forma de Pago')
-                            ->options([
-                                'contado' => 'Contado',
-                                'transferencia' => 'Transferencia',
-                                'tarjeta' => 'Tarjeta',
-                                'pagare' => 'Pagaré',
-                                'recibo' => 'Recibo',
+                            ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
+                            ->searchable()
+                            ->preload()
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('codigo')->required()->maxLength(50),
+                                Forms\Components\TextInput::make('nombre')->required()->maxLength(100),
+                                Forms\Components\Select::make('tipo')->options(['transferencia' => 'Transferencia', 'contado' => 'Contado', 'recibo_bancario' => 'Recibo'])->required()->default('transferencia'),
                             ])
-                            ->default('contado'),
+                            ->createOptionUsing(function (array $data) {
+                                $fp = \App\Models\FormaPago::create($data);
+                                $fp->tramos()->create(['dias' => 0, 'porcentaje' => 100]);
+                                return $fp->id;
+                            })
+                            ->default(fn() => \App\Models\FormaPago::activas()->first()?->id),
                         
                         Forms\Components\TextInput::make('dias_pago')
                             ->label('Días de Pago')
