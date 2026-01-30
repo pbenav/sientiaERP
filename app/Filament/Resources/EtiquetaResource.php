@@ -53,6 +53,14 @@ class EtiquetaResource extends Resource
                             ->required()
                             ->searchable()
                             ->preload()
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('nombre')->required(),
+                                Forms\Components\TextInput::make('ancho_etiqueta')->numeric()->required(),
+                                Forms\Components\TextInput::make('alto_etiqueta')->numeric()->required(),
+                                Forms\Components\TextInput::make('filas')->numeric()->required(),
+                                Forms\Components\TextInput::make('columnas')->numeric()->required(),
+                            ])
+                            ->createOptionUsing(fn (array $data) => \App\Models\LabelFormat::create([...$data, 'activo' => true])->id)
                             ->live(),
                         Forms\Components\TextInput::make('fila_inicio')
                             ->label('Fila de Inicio')

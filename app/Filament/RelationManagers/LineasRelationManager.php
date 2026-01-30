@@ -299,23 +299,7 @@ class LineasRelationManager extends RelationManager
                             self::calcularLinea($set, $get);
                         }),
                     
-                    // IVA HIDDEN
-                    Forms\Components\Hidden::make('iva')
-                        ->default(function ($livewire, Forms\Get $get) {
-                            $doc = method_exists($livewire, 'getOwnerRecord') 
-                                ? $livewire->getOwnerRecord() 
-                                : ($livewire->record ?? null);
-                            
-                            if (!$doc) return 21;
-
-                            $serie = \App\Models\BillingSerie::where('codigo', $doc->serie ?? 'A')->first();
-                            $globalDefault = \App\Models\Impuesto::where('tipo', 'iva')->where('es_predeterminado', true)->where('activo', true)->first()?->valor ?? 21;
-                            
-                            if ($serie && $serie->devenga_iva) {
-                                return $serie->ivaDefecto?->valor ?? $globalDefault;
-                            }
-                            return $serie && !$serie->devenga_iva ? 0 : $globalDefault;
-                        }),
+                    // SUBVTOTAL
  
                     // IMPORTE (Span 2) - Priority for large totals
                     Forms\Components\TextInput::make('subtotal')
@@ -328,10 +312,30 @@ class LineasRelationManager extends RelationManager
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2)),
 
                     // IVA (Span 1) - Minimal space
-                    Forms\Components\Placeholder::make('iva_display')
+                    Forms\Components\Select::make('iva')
                         ->hiddenLabel()
-                        ->content(fn ($get) => number_format((float)$get('iva'), 0) . '%')
-                        ->extraAttributes(['class' => 'text-center pt-2', 'style' => 'font-size: 0.85rem; font-weight: 500; color: #6b7280;'])
+                        ->options(\App\Models\Impuesto::where('tipo', 'iva')->where('activo', true)->pluck('nombre', 'valor'))
+                        ->required()
+                        ->searchable()
+                        ->createOptionForm([
+                            Forms\Components\TextInput::make('nombre')->required(),
+                            Forms\Components\TextInput::make('valor')->numeric()->required()->suffix('%'),
+                        ])
+                        ->createOptionUsing(function (array $data) {
+                            return \App\Models\Impuesto::create([...$data, 'tipo' => 'iva', 'activo' => true])->valor;
+                        })
+                        ->default(function ($livewire) {
+                            $doc = method_exists($livewire, 'getOwnerRecord') ? $livewire->getOwnerRecord() : ($livewire->record ?? null);
+                            if (!$doc) return 21;
+                            $serie = \App\Models\BillingSerie::where('codigo', $doc->serie ?? 'A')->first();
+                            $globalDefault = \App\Models\Impuesto::where('tipo', 'iva')->where('es_predeterminado', true)->where('activo', true)->first()?->valor ?? 21;
+                            if ($serie && $serie->devenga_iva) return $serie->ivaDefecto?->valor ?? $globalDefault;
+                            return $serie && !$serie->devenga_iva ? 0 : $globalDefault;
+                        })
+                        ->live()
+                        ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+                            self::calcularLinea($set, $get);
+                        })
                         ->columnSpan(1)
                         ->hidden($isLabel),
 
