@@ -151,37 +151,23 @@ class OcrImport extends Page implements HasForms
                     $discount = (float)($item['discount'] ?? 0);
                     $netCost = $purchasePrice * (1 - ($discount / 100));
                     $margin = $defaultMargin;
+                    $taxRate = (float)($item['vat_rate'] ?? $defaultTaxRate);
                     
-                    // Validar que el margen no sea 100% o mayor para evitar división por cero
-                    if ($margin >= 100) {
-                        $margin = 99;
-                    }
+                    if ($margin >= 100) $margin = 99;
                     
-                    // Precio sin IVA INICIAL (Calculado con margen deseado sobre COSTE NETO)
                     $initialPriceWithoutVat = $netCost / (1 - ($margin / 100));
-                    
-                    // Precio de venta TEÓRICO con IVA
-                    $theoreticalSalePrice = $initialPriceWithoutVat * (1 + ($defaultTaxRate / 100));
-                    
-                    // APLICAR PRECIO PSICOLÓGICO
+                    $theoreticalSalePrice = $initialPriceWithoutVat * (1 + ($taxRate / 100));
                     $salePrice = $this->getClosestPsychologicalPrice($theoreticalSalePrice);
+                    $priceWithoutVat = $salePrice / (1 + ($taxRate / 100));
                     
-                    // RECALCULAR TODO HACIA ATRÁS DESDE EL PRECIO FINAL
-                    $priceWithoutVat = $salePrice / (1 + ($defaultTaxRate / 100));
-                    
-                    // Nuevo Margen Real
-                    // Margin = 1 - (NetCost / PriceWithoutVat)
                     if ($priceWithoutVat > 0) {
                         $margin = (1 - ($netCost / $priceWithoutVat)) * 100;
                     } else {
                         $margin = 0;
                     }
                     
-                    // Beneficio Real
                     $benefit = $priceWithoutVat - $netCost;
-                    
-                    // Importe IVA Real
-                    $vatAmount = $priceWithoutVat * ($defaultTaxRate / 100);
+                    $vatAmount = $priceWithoutVat * ($taxRate / 100);
                     
                     $formattedItems[] = [
                         'description' => $item['description'] ?? '',
@@ -190,9 +176,9 @@ class OcrImport extends Page implements HasForms
                         'quantity' => (float)($item['quantity'] ?? 1),
                         'unit_price' => $purchasePrice,
                         'discount' => $discount,
-                        'margin' => round($margin, 3), // Redondeo interno a 3 decimales
+                        'margin' => round($margin, 3),
                         'benefit' => $benefit,
-                        'vat_rate' => $defaultTaxRate,
+                        'vat_rate' => $taxRate,
                         'vat_amount' => $vatAmount,
                         'sale_price' => $salePrice,
                         'matched_product_id' => $item['matched_product_id'] ?? null,
@@ -281,14 +267,15 @@ class OcrImport extends Page implements HasForms
         $this->parsedData['items'][] = [
             'description' => '',
             'reference' => '',
+            'product_code' => '',
             'quantity' => 1.0,
             'unit_price' => 0.0,
             'discount' => 0.0,
             'margin' => $defaultMargin,
-            'benefit' => $benefit,
+            'benefit' => 0.0,
             'vat_rate' => $defaultTaxRate,
-            'vat_amount' => $vatAmount,
-            'sale_price' => $salePrice,
+            'vat_amount' => 0.0,
+            'sale_price' => 0.0,
             'matched_product_id' => null,
             'print_label' => true,
         ];
@@ -335,14 +322,16 @@ class OcrImport extends Page implements HasForms
             \Illuminate\Support\Facades\Log::error('Error moving file: ' . $e->getMessage());
         }
 
-        // Prepare Data for Creation
+        $supplierId = $this->parsedData['supplier_id'] ?? null;
+        if ($supplierId === "") $supplierId = null;
+
         $data = [
             'tipo' => 'albaran_compra',
             'estado' => 'borrador',
             'user_id' => auth()->id(),
             'fecha' => $this->parsedData['date'] ?? now(),
             'serie' => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A',
-            'tercero_id' => $this->parsedData['supplier_id'] ?? $this->parsedData['matched_provider_id'] ?? null,
+            'tercero_id' => $supplierId ?? $this->parsedData['matched_provider_id'] ?? null,
             'referencia_proveedor' => (string) ($this->parsedData['document_number'] ?? 'REF-' . strtoupper(uniqid())),
             'archivo' => $finalPath,
         ];
@@ -378,79 +367,59 @@ class OcrImport extends Page implements HasForms
 
         try {
             // 1. Validate / Create Products
+            // 1. Process Products (Update existing or Create new)
             if (!empty($this->parsedData['items']) && is_array($this->parsedData['items'])) {
                 foreach ($this->parsedData['items'] as $index => &$item) {
+                    // Try to find product if not matched yet
                     if (empty($item['matched_product_id'])) {
-                        // Try to find existing product by reference/code
                         $productRef = $item['reference'] ?? $item['product_code'] ?? null;
-                        
                         if (!empty($productRef)) {
                             $existingProduct = \App\Models\Product::findByCode($productRef);
                             if ($existingProduct) {
                                 $item['matched_product_id'] = $existingProduct->id;
-                                
-                                // Actualizar producto existente con nuevos datos
-                                $purchasePriceGross = $item['unit_price'] ?? 0;
-                                $discount = $item['discount'] ?? 0;
-                                $purchasePriceNet = $purchasePriceGross * (1 - ($discount / 100));
-                                $margin = $item['margin'] ?? 30;
-                                
-                                // El precio de venta (PVP) es el calculado por nosotros (psicológico o editado)
-                                $retailPrice = $item['sale_price'] ?? \App\Models\Product::calculateRetailPrice($purchasePriceNet, $margin);
-                                
-                                $docNumber = $this->parsedData['document_number'] ?? null;
-                                
-                                $existingProduct->name = $item['description'] ?? $existingProduct->name;
-                                $existingProduct->description = $item['description'] ?? $existingProduct->description;
-                                $existingProduct->price = $retailPrice;
-                                $existingProduct->addPurchaseHistory(
-                                    $purchasePriceGross,
-                                    $discount,
-                                    $purchasePriceNet,
-                                    $margin,
-                                    $docNumber
-                                );
-                                $existingProduct->save();
-                                
-                                \Illuminate\Support\Facades\Log::info('Product updated with new data', [
-                                    'code' => $productRef,
-                                    'product_id' => $existingProduct->id,
-                                    'new_pvp' => $retailPrice,
-                                    'new_net_cost' => $purchasePriceNet
-                                ]);
-                                continue; // Skip creation, product updated
                             }
                         }
-                        
-                        $desc = $item['description'] ?? 'Producto Desconocido';
-                        if (empty($desc)) $desc = 'Producto sin descripción';
+                    }
 
-                        $price = $item['unit_price'] ?? 0;
-
-                        // Create Product
-                        try {
-                            // Determine the product code/reference
-                            $productRef = $item['reference'] ?? $item['product_code'] ?? null;
-                            
-                            // If no reference provided, generate one
-                            if (empty($productRef)) {
-                                $productRef = 'AUTO-' . strtoupper(uniqid());
-                            }
-                            
-                            // Detalle de precios para nuevo producto
-                            $purchasePriceGross = $item['unit_price'] ?? 0;
-                            $discount = $item['discount'] ?? 0;
+                    if (!empty($item['matched_product_id'])) {
+                        // UPDATE EXISTING PRODUCT
+                        $product = \App\Models\Product::find($item['matched_product_id']);
+                        if ($product) {
+                            $purchasePriceGross = (float)($item['unit_price'] ?? 0);
+                            $discount = (float)($item['discount'] ?? 0);
                             $purchasePriceNet = $purchasePriceGross * (1 - ($discount / 100));
-                            $margin = $item['margin'] ?? 30;
+                            $margin = (float)($item['margin'] ?? 30);
+                            $retailPrice = (float)($item['sale_price'] ?? 0);
                             
-                            // El PVP es el calculado o el editado manual en la tabla
-                            $retailPrice = $item['sale_price'] ?? \App\Models\Product::calculateRetailPrice($purchasePriceNet, $margin);
+                            $product->name = !empty($item['description']) ? $item['description'] : $product->name;
+                            $product->price = $retailPrice;
+                            $product->tax_rate = (float)($item['vat_rate'] ?? $product->tax_rate);
+                            $product->addPurchaseHistory(
+                                $purchasePriceGross,
+                                $discount,
+                                $purchasePriceNet,
+                                $margin,
+                                $this->parsedData['document_number'] ?? null
+                            );
+                            $product->save();
+                        }
+                    } else {
+                        // CREATE NEW PRODUCT
+                        try {
+                            $productRef = $item['reference'] ?? $item['product_code'] ?? 'AUTO-' . strtoupper(uniqid());
+                            $desc = !empty($item['description']) ? $item['description'] : 'Producto sin descripción';
                             
+                            $purchasePriceGross = (float)($item['unit_price'] ?? 0);
+                            $discount = (float)($item['discount'] ?? 0);
+                            $purchasePriceNet = $purchasePriceGross * (1 - ($discount / 100));
+                            $margin = (float)($item['margin'] ?? 30);
+                            $retailPrice = (float)($item['sale_price'] ?? 0);
+
                             $newProduct = \App\Models\Product::create([
                                 'name' => $desc,
                                 'description' => $desc,
-                                'price' => $retailPrice, // PVP final
-                                'tax_rate' => 21.00,
+                                'price' => $retailPrice,
+                                'tax_rate' => (float)($item['vat_rate'] ?? 21.00),
                                 'active' => true,
                                 'stock' => 0,
                                 'sku' => $productRef,
@@ -458,19 +427,17 @@ class OcrImport extends Page implements HasForms
                                 'barcode' => $productRef,
                             ]);
 
-                            $docNumber = $this->parsedData['document_number'] ?? null;
                             $newProduct->addPurchaseHistory(
                                 $purchasePriceGross,
                                 $discount,
                                 $purchasePriceNet,
                                 $margin,
-                                $docNumber
+                                $this->parsedData['document_number'] ?? null
                             );
                             $newProduct->save();
-
                             $item['matched_product_id'] = $newProduct->id;
                         } catch (\Exception $e) {
-                            \Illuminate\Support\Facades\Log::error('Error creating product: ' . $e->getMessage());
+                            \Illuminate\Support\Facades\Log::error('Error creating product in OCR: ' . $e->getMessage());
                         }
                     }
                 }
@@ -481,21 +448,14 @@ class OcrImport extends Page implements HasForms
 
             // Create Lines
             foreach ($this->parsedData['items'] as $item) {
-                $qty = $item['quantity'] ?? 1;
-                $price = $item['unit_price'] ?? 0;
-                $discount = $item['discount'] ?? 0;
-                $desc = $item['description'] ?? 'Producto incorrecto';
-                if (empty($desc)) $desc = 'Línea importada';
-
-                $taxRate = 0.21;
-                $prod = null; // Reset $prod to avoid loop leakage
+                $qty = (float)($item['quantity'] ?? 1);
+                $price = (float)($item['unit_price'] ?? 0);
+                $discount = (float)($item['discount'] ?? 0);
+                $desc = !empty($item['description']) ? $item['description'] : 'Línea importada';
+                $taxRate = (float)($item['vat_rate'] ?? 21);
                 
-                if (!empty($item['matched_product_id'])) {
-                    $prod = \App\Models\Product::find($item['matched_product_id']);
-                    if ($prod) {
-                        $taxRate = $prod->tax_rate > 0 ? $prod->tax_rate / 100 : 0.21;
-                    }
-                }
+                $prodId = $item['matched_product_id'] ?? null;
+                $ref = !empty($item['reference']) ? $item['reference'] : 'REF-TEMP';
 
                 $subtotal = $qty * $price;
                 if ($discount > 0) {
@@ -503,19 +463,19 @@ class OcrImport extends Page implements HasForms
                 }
 
                 $record->lineas()->create([
-                    'product_id' => $item['matched_product_id'] ?? null,
-                    'codigo' => !empty($item['reference']) ? $item['reference'] : ($prod?->sku ?? $prod?->code ?? null),
+                    'product_id' => $prodId,
+                    'codigo' => $ref,
                     'descripcion' => $desc,
                     'cantidad' => $qty,
                     'unidad' => 'Ud',
                     'precio_unitario' => $price,
                     'descuento' => $discount,
                     'subtotal' => $subtotal,
-                    'iva' => $taxRate * 100,
-                    'importe_iva' => $subtotal * $taxRate,
+                    'iva' => $taxRate,
+                    'importe_iva' => $subtotal * ($taxRate / 100),
                     'irpf' => 0,
                     'importe_irpf' => 0,
-                    'total' => $subtotal * (1 + $taxRate),
+                    'total' => $subtotal * (1 + ($taxRate / 100)),
                 ]);
             }
 

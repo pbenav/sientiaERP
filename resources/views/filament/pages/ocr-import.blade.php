@@ -127,12 +127,11 @@
                                     @foreach($parsedData['items'] as $index => $item)
                                         <tr x-data="{
                                             index: {{ $index }},
-                                            taxRate: {{ $item['vat_rate'] ?? 21 }},
-                                            
                                             updatePriceFromMargin() {
                                                 const purchasePrice = parseFloat(this.$refs.purchasePrice.value) || 0;
                                                 const discount = parseFloat(this.$refs.discount.value) || 0;
                                                 const margin = parseFloat(this.$refs.margin.value) || 0;
+                                                const currentTaxRate = parseFloat(this.$refs.taxRate.value) || 21;
                                                 
                                                 const netCost = purchasePrice * (1 - (discount / 100));
                                                 
@@ -143,38 +142,41 @@
                                                 
                                                 const priceWithoutVat = netCost / (1 - (margin / 100));
                                                 const benefit = priceWithoutVat - netCost;
-                                                const vatAmount = priceWithoutVat * (this.taxRate / 100);
-                                                const salePrice = priceWithoutVat * (1 + (this.taxRate / 100));
+                                                const vatAmount = priceWithoutVat * (currentTaxRate / 100);
+                                                const salePrice = priceWithoutVat * (1 + (currentTaxRate / 100));
                                                 
                                                 this.$refs.salePrice.value = salePrice.toFixed(2);
                                                 $wire.set('parsedData.items.{{ $index }}.benefit', benefit);
                                                 $wire.set('parsedData.items.{{ $index }}.vat_amount', vatAmount);
                                                 $wire.set('parsedData.items.{{ $index }}.sale_price', salePrice);
+                                                $wire.set('parsedData.items.{{ $index }}.vat_rate', currentTaxRate);
                                             },
                                             
                                             updateMarginFromPrice() {
                                                 const purchasePrice = parseFloat(this.$refs.purchasePrice.value) || 0;
                                                 const discount = parseFloat(this.$refs.discount.value) || 0;
                                                 const salePrice = parseFloat(this.$refs.salePrice.value) || 0;
+                                                const currentTaxRate = parseFloat(this.$refs.taxRate.value) || 21;
                                                 
                                                 const netCost = purchasePrice * (1 - (discount / 100));
                                                 
                                                 if (salePrice > 0 && netCost >= 0) {
-                                                    const priceWithoutVat = salePrice / (1 + (this.taxRate / 100));
+                                                    const priceWithoutVat = salePrice / (1 + (currentTaxRate / 100));
                                                     const margin = (1 - (netCost / priceWithoutVat)) * 100;
                                                     const benefit = priceWithoutVat - netCost;
-                                                    const vatAmount = priceWithoutVat * (this.taxRate / 100);
+                                                    const vatAmount = priceWithoutVat * (currentTaxRate / 100);
                                                     
                                                     this.$refs.margin.value = margin.toFixed(2);
                                                     $wire.set('parsedData.items.{{ $index }}.margin', margin);
                                                     $wire.set('parsedData.items.{{ $index }}.benefit', benefit);
                                                     $wire.set('parsedData.items.{{ $index }}.vat_amount', vatAmount);
+                                                    $wire.set('parsedData.items.{{ $index }}.vat_rate', currentTaxRate);
                                                 } else if (salePrice > 0 && netCost === 0) {
                                                     this.$refs.margin.value = 100;
                                                     $wire.set('parsedData.items.{{ $index }}.margin', 100);
                                                 }
                                             }
-                                        }">
+                                         }">
                                             <td class="px-2 py-2 text-center">
                                                 <input type="checkbox" wire:model.live="parsedData.items.{{ $index }}.print_label" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
                                             </td>
@@ -242,45 +244,50 @@
                                                 @endphp
                                                 {{ number_format($benefit, 2) }} €
                                             </td>
-                                            <td class="px-2 py-2 text-sm text-right font-medium dark:text-white">
-                                                @php
-                                                    $taxRate = (float)($item['vat_rate'] ?? 21);
-                                                    $vatAmount = $priceWithoutVat * ($taxRate / 100);
-                                                @endphp
-                                                {{ number_format($vatAmount, 2) }} €
-                                            </td>
                                             <td class="px-2 py-2">
                                                 <input 
                                                     type="number" 
                                                     step="0.01" 
-                                                    wire:model="parsedData.items.{{ $index }}.sale_price" 
-                                                    x-ref="salePrice"
-                                                    @input="updateMarginFromPrice()"
+                                                    wire:model="parsedData.items.{{ $index }}.vat_rate" 
+                                                    x-ref="taxRate"
+                                                    @input="updatePriceFromMargin()"
                                                     onfocus="this.select()"
                                                     class="block w-full text-sm rounded border-gray-300 text-right dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                                    placeholder="21"
                                                 >
                                             </td>
-                                            <td class="px-2 py-2 text-sm text-right font-medium dark:text-white">
-                                                @php
-                                                    $quantity = (float)($item['quantity'] ?? 1);
-                                                    $unitPrice = (float)($item['unit_price'] ?? 0);
-                                                    $discount = (float)($item['discount'] ?? 0);
-                                                    $subtotal = $quantity * $unitPrice;
-                                                    if ($discount > 0) {
-                                                        $subtotal = $subtotal * (1 - ($discount / 100));
-                                                    }
-                                                @endphp
-                                                {{ number_format($subtotal, 2) }} €
-                                            </td>
-                                            <td class="px-2 py-2 text-center">
-                                                <button type="button" wire:click="removeItem({{ $index }})" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                                    </svg>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    @endforeach
+                                            <td class="px-2 py-2">
+                                                <input 
+                                                    type="number" 
+                                                     step="0.01" 
+                                                     wire:model="parsedData.items.{{ $index }}.sale_price" 
+                                                     x-ref="salePrice"
+                                                     @input="updateMarginFromPrice()"
+                                                     onfocus="this.select()"
+                                                     class="block w-full text-sm rounded border-gray-300 text-right dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                                 >
+                                             </td>
+                                             <td class="px-2 py-2 text-sm text-right font-medium dark:text-white">
+                                                 @php
+                                                     $quantity = (float)($item['quantity'] ?? 1);
+                                                     $unitPrice = (float)($item['unit_price'] ?? 0);
+                                                     $discount = (float)($item['discount'] ?? 0);
+                                                     $subtotal = $quantity * $unitPrice;
+                                                     if ($discount > 0) {
+                                                         $subtotal = $subtotal * (1 - ($discount / 100));
+                                                     }
+                                                 @endphp
+                                                 {{ number_format($subtotal, 2) }} €
+                                             </td>
+                                             <td class="px-2 py-2 text-center">
+                                                 <button type="button" wire:click="removeItem({{ $index }})" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
+                                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                     </svg>
+                                                 </button>
+                                             </td>
+                                         </tr>
+                                     @endforeach
                                 </tbody>
                             </table>
                         </div>
