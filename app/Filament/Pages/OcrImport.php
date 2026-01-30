@@ -294,9 +294,58 @@ class OcrImport extends Page implements HasForms
         $this->parsedData['items'] = array_values($this->parsedData['items']); // Reindex array
     }
 
+    protected function validateCurrentData(): bool
+    {
+        if (empty($this->parsedData['items'])) {
+            \Filament\Notifications\Notification::make()
+                ->title('Error de Validación')
+                ->body('Debe haber al menos una línea de producto.')
+                ->danger()
+                ->send();
+            return false;
+        }
+
+        foreach ($this->parsedData['items'] as $index => $item) {
+            $lineNum = $index + 1;
+            
+            if (empty(trim($item['description'] ?? ''))) {
+                \Filament\Notifications\Notification::make()
+                    ->title('Error en línea ' . $lineNum)
+                    ->body('La descripción es obligatoria.')
+                    ->danger()
+                    ->send();
+                return false;
+            }
+
+            if (!is_numeric($item['quantity'] ?? null)) {
+                \Filament\Notifications\Notification::make()
+                    ->title('Error en línea ' . $lineNum)
+                    ->body('La cantidad debe ser un número válido.')
+                    ->danger()
+                    ->send();
+                return false;
+            }
+
+            if (!is_numeric($item['unit_price'] ?? null)) {
+                \Filament\Notifications\Notification::make()
+                    ->title('Error en línea ' . $lineNum)
+                    ->body('El precio unitario debe ser un número válido.')
+                    ->danger()
+                    ->send();
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public function createDocument()
     {
         \Illuminate\Support\Facades\Log::info('OCR: createDocument called from OcrImport page.');
+
+        if (!$this->validateCurrentData()) {
+            return;
+        }
 
         // Identify final path
         $finalPath = null;
