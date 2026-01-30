@@ -92,7 +92,13 @@ class PedidoResource extends Resource
                             ->label('Serie')
                             ->options(\App\Models\BillingSerie::where('activo', true)->pluck('nombre', 'codigo'))
                             ->default(fn() => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A')
-                            ->required(),
+                            ->required()
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('codigo')->label('Código de Serie')->required()->maxLength(10),
+                                Forms\Components\TextInput::make('nombre')->label('Nombre')->required(),
+                                Forms\Components\Toggle::make('devenga_iva')->label('Devenga IVA')->default(true),
+                            ])
+                            ->createOptionUsing(fn (array $data) => \App\Models\BillingSerie::create($data)->codigo),
                         
                         Forms\Components\DatePicker::make('fecha')
                             ->label('Fecha')
@@ -119,10 +125,19 @@ class PedidoResource extends Resource
                             ->label('Forma de Pago')
                             ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
                             ->searchable()
-                            ->searchable()
                             ->preload()
                             ->default(fn() => \App\Models\FormaPago::activas()->first()?->id ?? 1)
-                            ->required(),
+                            ->required()
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('codigo')->required()->maxLength(50),
+                                Forms\Components\TextInput::make('nombre')->required()->maxLength(100),
+                                Forms\Components\Select::make('tipo')->options(['transferencia' => 'Transferencia', 'contado' => 'Contado', 'recibo_bancario' => 'Recibo'])->required()->default('transferencia'),
+                            ])
+                            ->createOptionUsing(function (array $data) {
+                                $fp = \App\Models\FormaPago::create($data);
+                                $fp->tramos()->create(['dias' => 0, 'porcentaje' => 100]);
+                                return $fp->id;
+                            }),
                         
                     ])->columns(3)->compact(),
 
