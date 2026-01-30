@@ -388,17 +388,22 @@ class OcrImport extends Page implements HasForms
                                 $item['matched_product_id'] = $existingProduct->id;
                                 
                                 // Actualizar producto existente con nuevos datos
-                                $purchasePrice = $item['unit_price'] ?? 0;
+                                $purchasePriceGross = $item['unit_price'] ?? 0;
+                                $discount = $item['discount'] ?? 0;
+                                $purchasePriceNet = $purchasePriceGross * (1 - ($discount / 100));
                                 $margin = $item['margin'] ?? 30;
-                                // El precio de venta (PVP) es el que el usuario ve/edita en la tabla
-                                $retailPrice = $item['sale_price'] ?? \App\Models\Product::calculateRetailPrice($purchasePrice, $margin);
+                                
+                                // El precio de venta (PVP) es el calculado por nosotros (psicológico o editado)
+                                $retailPrice = $item['sale_price'] ?? \App\Models\Product::calculateRetailPrice($purchasePriceNet, $margin);
                                 
                                 $existingProduct->update([
                                     'name' => $item['description'] ?? $existingProduct->name,
                                     'description' => $item['description'] ?? $existingProduct->description,
                                     'price' => $retailPrice, // Guardamos el PVP (con IVA)
                                     'metadata' => array_merge($existingProduct->metadata ?? [], [
-                                        'purchase_price' => $purchasePrice,
+                                        'purchase_price' => $purchasePriceNet,
+                                        'purchase_price_gross' => $purchasePriceGross,
+                                        'last_discount' => $discount,
                                         'commercial_margin' => $margin,
                                     ]),
                                 ]);
@@ -406,8 +411,8 @@ class OcrImport extends Page implements HasForms
                                 \Illuminate\Support\Facades\Log::info('Product updated with new data', [
                                     'code' => $productRef,
                                     'product_id' => $existingProduct->id,
-                                    'new_price' => $retailPrice,
-                                    'new_purchase_price' => $purchasePrice
+                                    'new_pvp' => $retailPrice,
+                                    'new_net_cost' => $purchasePriceNet
                                 ]);
                                 continue; // Skip creation, product updated
                             }
@@ -428,24 +433,29 @@ class OcrImport extends Page implements HasForms
                                 $productRef = 'AUTO-' . strtoupper(uniqid());
                             }
                             
-                            // Usar el precio de venta editado por el usuario
-                            $purchasePrice = $price;
+                            // Detalle de precios para nuevo producto
+                            $purchasePriceGross = $item['unit_price'] ?? 0;
+                            $discount = $item['discount'] ?? 0;
+                            $purchasePriceNet = $purchasePriceGross * (1 - ($discount / 100));
                             $margin = $item['margin'] ?? 30;
-                            $retailPrice = $item['sale_price'] ?? \App\Models\Product::calculateRetailPrice($purchasePrice, $margin);
+                            
+                            // El PVP es el calculado o el editado manual en la tabla
+                            $retailPrice = $item['sale_price'] ?? \App\Models\Product::calculateRetailPrice($purchasePriceNet, $margin);
                             
                             $newProduct = \App\Models\Product::create([
                                 'name' => $desc,
                                 'description' => $desc,
-                                'price' => $retailPrice, // PVP guardado en campo price
+                                'price' => $retailPrice, // PVP final
                                 'tax_rate' => 21.00,
                                 'active' => true,
                                 'stock' => 0,
-                                // Set all three fields to the same value
                                 'sku' => $productRef,
                                 'code' => $productRef,
                                 'barcode' => $productRef,
                                 'metadata' => [
-                                    'purchase_price' => $purchasePrice,
+                                    'purchase_price' => $purchasePriceNet,
+                                    'purchase_price_gross' => $purchasePriceGross,
+                                    'last_discount' => $discount,
                                     'commercial_margin' => $margin,
                                 ],
                             ]);
