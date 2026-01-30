@@ -111,4 +111,38 @@ class Product extends Model
     {
         return round($purchasePrice * (1 + ($margin / 100)), 3);
     }
+
+    /**
+     * Añadir registro al histórico de compras en metadata
+     */
+    public function addPurchaseHistory(float $gross, float $discount, float $net, float $margin, ?string $docNumber = null): void
+    {
+        $metadata = $this->metadata ?? [];
+        $history = $metadata['purchase_history'] ?? [];
+        
+        $entry = [
+            'date' => now()->format('Y-m-d H:i:s'),
+            'purchase_price_gross' => $gross,
+            'discount' => $discount,
+            'purchase_price_net' => $net,
+            'commercial_margin' => $margin,
+            'document_number' => $docNumber,
+        ];
+        
+        // Añadir al inicio para tener lo más reciente primero
+        array_unshift($history, $entry);
+        
+        // Limitar a los últimos 10 registros
+        $history = array_slice($history, 0, 10);
+        
+        $metadata['purchase_history'] = $history;
+        
+        // También actualizamos los campos "last" para conveniencia
+        $metadata['purchase_price'] = $net;
+        $metadata['purchase_price_gross'] = $gross;
+        $metadata['last_discount'] = $discount;
+        $metadata['commercial_margin'] = $margin;
+        
+        $this->metadata = $metadata;
+    }
 }
