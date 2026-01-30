@@ -49,6 +49,33 @@ class LineasRelationManager extends RelationManager
                                 ->limit(50)
                                 ->pluck('sku', 'sku');
                         })
+                        ->createOptionForm([
+                            Forms\Components\Grid::make(2)
+                                ->schema([
+                                    Forms\Components\TextInput::make('sku')
+                                        ->label('Código/SKU')
+                                        ->required()
+                                        ->unique('products', 'sku'),
+                                    Forms\Components\TextInput::make('name')
+                                        ->label('Nombre del Producto')
+                                        ->required(),
+                                    Forms\Components\TextInput::make('price')
+                                        ->label('Precio Venta (IVA Incl.)')
+                                        ->numeric()
+                                        ->required()
+                                        ->default(0),
+                                    Forms\Components\TextInput::make('tax_rate')
+                                        ->label('IVA %')
+                                        ->numeric()
+                                        ->default(21)
+                                        ->required(),
+                                ])
+                        ])
+                        ->createOptionUsing(function (array $data) {
+                            $data['active'] = true;
+                            $product = \App\Models\Product::create($data);
+                            return $product->sku;
+                        })
                         ->live()
                         ->nullable(false)
                         ->placeholder('Cód.')
@@ -126,6 +153,33 @@ class LineasRelationManager extends RelationManager
                             return \App\Models\Product::where('name', 'like', "%{$search}%")
                                 ->limit(50)
                                 ->pluck('name', 'name');
+                        })
+                        ->createOptionForm([
+                            Forms\Components\Grid::make(2)
+                                ->schema([
+                                    Forms\Components\TextInput::make('sku')
+                                        ->label('Código/SKU')
+                                        ->required()
+                                        ->unique('products', 'sku'),
+                                    Forms\Components\TextInput::make('name')
+                                        ->label('Nombre del Producto')
+                                        ->required(),
+                                    Forms\Components\TextInput::make('price')
+                                        ->label('Precio Venta (IVA Incl.)')
+                                        ->numeric()
+                                        ->required()
+                                        ->default(0),
+                                    Forms\Components\TextInput::make('tax_rate')
+                                        ->label('IVA %')
+                                        ->numeric()
+                                        ->default(21)
+                                        ->required(),
+                                ])
+                        ])
+                        ->createOptionUsing(function (array $data) {
+                            $data['active'] = true;
+                            $product = \App\Models\Product::create($data);
+                            return $product->name;
                         })
                         ->live()
                         ->nullable(false)
