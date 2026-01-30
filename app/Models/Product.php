@@ -132,9 +132,6 @@ class Product extends Model
         // Añadir al inicio para tener lo más reciente primero
         array_unshift($history, $entry);
         
-        // Limitar a los últimos 10 registros
-        $history = array_slice($history, 0, 10);
-        
         $metadata['purchase_history'] = $history;
         
         // También actualizamos los campos "last" para conveniencia
