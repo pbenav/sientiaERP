@@ -244,39 +244,47 @@ class AiDocumentParserService
         $mimeType = mime_content_type($imagePath);
 
         $prompt = <<<EOT
-You are an expert at extracting data from delivery notes (Albaranes de compra) in Spanish.
+You are a High-Precision Document Extraction AI specialized in Spanish "Albaranes de compra" (Delivery Notes).
+Your goal is to transform the provided image into a structured JSON dataset with 100% accuracy.
 
-Analyze this image and extract ALL the information into a JSON object with this exact structure:
+DOCUMENT ANALYSIS RULES:
+1. **Thorough Scan**: Scan the entire document from top to bottom. Do not stop after the first few lines. Many documents have items split across pages or in long tables.
+2. **Table Structure**: Identify the item table. Columns may appear in any order (e.g., SKU, Description, Qty, Price, Dto%, Total). Map them correctly regardless of order.
+3. **Multi-line Descriptions**: Product descriptions often span 2 or 3 lines. Merge them into a single string for the "description" field.
+4. **Data Types**: 
+   - "quantity", "unit_price", "discount", and "line_total" MUST be numbers. 
+   - Remove currency symbols (€, $) and thousands separators before converting. Use a dot (.) as decimal separator.
+5. **Supplier vs Customer**: Ensure "provider_name" is the sender/supplier, not the recipient.
 
+JSON STRUCTURE:
 {
-  "provider_name": "string or null",
-  "provider_nif": "string or null",
-  "document_date": "YYYY-MM-DD or null",
-  "document_number": "string or null",
+  "provider_name": "Supplier legal name or commercial name",
+  "provider_nif": "CIF/NIF of the supplier",
+  "document_date": "YYYY-MM-DD",
+  "document_number": "Invoice or Delivery Note number",
   "items": [
     {
-      "description": "string",
-      "reference": "string or null",
-      "quantity": number,
-      "unit_price": number,
-      "discount": number,
-      "line_total": number
+      "description": "Full product name (merge multi-line descriptions)",
+      "reference": "Internal SKU or barcode if visible",
+      "quantity": 0.00,
+      "unit_price": 0.00,
+      "discount": 0.00,
+      "line_total": 0.00
     }
   ]
 }
 
-CRITICAL INSTRUCTIONS:
-1. Extract ALL line items you can see in the document.
-2. For "unit_price", extract the SUPPLIER COST per unit BEFORE any line discount (Precio bruto). 
-   WARNING: Do NOT extract "PVP", "Suggested Price", or "Retail Price" as unit_price.
-3. For "discount", extract the percentage discount per line if present (e.g., 10.5 for 10.5%). If no discount is explicitly stated per line, use 0.
-4. "line_total" should be the subtotal for that line in the document (quantity * unit_price * (1 - discount/100)).
-5. Return ONLY valid JSON, nothing else.
-6. You may wrap the JSON in ```json ``` markdown if needed.
+CRITICAL ITEM EXTRACTION RULES:
+- **EXTRACT EVERY LINE**: If it looks like a product line, extract it. Do not skip items.
+- **UNIT PRICE**: Extract the COST price from the supplier. Usually labeled as "Precio", "P. Unit", "Coste".
+- **DISCOUNT**: Look for columns like "Dto", "Desc", "%". Extract only the percentage value.
+- **NO HALLUCINATIONS**: If a value is not present, use null for strings and 0 for numbers.
+- **OUTPUT**: Return ONLY the JSON object. Do not include introductory text.
 EOT;
 
         try {
-            $result = $client->generativeModel('gemini-1.5-flash')->generateContent([
+            $modelName = Setting::get('ai_gemini_model', 'gemini-1.5-flash');
+            $result = $client->generativeModel($modelName)->generateContent([
                 $prompt,
                 new \Gemini\Data\Blob(
                     mimeType: \Gemini\Enums\MimeType::from($mimeType),
