@@ -77,7 +77,13 @@ class AlbaranResource extends Resource
                             ->label('Serie')
                             ->options(\App\Models\BillingSerie::where('activo', true)->pluck('nombre', 'codigo'))
                             ->default(fn() => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A')
-                            ->required(),
+                            ->required()
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('codigo')->label('Código de Serie')->required()->maxLength(10),
+                                Forms\Components\TextInput::make('nombre')->label('Nombre')->required(),
+                                Forms\Components\Toggle::make('devenga_iva')->label('Devenga IVA')->default(true),
+                            ])
+                            ->createOptionUsing(fn (array $data) => \App\Models\BillingSerie::create($data)->codigo),
                         
                         Forms\Components\DatePicker::make('fecha')
                             ->label('Fecha')
