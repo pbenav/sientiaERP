@@ -20,16 +20,13 @@ class DocumentCalculator
         $totalDocumento = 0;
 
         foreach ($lineas as $linea) {
-            // Normalize input from form state (which might use keys like 'cantidad', 'precio_unitario', etc.)
-            // Note: Repeater state keys match database columns usually
-            
-            $cantidad = floatval(str_replace(',', '.', $linea['cantidad'] ?? 0));
-            $precio = floatval(str_replace(',', '.', $linea['precio_unitario'] ?? 0));
-            $descuento = floatval(str_replace(',', '.', $linea['descuento'] ?? 0));
-            $ivaRate = floatval(str_replace(',', '.', $linea['iva'] ?? 0));
+            $cantidad = \App\Helpers\NumberFormatHelper::parseNumber($linea['cantidad'] ?? 0);
+            $precio = \App\Helpers\NumberFormatHelper::parseNumber($linea['precio_unitario'] ?? 0);
+            $descuento = \App\Helpers\NumberFormatHelper::parseNumber($linea['descuento'] ?? 0);
+            $ivaRate = \App\Helpers\NumberFormatHelper::parseNumber($linea['iva'] ?? 0);
             
             // Calculate base for this line
-            $baseLinea = round($cantidad * $precio, 3);
+            $baseLinea = round((float)$cantidad * (float)$precio, 3);
             if ($descuento > 0) {
                 $baseLinea = round($baseLinea * (1 - ($descuento / 100)), 3);
             }

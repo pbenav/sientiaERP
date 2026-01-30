@@ -52,45 +52,59 @@ class LineasRelationManager extends RelationManager
                         ->live()
                         ->nullable(false)
                         ->placeholder('Cód.')
-                        ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+                        ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get, $livewire) {
                             if ($state) {
-                                // Buscar producto por SKU o código de barras
-                                $producto = \App\Models\Product::where('sku', $state)
-                                    ->orWhere('barcode', $state)
-                                    ->first();
-                                if ($producto) {
-                                    $set('product_id', $producto->id);
-                                    $set('descripcion', $producto->name);
+                                try {
+                                    // Buscar producto por SKU o código de barras
+                                    $producto = \App\Models\Product::where('sku', $state)
+                                        ->orWhere('barcode', $state)
+                                        ->first();
+                                    
+                                    if ($producto) {
+                                        $set('product_id', $producto->id);
+                                        $set('descripcion', $producto->name);
 
-                                    // Determine price based on document type
-                                    $doc = method_exists($livewire, 'getOwnerRecord') ? $livewire->getOwnerRecord() : ($livewire->record ?? null);
-                                    $isPurchase = $doc && str_ends_with($doc->tipo, '_compra');
-                                    
-                                    if ($isPurchase) {
-                                        $cost = $producto->metadata['purchase_price'] ?? 0;
-                                        $set('precio_unitario', \App\Helpers\NumberFormatHelper::formatNumber($cost, 2));
-                                    } else {
-                                        // Sale or other: convert PVP to base price
-                                        $taxRate = (float)$producto->tax_rate;
-                                        $basePrice = $producto->price / (1 + ($taxRate / 100));
-                                        $set('precio_unitario', \App\Helpers\NumberFormatHelper::formatNumber($basePrice, 2));
-                                    }
-                                    
-                                    // IVA del producto o por defecto
-                                    $taxRate = number_format($producto->tax_rate, 2, '.', '');
-                                    $ivaExists = \App\Models\Impuesto::where('valor', $taxRate)->where('tipo', 'iva')->exists();
-                                    
-                                    if ($ivaExists) {
-                                        $set('iva', $taxRate);
-                                    } else {
-                                        $globalDefault = \App\Models\Impuesto::where('tipo', 'iva')
-                                            ->where('es_predeterminado', true)
-                                            ->where('activo', true)
-                                            ->first()?->valor ?? 21.00;
-                                        $set('iva', number_format($globalDefault, 2, '.', ''));
-                                    }
+                                        // Determine price based on document type
+                                        $doc = null;
+                                        if (isset($livewire)) {
+                                            $doc = method_exists($livewire, 'getOwnerRecord') 
+                                                ? $livewire->getOwnerRecord() 
+                                                : ($livewire->record ?? null);
+                                        }
+                                        
+                                        $isPurchase = $doc && str_ends_with($doc->tipo, '_compra');
+                                        
+                                        if ($isPurchase) {
+                                            $cost = (float)($producto->metadata['purchase_price'] ?? 0);
+                                            $set('precio_unitario', \App\Helpers\NumberFormatHelper::formatNumber($cost, 2));
+                                        } else {
+                                            // Sale or other: convert PVP to base price
+                                            $taxRate = (float)$producto->tax_rate;
+                                            $priceWithTax = (float)$producto->price;
+                                            $basePrice = $priceWithTax / (1 + ($taxRate / 100));
+                                            $set('precio_unitario', \App\Helpers\NumberFormatHelper::formatNumber($basePrice, 2));
+                                        }
+                                        
+                                        // IVA del producto o por defecto
+                                        $taxRate = number_format((float)$producto->tax_rate, 2, '.', '');
+                                        $ivaExists = \App\Models\Impuesto::where('valor', (float)$taxRate)
+                                            ->where('tipo', 'iva')
+                                            ->exists();
+                                        
+                                        if ($ivaExists) {
+                                            $set('iva', $taxRate);
+                                        } else {
+                                            $globalDefault = \App\Models\Impuesto::where('tipo', 'iva')
+                                                ->where('es_predeterminado', true)
+                                                ->where('activo', true)
+                                                ->first()?->valor ?? 21.00;
+                                            $set('iva', number_format((float)$globalDefault, 2, '.', ''));
+                                        }
 
-                                    self::calcularLinea($set, $get);
+                                        self::calcularLinea($set, $get);
+                                    }
+                                } catch (\Exception $e) {
+                                    \Illuminate\Support\Facades\Log::error('Error in coding afterStateUpdated: ' . $e->getMessage());
                                 }
                             }
                         })
@@ -116,46 +130,59 @@ class LineasRelationManager extends RelationManager
                         ->live()
                         ->nullable(false)
                         ->placeholder('Descripción')
-                        ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+                        ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get, $livewire) {
                             if ($state) {
-                                // Buscar producto por nombre
-                                $producto = \App\Models\Product::where('name', $state)->first();
-                                if ($producto) {
-                                    $set('product_id', $producto->id);
-                                    // Solo actualizar código si está vacío
-                                    if (!$get('codigo')) {
-                                        $set('codigo', $producto->sku);
-                                    }
-                                    
-                                    // Determine price based on document type
-                                    $doc = method_exists($livewire, 'getOwnerRecord') ? $livewire->getOwnerRecord() : ($livewire->record ?? null);
-                                    $isPurchase = $doc && str_ends_with($doc->tipo, '_compra');
-                                    
-                                    if ($isPurchase) {
-                                        $cost = $producto->metadata['purchase_price'] ?? 0;
-                                        $set('precio_unitario', \App\Helpers\NumberFormatHelper::formatNumber($cost, 2));
-                                    } else {
-                                        // Sale or other: convert PVP to base price
-                                        $taxRate = (float)$producto->tax_rate;
-                                        $basePrice = $producto->price / (1 + ($taxRate / 100));
-                                        $set('precio_unitario', \App\Helpers\NumberFormatHelper::formatNumber($basePrice, 2));
-                                    }
-                                    
-                                    // IVA del producto o por defecto
-                                    $taxRate = number_format($producto->tax_rate, 2, '.', '');
-                                    $ivaExists = \App\Models\Impuesto::where('valor', $taxRate)->where('tipo', 'iva')->exists();
-                                    
-                                    if ($ivaExists) {
-                                        $set('iva', $taxRate);
-                                    } else {
-                                        $globalDefault = \App\Models\Impuesto::where('tipo', 'iva')
-                                            ->where('es_predeterminado', true)
-                                            ->where('activo', true)
-                                            ->first()?->valor ?? 21.00;
-                                        $set('iva', number_format($globalDefault, 2, '.', ''));
-                                    }
+                                try {
+                                    // Buscar producto por nombre
+                                    $producto = \App\Models\Product::where('name', $state)->first();
+                                    if ($producto) {
+                                        $set('product_id', $producto->id);
+                                        // Solo actualizar código si está vacío
+                                        if (!$get('codigo')) {
+                                            $set('codigo', $producto->sku);
+                                        }
+                                        
+                                        // Determine price based on document type
+                                        $doc = null;
+                                        if (isset($livewire)) {
+                                            $doc = method_exists($livewire, 'getOwnerRecord') 
+                                                ? $livewire->getOwnerRecord() 
+                                                : ($livewire->record ?? null);
+                                        }
+                                        
+                                        $isPurchase = $doc && str_ends_with($doc->tipo, '_compra');
+                                        
+                                        if ($isPurchase) {
+                                            $cost = (float)($producto->metadata['purchase_price'] ?? 0);
+                                            $set('precio_unitario', \App\Helpers\NumberFormatHelper::formatNumber($cost, 2));
+                                        } else {
+                                            // Sale or other: convert PVP to base price
+                                            $taxRate = (float)$producto->tax_rate;
+                                            $priceWithTax = (float)$producto->price;
+                                            $basePrice = $priceWithTax / (1 + ($taxRate / 100));
+                                            $set('precio_unitario', \App\Helpers\NumberFormatHelper::formatNumber($basePrice, 2));
+                                        }
+                                        
+                                        // IVA del producto o por defecto
+                                        $taxRate = number_format((float)$producto->tax_rate, 2, '.', '');
+                                        $ivaExists = \App\Models\Impuesto::where('valor', (float)$taxRate)
+                                            ->where('tipo', 'iva')
+                                            ->exists();
+                                        
+                                        if ($ivaExists) {
+                                            $set('iva', $taxRate);
+                                        } else {
+                                            $globalDefault = \App\Models\Impuesto::where('tipo', 'iva')
+                                                ->where('es_predeterminado', true)
+                                                ->where('activo', true)
+                                                ->first()?->valor ?? 21.00;
+                                            $set('iva', number_format((float)$globalDefault, 2, '.', ''));
+                                        }
 
-                                    self::calcularLinea($set, $get);
+                                        self::calcularLinea($set, $get);
+                                    }
+                                } catch (\Exception $e) {
+                                    \Illuminate\Support\Facades\Log::error('Error in description afterStateUpdated: ' . $e->getMessage());
                                 }
                             }
                         })
@@ -268,23 +295,33 @@ class LineasRelationManager extends RelationManager
 
     public static function calcularLinea(Forms\Set $set, Forms\Get $get): void
     {
-        $cantidad = \App\Helpers\NumberFormatHelper::parseNumber($get('cantidad') ?? '0');
-        $precio = \App\Helpers\NumberFormatHelper::parseNumber($get('precio_unitario') ?? '0');
-        $descuento = \App\Helpers\NumberFormatHelper::parseNumber($get('descuento') ?? '0');
-        $iva = \App\Helpers\NumberFormatHelper::parseNumber($get('iva') ?? '0');
+        try {
+            $cantidad = \App\Helpers\NumberFormatHelper::parseNumber($get('cantidad') ?? '0');
+            $precio = \App\Helpers\NumberFormatHelper::parseNumber($get('precio_unitario') ?? '0');
+            $descuento = \App\Helpers\NumberFormatHelper::parseNumber($get('descuento') ?? '0');
+            $iva = \App\Helpers\NumberFormatHelper::parseNumber($get('iva') ?? '0');
 
-        $subtotal = $cantidad * $precio;
-        
-        if ($descuento > 0) {
-            $subtotal = $subtotal * (1 - ($descuento / 100));
+            $subtotal = $cantidad * $precio;
+            
+            if ($descuento > 0) {
+                // Ensure discount doesn't exceed 100%
+                $disc = min(100, max(0, $descuento));
+                $subtotal = $subtotal * (1 - ($disc / 100));
+            }
+
+            $importeIva = $subtotal * ($iva / 100);
+            $total = $subtotal + $importeIva;
+
+            $set('subtotal', \App\Helpers\NumberFormatHelper::formatNumber($subtotal, 2));
+            $set('importe_iva', round($importeIva, 3));
+            $set('total', round($total, 3));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error calculating document line: ' . $e->getMessage());
+            // Safe fallbacks to avoid blank/null errors in UI
+            $set('subtotal', '0,00');
+            $set('importe_iva', 0);
+            $set('total', 0);
         }
-
-        $importeIva = $subtotal * ($iva / 100);
-        $total = $subtotal + $importeIva;
-
-        $set('subtotal', \App\Helpers\NumberFormatHelper::formatNumber($subtotal, 2));
-        $set('importe_iva', round($importeIva, 3));
-        $set('total', round($total, 3));
     }
 
     public function table(Table $table): Table
