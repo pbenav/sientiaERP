@@ -111,9 +111,9 @@ class AiDocumentParserService
 
             foreach ($document->getEntities() as $entity) {
                 $type = $entity->getType();
-                $value = $entity->getMentionText() ?? $entity->getNormalizedValue()?->getText(); // normalized preferred for dates
-
-                Log::info('DocAI: Processing entity', ['type' => $type, 'value' => substr($value ?? '', 0, 100)]);
+                $value = $entity->getMentionText();
+                
+                \Illuminate\Support\Facades\Log::debug("DocAI Entity Found", ['type' => $type, 'value' => $value]);
 
                 switch ($type) {
                     case 'supplier_name':
@@ -123,8 +123,7 @@ class AiDocumentParserService
                         $data['provider_nif'] = $value;
                         break;
                     case 'invoice_date':
-                        // Normalize date? DocAI usually gives ISO in normalized value
-                         $data['document_date'] = $entity->getNormalizedValue()?->getDateValue() 
+                        $data['document_date'] = $entity->getNormalizedValue()?->getDateValue() 
                             ? sprintf('%04d-%02d-%02d', 
                                 $entity->getNormalizedValue()->getDateValue()->getYear(),
                                 $entity->getNormalizedValue()->getDateValue()->getMonth(),
@@ -140,29 +139,28 @@ class AiDocumentParserService
                             'description' => '',
                             'quantity' => 1,
                             'unit_price' => 0,
+                            'discount' => 0,
                             'reference' => null,
                             'product_code' => null
                         ];
                         
                         foreach ($entity->getProperties() as $prop) {
                             $propType = $prop->getType();
-                            $propValue = $prop->getMentionText() ?? $prop->getNormalizedValue()?->getText();
-                            
-                            Log::info('DocAI: Line item property', ['type' => $propType, 'value' => $propValue]);
+                            $propValue = $prop->getMentionText();
                             
                             if ($propType === 'line_item/description') $line['description'] = $propValue;
                             if ($propType === 'line_item/quantity') $line['quantity'] = (float) filter_var($propValue, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
                             if ($propType === 'line_item/unit_price') $line['unit_price'] = (float) filter_var($propValue, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
                             
                             // Extract product code/SKU/reference
-                            if ($propType === 'line_item/product_code') $line['product_code'] = $propValue;
-                            if ($propType === 'line_item/sku') $line['product_code'] = $propValue;
-                            if ($propType === 'line_item/reference') $line['reference'] = $propValue;
+                            if (in_array($propType, ['line_item/product_code', 'line_item/sku', 'line_item/reference'])) {
+                                $line['product_code'] = $propValue;
+                                $line['reference'] = $propValue;
+                            }
                         }
                         
                         if (!empty($line['description'])) {
                             $data['items'][] = $line;
-                            Log::info('DocAI: Added line item', $line);
                         }
                         break;
                 }
