@@ -57,7 +57,7 @@ class LabelGeneratorService
                 $labels[] = [
                     'name' => $linea->descripcion,
                     'sku' => $sku,
-                    'price' => $linea->precio_unitario ?: ($product?->price ?? 0),
+                    'price' => $product?->price ?? ($linea->precio_unitario ?? 0),
                     'barcode' => $this->generateBarcode($barcodeText, $barcodeType),
                     'barcode_text' => $barcodeText,
                 ];
