@@ -667,10 +667,22 @@ protected function procesarLineaProducto()
         
         // PASO 5: Asignar número definitivo si aún es BORRADOR
         if ($this->ticket->numero === 'BORRADOR') {
-            // Generar número secuencial
-            $ultimoNumero = Ticket::where('status', '!=', 'open')
-                                  ->max('id') ?? 0;
-            $this->ticket->numero = 'TKT-' . str_pad($ultimoNumero + 1, 6, '0', STR_PAD_LEFT);
+            $year = now()->year;
+            // Buscar el último ticket emitido en el año actual que tenga formato TKT-YYYY-XXXXXX
+            $ultimoTicket = Ticket::where('numero', 'like', "TKT-{$year}-%")
+                                  ->orderBy('numero', 'desc')
+                                  ->first();
+            
+            $siguienteSecuencia = 1;
+            if ($ultimoTicket) {
+                // Extraer la parte numérica (los últimos 6 dígitos)
+                $partes = explode('-', $ultimoTicket->numero);
+                if (count($partes) === 3) {
+                    $siguienteSecuencia = (int)$partes[2] + 1;
+                }
+            }
+            
+            $this->ticket->numero = 'TKT-' . $year . '-' . str_pad($siguienteSecuencia, 6, '0', STR_PAD_LEFT);
         }
         
         // PASO 6: Guardar ticket con TODOS los cambios de una vez
