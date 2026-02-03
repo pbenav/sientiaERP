@@ -20,19 +20,27 @@ class Ticket extends Model
         'tpv_slot',   // TPV Slot ID (1-4)
         'numero',     // Ticket number
         'status',
+        'descuento_porcentaje',
+        'descuento_importe',
         'subtotal',
         'tax',
         'total',
         'payment_method',
+        'pago_efectivo',
+        'pago_tarjeta',
         'amount_paid',
         'change_given',
         'completed_at',
     ];
 
     protected $casts = [
+        'descuento_porcentaje' => 'decimal:2',
+        'descuento_importe' => 'decimal:2',
         'subtotal' => 'decimal:2',
         'tax' => 'decimal:2',
         'total' => 'decimal:2',
+        'pago_efectivo' => 'decimal:2',
+        'pago_tarjeta' => 'decimal:2',
         'amount_paid' => 'decimal:2',
         'change_given' => 'decimal:2',
         'completed_at' => 'datetime',
@@ -78,7 +86,12 @@ class Ticket extends Model
 
         $this->subtotal = $items->sum('subtotal');
         $this->tax = $items->sum('tax_amount');
-        $this->total = $items->sum('total');
+        
+        $totalBruto = $this->subtotal + $this->tax;
+        
+        // Aplicar descuentos generales
+        $descuentoPorcentaje = ($totalBruto * ($this->descuento_porcentaje / 100));
+        $this->total = $totalBruto - $descuentoPorcentaje - $this->descuento_importe;
 
         $this->save();
     }

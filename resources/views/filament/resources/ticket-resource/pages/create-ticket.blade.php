@@ -1,3 +1,4 @@
+<div>
 <x-filament-panels::page>
     @push('styles')
     <style>
@@ -14,7 +15,16 @@
             outline: 2px solid #F59E0B; /* Amber-500 */
             border-color: #F59E0B;
         }
+        /* Clase para auto-seleccionar al enfocar */
+        .select-all { }
     </style>
+    <script>
+        document.addEventListener('focusin', (e) => {
+            if (e.target.classList.contains('select-all') || e.target.classList.contains('pos-input')) {
+                e.target.select();
+            }
+        });
+    </script>
     @endpush
 
     <div x-data="{
@@ -248,110 +258,133 @@
             </div>
 
             {{-- Footer Principal --}}
-            <div class="flex gap-4 h-52 shrink-0 bg-gray-100 p-2 rounded-lg border border-gray-300">
+            <div class="flex flex-col md:flex-row gap-4 shrink-0 bg-gray-100 p-3 rounded-lg border border-gray-300 shadow-inner">
                 
-                {{-- Panel Botones (Izquierda) - Grid adaptativo --}}
-                <div class="grid grid-cols-3 sm:grid-cols-3 gap-2 w-full md:w-[420px]">
+                {{-- Panel Botones (Izquierda) - 2 Columnas Compacto --}}
+                <div class="grid grid-cols-2 gap-2 w-fit shrink-0 overflow-visible" style="display: grid !important; grid-template-columns: repeat(2, 1fr) !important; width: 172px !important;">
                      @foreach([
                         ['Grabar', 'heroicon-o-check', 'from-green-50 to-green-100 border-green-400 text-green-700 hover:from-green-100 hover:to-green-200 hover:border-green-500 hover:text-green-800 hover:shadow-xl active:from-green-600 active:to-green-700 active:border-green-800 active:text-white'],
+                        ['Anular', 'heroicon-o-trash', 'from-red-50 to-red-100 border-red-400 text-red-700 hover:from-red-100 hover:to-red-200'],
                         ['Imprimir', 'heroicon-o-printer', 'from-white to-gray-100 border-gray-400 text-gray-700 hover:from-gray-50 hover:to-gray-200'],
-                        ['Regalo', 'heroicon-o-gift', 'from-white to-gray-100 border-gray-400 text-purple-700 hover:from-gray-50 hover:to-gray-200'],
-                        ['Cajón', 'heroicon-o-inbox', 'from-amber-100 to-amber-200 border-amber-400 text-amber-900 hover:from-amber-200 hover:to-amber-300'],
                         ['Nueva', 'heroicon-o-plus', 'from-amber-100 to-amber-200 border-amber-400 text-amber-900 hover:from-amber-200 hover:to-amber-300 font-black'],
+                        ['Regalo', 'heroicon-o-gift', 'from-white to-gray-100 border-gray-400 text-purple-700 hover:from-gray-50 hover:to-gray-200'],
                         ['Salir', 'heroicon-o-arrow-right-on-rectangle', 'from-amber-100 to-amber-200 border-amber-400 text-amber-900 hover:from-amber-200 hover:to-amber-300'],
                      ] as $i => $btn)
                      <button 
                         @if($btn[0] === 'Grabar') 
                             wire:click="grabarTicket" 
                             wire:loading.attr="disabled"
+                        @elseif($btn[0] === 'Imprimir')
+                            wire:click="imprimirTicket"
+                        @elseif($btn[0] === 'Anular')
+                            wire:click="anularTicket"
+                            wire:confirm="¿Estás seguro de que deseas anular/eliminar este ticket?"
+                        @elseif($btn[0] === 'Nueva')
+                            wire:click="nuevaVenta"
+                        @elseif($btn[0] === 'Salir')
+                            wire:click="salirPos"
+                        @endif
+                        @if($btn[0] === 'Grabar')
                             onclick="this.style.background='linear-gradient(to bottom, #059669, #047857)'; this.style.color='white'; this.style.transform='scale(0.9)'; setTimeout(() => { this.style.background=''; this.style.color=''; this.style.transform=''; }, 300);"
                         @endif
                         type="button"
-                        class="flex flex-col items-center justify-center rounded border-2 shadow-md hover:shadow-lg transition-all duration-150 bg-gradient-to-b {{ $btn[2] }} {{ $i >= 3 ? 'ring-1 ring-amber-300' : '' }} min-h-[70px] md:min-h-[90px] {{ $btn[0] === 'Grabar' ? 'ring-2 ring-green-300' : 'active:shadow-sm active:scale-95' }}">
-                        <x-dynamic-component :component="$btn[1]" class="w-8 h-8 md:w-10 md:h-10 mb-1 {{ $btn[0] === 'Grabar' ? 'transition-transform hover:scale-110' : '' }}"/>
-                        <span class="font-bold text-[10px] md:text-xs leading-none text-center uppercase">{{ $btn[0] }}</span>
+                        class="flex flex-col items-center justify-center rounded border-2 shadow-md hover:shadow-lg transition-all duration-150 bg-gradient-to-b {{ $btn[2] }} w-20 h-20 shrink-0 {{ $btn[0] === 'Grabar' ? 'ring-2 ring-green-300 scale-105 z-10' : 'active:shadow-sm active:scale-95' }}">
+                        <x-dynamic-component :component="$btn[1]" class="w-6 h-6 mb-1 {{ $btn[0] === 'Grabar' ? 'transition-transform hover:scale-110' : '' }}"/>
+                        <span class="font-bold text-[9px] leading-none text-center uppercase text-black">{{ $btn[0] }}</span>
                         @if($btn[0] === 'Grabar')
-                            <span wire:loading wire:target="grabarTicket" class="absolute inset-0 flex items-center justify-center bg-green-700 bg-opacity-90 rounded text-white font-bold text-xs">
-                                GUARDANDO...
+                            <span wire:loading wire:target="grabarTicket" class="absolute inset-0 flex items-center justify-center bg-green-700 bg-opacity-90 rounded text-white font-bold text-[8px]">
+                                ESPERE...
                             </span>
                         @endif
                      </button>
                      @endforeach
                 </div>
 
-                {{-- Panel Datos y Totales (Derecha) --}}
-                <div class="flex-1 flex flex-col justify-between pl-4 overflow-hidden">
-                    
-                    {{-- Línea 1: DTO y TOTAL Gigante --}}
-                    <div class="flex items-center justify-between border-b border-gray-300 pb-2 flex-1 relative">
-                        <div class="text-1xl font-bold text-gray-600 self-start mt-2 absolute left-0 top-0">DTO: <span class="text-black">0 %</span></div>
-                        <div class="flex items-center justify-end w-full h-full pt-6">
-                            <span class="text-3xl font-bold text-gray-600 mr-6 pb-2" style="margin-right: 6px;">TOTAL:</span>
-                            <span class="text-3xl font-black text-black leading-none tracking-tighter" >{{ number_format($total, 2) }}</span>
-                            <span class="text-3xl font-bold text-gray-600 ml-2 pb-2" style="margin-left: 4px;">€</span>
+                {{-- Panel Datos (Central) --}}
+                <div class="flex-1 flex flex-col gap-4">
+                    {{-- Descuentos (Arriba) --}}
+                    <div class="flex items-center gap-4 bg-white p-3 rounded-lg border border-gray-300 shadow-sm h-fit">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-black text-gray-400 uppercase">Dto Gral %</span>
+                            <div class="h-10 flex items-center px-4 border border-gray-200 rounded bg-gray-50/50">
+                                <span class="font-bold text-lg">{{ $descuento_general_porcentaje ?: 0 }}</span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col flex-1">
+                            <span class="text-[10px] font-black text-gray-400 uppercase">Dto Gral €</span>
+                            <div class="h-10 flex items-center px-4 border border-gray-200 rounded bg-gray-50/50">
+                                <span class="font-bold text-lg text-right w-full">{{ $descuento_general_importe ?: 0 }}</span>
+                            </div>
                         </div>
                     </div>
 
-                    {{-- Línea 2: Vendedor --}}
-                    <div class="flex items-center py-2 shrink-0">
-                        <span class="w-24 font-bold text-gray-700 text-lg">Vendedor:</span>
-                         <div class="flex-1">
-                             <select class="w-full h-10 border-gray-300 rounded text-base bg-white shadow-sm">
-                                 <option>{{ auth()->user()->name }}</option>
-                             </select>
-                         </div>
-                    </div>
-
-                    {{-- Línea 3: Pagos y Dividir --}}
-                    <div class="flex items-center space-x-3 shrink-0 pb-1">
-                        <div class="flex items-center">
-                            <span class="w-24 font-bold text-gray-700 text-lg">Forma Pago:</span>
-                            <select wire:model="payment_method" class="h-12 border-gray-300 rounded text-base bg-white w-48 font-bold shadow-sm">
-                                <option value="cash">CONTADO</option>
+                    {{-- Vendedor (Abajo) --}}
+                    <div class="flex-1 space-y-3">
+                         <div>
+                            <span class="text-[10px] font-black text-gray-400 uppercase block mb-1">Vendedor</span>
+                            <div class="h-10 px-3 bg-white border border-gray-200 rounded flex items-center text-sm font-bold text-gray-700 shadow-sm">
+                                {{ auth()->user()->name }}
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-black text-gray-400 uppercase block mb-1">Forma de Pago</span>
+                            <select wire:model.live="payment_method" class="w-full h-10 border-gray-300 rounded text-sm bg-white font-black shadow-sm text-primary-700 uppercase">
+                                <option value="cash">EFECTIVO</option>
                                 <option value="card">TARJETA</option>
+                                <option value="mixed">PAGO DIVIDIDO</option>
                             </select>
                         </div>
-                        
-                        <div class="flex items-center ml-4">
-                            <span class="font-bold text-gray-700 mx-2 text-lg">Entrega:</span>
-                            <input type="number" wire:model.live="entrega" class="h-12 w-32 text-right font-bold text-2xl border-gray-300 rounded focus:ring-amber-500 focus:border-amber-500 shadow-sm" />
-                        </div>
-                        
-                        <div class="flex items-center ml-4">
-                            <span class="font-bold text-gray-700 mx-2 text-lg">Vuelta:</span>
-                            <input type="number" value="{{ number_format(max(0, $entrega - $total), 2) }}" readonly class="h-12 w-32 text-right font-bold text-3xl text-red-600 border-gray-300 rounded bg-gray-50 shadow-sm" />
-                        </div>
-
-                        <button class="flex flex-col items-center justify-center bg-gradient-to-b from-yellow-100 to-yellow-300 border border-yellow-400 rounded px-4 h-12 ml-auto hover:from-yellow-200 hover:to-yellow-400 transition shadow-sm" title="Dividir Pago">
-                             <x-heroicon-o-banknotes class="w-6 h-6 text-yellow-800"/>
-                             <span class="text-[10px] font-bold leading-none text-yellow-900 text-center mt-1">Dividir<br>Pago</span>
-                        </button>
                     </div>
                 </div>
-            </div>
 
-            {{-- Barra Inferior de Atajos (Bottom Strip) --}}
-            <div class="bg-gray-200 border-t border-gray-300 p-1 flex items-center justify-between text-[10px] text-gray-600 overflow-x-auto shrink-0 font-mono">
-                @foreach([
-                    'Ctrl+G' => 'Grabar',
-                    'Ctrl+I' => 'Imprimir',
-                    'Ctrl+A' => 'Abrir Cajón',
-                    'Ctrl+N' => 'Nueva',
-                    'Ctrl+S' => 'Salir',
-                    'Ctrl+R' => 'Redondeo',
-                    'Ctrl+T' => 'Talla',
-                    'Ctrl+C' => 'Cliente',
-                    'Ctrl+D' => 'Descuento',
-                    'Ctrl+F' => 'F. Pago',
-                    'Ctrl+V' => 'Vendedor',
-                    'Ctrl+E' => 'Entrega'
-                ] as $key => $label)
-                <div class="flex flex-col items-center px-3 border-r border-gray-300 last:border-0 min-w-max">
-                    <span class="font-bold text-black">{{ $key }}</span>
-                    <span>{{ $label }}</span>
+                {{-- Panel Totales y Cobro (Derecha) --}}
+                <div class="w-72 md:w-96 flex flex-col gap-2">
+                    {{-- Total a Pagar (Arriba) --}}
+                    <div class="flex flex-col items-end w-full rounded-lg bg-white p-3 border border-gray-300 shadow-sm min-h-[70px] justify-center overflow-hidden">
+                        <span class="text-[10px] font-black uppercase text-gray-400 tracking-widest leading-none mb-1">Total a Pagar</span>
+                        <div class="flex items-baseline gap-1">
+                            <span class="font-black tracking-tighter leading-none text-amber-500" style="font-size: 30px !important; font-weight: 950 !important; line-height: 1 !important;">{{ number_format($total, 2) }}</span>
+                            <span class="font-black text-amber-500" style="font-size: 18px !important;">€</span>
+                        </div>
+                    </div>
+
+                    {{-- Entrega (Medio) --}}
+                    <div class="flex flex-col bg-white p-3 rounded-lg border border-gray-300 shadow-sm">
+                        <div class="flex justify-between items-center mb-1">
+                             <span class="text-[11px] font-black text-gray-500 uppercase">Entrega Cliente €</span>
+                             <button wire:click="dividirPago" class="text-[10px] font-bold text-primary-600 hover:text-primary-800 flex items-center gap-1">
+                                <x-heroicon-o-banknotes class="w-3 h-3"/> {{ $payment_method === 'mixed' ? 'Volver a único' : 'Dividir' }}
+                             </button>
+                        </div>
+                        
+                        @if($payment_method === 'mixed')
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="flex flex-col">
+                                    <span class="text-[9px] font-bold text-green-600 uppercase mb-0.5">Efectivo</span>
+                                    <input type="number" wire:model.live="pago_efectivo" class="pos-input h-10 w-full text-right font-black text-lg border-green-300 rounded bg-green-50 focus:ring-green-500" />
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-[9px] font-bold text-blue-600 uppercase mb-0.5">Tarjeta</span>
+                                    <input type="number" wire:model.live="pago_tarjeta" class="pos-input h-10 w-full text-right font-black text-lg border-blue-300 rounded bg-blue-50 focus:ring-blue-500" />
+                                </div>
+                            </div>
+                        @else
+                            <input type="number" wire:model.live="entrega" id="pos-entrega" class="pos-input h-10 w-full text-right font-black text-2xl border-gray-200 rounded bg-gray-50/50 shadow-inner focus:ring-primary-500" />
+                        @endif
+                    </div>
+
+                    {{-- Cambio (Final) --}}
+                    <div class="flex flex-col items-end bg-gray-100 px-4 py-2 rounded-lg border border-gray-200">
+                        <span class="text-[10px] font-black text-gray-400 uppercase text-right leading-none mb-1">Cambio a devolver</span>
+                        <div class="flex items-baseline gap-1">
+                            <span class="font-black text-3xl text-gray-900 leading-none">{{ number_format(max(0, (float)$entrega - (float)$total), 2) }}</span>
+                            <span class="text-lg font-black text-gray-700">€</span>
+                        </div>
+                    </div>
                 </div>
-                @endforeach
+                </div>
             </div>
         </div>
     </div>
 </x-filament-panels::page>
+</div>

@@ -58,8 +58,7 @@ class TicketResource extends Resource
                         'completed' => 'Completado',
                         'cancelled' => 'Cancelado',
                     ])
-                    ->required()
-                    ->disabled(),
+                    ->required(),
             ]);
     }
 
@@ -147,6 +146,81 @@ class TicketResource extends Resource
                     }),
             ])
             ->actions([
+                Tables\Actions\Action::make('generarAlbaran')
+                    ->label('')
+                    ->tooltip('Generar Albarán')
+                    ->icon('heroicon-o-truck')
+                    ->color('info')
+                    ->requiresConfirmation()
+                    ->visible(fn (Ticket $record) => $record->status === 'completed' && !$record->hasInvoice())
+                    ->action(function (Ticket $record) {
+                        $items = $record->items()->get();
+                        
+                        if ($items->isEmpty()) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Error')
+                                ->body('El ticket no tiene líneas para generar el albarán')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+                        
+                        $terceroId = $record->tercero_id;
+                        if (!$terceroId) {
+                            $terceroId = \App\Models\Setting::get('pos_default_tercero_id');
+                        }
+                        
+                        if (!$terceroId) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Error')
+                                ->body('No se puede generar albarán: el ticket no tiene cliente asignado')
+                                ->danger()
+                                ->send();
+                            return;
+                        }
+                        
+                        // Crear documento tipo albaran
+                        $albaran = \App\Models\Documento::create([
+                            'tipo' => 'albaran',
+                            'tercero_id' => $terceroId,
+                            'user_id' => auth()->id(),
+                            'estado' => 'borrador',
+                            'fecha' => now(),
+                            'observaciones' => "Generada automáticamente desde Ticket #{$record->id}\nFecha ticket: {$record->created_at->format('d/m/Y H:i')}",
+                        ]);
+                        
+                        // Copiar líneas
+                        $orden = 1;
+                        foreach ($items as $item) {
+                            $productoNombre = $item->product ? $item->product->name : 'Producto eliminado';
+                            $productoCodigo = $item->product ? $item->product->sku : '';
+                            
+                            \App\Models\DocumentoLinea::create([
+                                'documento_id' => $albaran->id,
+                                'producto_id' => $item->product_id,
+                                'orden' => $orden++,
+                                'codigo' => $productoCodigo,
+                                'descripcion' => $productoNombre,
+                                'cantidad' => $item->quantity,
+                                'precio_unitario' => $item->unit_price,
+                                'descuento' => 0,
+                                'iva' => 21,
+                            ]);
+                        }
+                        
+                        $albaran->recalcularTotales();
+                        $albaran->confirmar();
+                        
+                        // Guardar referencia
+                        $record->documento_id = $albaran->id;
+                        $record->save();
+                        
+                        \Filament\Notifications\Notification::make()
+                            ->title('Albarán creado y confirmado')
+                            ->body("Albarán {$albaran->numero} creado. Total: " . number_format($albaran->total, 2, ',', '.') . " €.")
+                            ->success()
+                            ->send();
+                    }),
                 Tables\Actions\Action::make('generarFactura')
                     ->label('')
                     ->tooltip('Generar Factura')
@@ -222,12 +296,11 @@ class TicketResource extends Resource
                         
                         // Guardar referencia a factura en el ticket
                         $record->documento_id = $factura->id;
-                        $record->status = 'completed';
                         $record->save();
                         
                         \Filament\Notifications\Notification::make()
                             ->title('Factura creada y confirmada')
-                            ->body("Factura {$factura->numero} creada para {$record->tercero->nombre_comercial}. Total: " . number_format($factura->total, 2, ',', '.') . " €.")
+                            ->body("Factura {$factura->numero} creada. Total: " . number_format($factura->total, 2, ',', '.') . " €.")
                             ->success()
                             ->send();
                     }),
@@ -240,6 +313,11 @@ class TicketResource extends Resource
                 Tables\Actions\ViewAction::make()->label('')->tooltip('Ver'),
                 Tables\Actions\EditAction::make()->label('')->tooltip('Editar')->visible(fn (Ticket $record) => !$record->hasInvoice()),
                 Tables\Actions\DeleteAction::make()->label('')->tooltip('Borrar'),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
             ])
             ->defaultSort('created_at', 'desc');
     }

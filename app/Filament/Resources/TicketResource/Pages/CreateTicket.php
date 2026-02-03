@@ -49,8 +49,12 @@ class CreateTicket extends Page
     public $total = 0;
     public $subtotal = 0;
     public $impuestos = 0;
+    public $descuento_general_porcentaje = 0;
+    public $descuento_general_importe = 0;
     public $entrega = 0;
-    public $payment_method = 'cash'; // Método de pago (cash, card)
+    public $pago_efectivo = 0;
+    public $pago_tarjeta = 0;
+    public $payment_method = 'cash'; // Método de pago (cash, card, mixed)
     public $data = []; // Datos del formulario (necesario para Page)
 
     // Computed property para el teléfono del cliente
@@ -182,6 +186,14 @@ class CreateTicket extends Page
             'tercero_id' => $this->ticket->tercero_id,
         ]);
         
+        // Cargar descuentos y pagos del ticket
+        $this->descuento_general_porcentaje = $this->ticket->descuento_porcentaje;
+        $this->descuento_general_importe = $this->ticket->descuento_importe;
+        $this->pago_efectivo = $this->ticket->pago_efectivo;
+        $this->pago_tarjeta = $this->ticket->pago_tarjeta;
+        $this->payment_method = $this->ticket->payment_method ?? 'cash';
+        $this->entrega = $this->ticket->amount_paid;
+
         // Limpiar inputs entrada
         $this->limpiarInputs();
     }
@@ -511,7 +523,66 @@ protected function procesarLineaProducto()
     
     public function recalcularTotales()
     {
-        $this->total = collect($this->lineas)->sum('importe');
+        $oldTotal = $this->total;
+        $subtotalLineas = collect($this->lineas)->sum('importe');
+        
+        // El ticket model tiene la lógica de descuentos
+        if ($this->ticket) {
+            $this->ticket->descuento_porcentaje = $this->descuento_general_porcentaje;
+            $this->ticket->descuento_importe = $this->descuento_general_importe;
+            $this->ticket->recalculateTotals();
+            $this->total = $this->ticket->total;
+        } else {
+            $this->total = $subtotalLineas;
+        }
+
+        // Si la entrega era 0 o igual al total anterior, actualizar al nuevo total
+        if ($this->entrega == 0 || $this->entrega == $oldTotal) {
+            $this->entrega = $this->total;
+        }
+    }
+    
+    public function updatedDescuentoGeneralPorcentaje() { $this->recalcularTotales(); }
+    public function updatedDescuentoGeneralImporte() { $this->recalcularTotales(); }
+    public function updatedEntrega() { 
+        if ($this->payment_method === 'cash') {
+            $this->pago_efectivo = $this->entrega;
+            $this->pago_tarjeta = 0;
+        } elseif ($this->payment_method === 'card') {
+            $this->pago_tarjeta = $this->entrega;
+            $this->pago_efectivo = 0;
+        }
+    }
+    
+    /**
+     * Alternar entre Pago Único y Pago Dividido
+     */
+    public function dividirPago()
+    {
+        if ($this->payment_method !== 'mixed') {
+            $this->payment_method = 'mixed';
+            // Por defecto mitad y mitad o similar? Por ahora 0/0
+            $this->pago_efectivo = 0;
+            $this->pago_tarjeta = 0;
+        } else {
+            $this->payment_method = 'cash';
+            $this->pago_efectivo = $this->entrega;
+            $this->pago_tarjeta = 0;
+        }
+    }
+    
+    public function updatedPagoEfectivo() { 
+        if ($this->payment_method === 'mixed') {
+            $this->pago_efectivo = (float)($this->pago_efectivo ?: 0);
+            $this->entrega = (float)$this->pago_efectivo + (float)$this->pago_tarjeta;
+        }
+    }
+    
+    public function updatedPagoTarjeta() { 
+        if ($this->payment_method === 'mixed') {
+            $this->pago_tarjeta = (float)($this->pago_tarjeta ?: 0);
+            $this->entrega = (float)$this->pago_efectivo + (float)$this->pago_tarjeta;
+        }
     }
     
     protected function limpiarInputs()
@@ -585,6 +656,14 @@ protected function procesarLineaProducto()
         }
         
         // PASO 6: Guardar ticket con TODOS los cambios de una vez
+        $this->ticket->descuento_porcentaje = $this->descuento_general_porcentaje;
+        $this->ticket->descuento_importe = $this->descuento_general_importe;
+        $this->ticket->pago_efectivo = $this->pago_efectivo;
+        $this->ticket->pago_tarjeta = $this->pago_tarjeta;
+        $this->ticket->payment_method = $this->payment_method;
+        $this->ticket->amount_paid = $this->entrega;
+        $this->ticket->change_given = max(0, $this->entrega - $this->total);
+        
         $this->ticket->save();
         
         // Notificación de éxito
@@ -610,8 +689,93 @@ protected function procesarLineaProducto()
     }
     
     /**
-     * Cargar un ticket existente en el POS
+     * Iniciar una nueva venta (limpiar TPV actual)
      */
+    public function nuevaVenta()
+    {
+        // Si el ticket actual está vacío y es borrador, no hacemos nada especial
+        // Si tiene líneas, preguntamos? (Por ahora reseteamos)
+        
+        if ($this->ticket && $this->ticket->status === 'open' && $this->ticket->items()->count() === 0) {
+            // Ya está vacío, solo limpiar inputs
+        } else {
+            // Crear un nuevo ticket para este slot
+            $this->ticket = Ticket::create([
+                'tpv_slot' => $this->tpvActivo,
+                'user_id' => auth()->id(),
+                'session_id' => (string) \Illuminate\Support\Str::uuid(),
+                'numero' => 'BORRADOR',
+                'status' => 'open',
+                'created_at' => now(),
+            ]);
+            
+            // Asignar cliente por defecto
+            $clientePorDefectoId = \App\Models\Setting::get('pos_default_tercero_id');
+            if ($clientePorDefectoId) {
+                $this->ticket->tercero_id = $clientePorDefectoId;
+                $this->ticket->save();
+            }
+        }
+        
+        $this->lineas = [];
+        $this->total = 0;
+        $this->limpiarInputs();
+        
+        Notification::make()
+            ->title('Nueva venta iniciada')
+            ->success()
+            ->send();
+    }
+    
+    /**
+     * Anular/Borrar el ticket actual
+     */
+    public function anularTicket()
+    {
+        if (!$this->ticket) return;
+        
+        if ($this->ticket->status === 'open') {
+            // Borrar físicamente si estaba abierto y sin confirmar
+            $this->ticket->delete();
+            
+            Notification::make()
+                ->title('Venta anulada y borrada')
+                ->warning()
+                ->send();
+        } else {
+            // Si ya estaba completado, marcar como cancelado (aunque desde POS solemos gestionar abiertos)
+            $this->ticket->status = 'cancelled';
+            $this->ticket->save();
+            
+            Notification::make()
+                ->title('Ticket marcado como cancelado')
+                ->danger()
+                ->send();
+        }
+        
+        // Iniciar nuevo
+        $this->cargarTpv($this->tpvActivo);
+    }
+    
+    /**
+     * Salir del POS
+     */
+    public function salirPos()
+    {
+        return redirect()->to(TicketResource::getUrl('index'));
+    }
+    
+    /**
+     * Imprimir ticket (Placeholder)
+     */
+    public function imprimirTicket()
+    {
+        Notification::make()
+            ->title('Impresión')
+            ->body('Funcionalidad de impresión en desarrollo')
+            ->info()
+            ->send();
+    }
     protected function cargarTicketExistente($ticket)
     {
         $this->ticket = $ticket;
