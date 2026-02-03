@@ -157,7 +157,7 @@ class CreateTicket extends Page
         // SIEMPRE establecer fecha a hoy
         $this->fecha = now()->format('Y-m-d');
         $this->data['fecha'] = $this->fecha;
-        $this->data['numero'] = $this->ticket->id;
+        $this->data['numero'] = $this->ticket->numero;
         
         // IMPORTANTE: Recargar todos los clientes activos para el dropdown (no solo los 10 iniciales)
         // Esto permite cambiar el cliente en cualquier momento
@@ -830,7 +830,7 @@ protected function procesarLineaProducto()
         // Cargar fecha y número
         $this->fecha = $ticket->created_at->format('Y-m-d');
         $this->data['fecha'] = $this->fecha;
-        $this->data['numero'] = $ticket->id;
+        $this->data['numero'] = $ticket->numero;
         
         // Cargar cliente si existe
         if ($ticket->tercero_id && $ticket->tercero) {
