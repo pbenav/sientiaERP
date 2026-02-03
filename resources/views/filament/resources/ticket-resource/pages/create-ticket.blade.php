@@ -306,15 +306,11 @@
                     <div class="flex items-center gap-4 bg-white p-3 rounded-lg border border-gray-300 shadow-sm h-fit">
                         <div class="flex flex-col">
                             <span class="text-[10px] font-black text-gray-400 uppercase">Dto Gral %</span>
-                            <div class="h-10 flex items-center px-4 border border-gray-200 rounded bg-gray-50/50">
-                                <span class="font-bold text-lg">{{ $descuento_general_porcentaje ?: 0 }}</span>
-                            </div>
+                            <input type="number" wire:model.blur="descuento_general_porcentaje" class="pos-input h-10 w-20 text-right border-gray-200 rounded bg-gray-50/50 font-bold text-lg focus:ring-amber-500" />
                         </div>
                         <div class="flex flex-col flex-1">
                             <span class="text-[10px] font-black text-gray-400 uppercase">Dto Gral €</span>
-                            <div class="h-10 flex items-center px-4 border border-gray-200 rounded bg-gray-50/50">
-                                <span class="font-bold text-lg text-right w-full">{{ $descuento_general_importe ?: 0 }}</span>
-                            </div>
+                            <input type="number" wire:model.blur="descuento_general_importe" class="pos-input h-10 w-full text-right border-gray-200 rounded bg-gray-50/50 font-bold text-lg focus:ring-amber-500" />
                         </div>
                     </div>
 
@@ -361,15 +357,15 @@
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="flex flex-col">
                                     <span class="text-[9px] font-bold text-green-600 uppercase mb-0.5">Efectivo</span>
-                                    <input type="number" wire:model.live="pago_efectivo" class="pos-input h-10 w-full text-right font-black text-lg border-green-300 rounded bg-green-50 focus:ring-green-500" />
+                                    <input type="number" wire:model.blur="pago_efectivo" class="pos-input h-10 w-full text-right font-black text-lg border-green-300 rounded bg-green-50 focus:ring-green-500" />
                                 </div>
                                 <div class="flex flex-col">
                                     <span class="text-[9px] font-bold text-blue-600 uppercase mb-0.5">Tarjeta</span>
-                                    <input type="number" wire:model.live="pago_tarjeta" class="pos-input h-10 w-full text-right font-black text-lg border-blue-300 rounded bg-blue-50 focus:ring-blue-500" />
+                                    <input type="number" wire:model.blur="pago_tarjeta" class="pos-input h-10 w-full text-right font-black text-lg border-blue-300 rounded bg-blue-50 focus:ring-blue-500" />
                                 </div>
                             </div>
                         @else
-                            <input type="number" wire:model.live="entrega" id="pos-entrega" class="pos-input h-10 w-full text-right font-black text-2xl border-gray-200 rounded bg-gray-50/50 shadow-inner focus:ring-primary-500" />
+                            <input type="number" wire:model.blur="entrega" id="pos-entrega" class="pos-input h-10 w-full text-right font-black text-2xl border-gray-200 rounded bg-gray-50/50 shadow-inner focus:ring-primary-500" />
                         @endif
                     </div>
 

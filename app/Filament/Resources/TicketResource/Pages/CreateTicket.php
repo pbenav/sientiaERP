@@ -574,6 +574,15 @@ protected function procesarLineaProducto()
     public function updatedPagoEfectivo() { 
         if ($this->payment_method === 'mixed') {
             $this->pago_efectivo = (float)($this->pago_efectivo ?: 0);
+            
+            // Auto-equilibrado: Si el efectivo es menor que el total, el resto va a tarjeta
+            if ($this->total > 0 && $this->pago_efectivo < $this->total) {
+                $this->pago_tarjeta = (float)$this->total - (float)$this->pago_efectivo;
+            } else {
+                // Si ya cubrimos el total con efectivo, la tarjeta queda en 0
+                $this->pago_tarjeta = 0;
+            }
+            
             $this->entrega = (float)$this->pago_efectivo + (float)$this->pago_tarjeta;
         }
     }
@@ -581,6 +590,15 @@ protected function procesarLineaProducto()
     public function updatedPagoTarjeta() { 
         if ($this->payment_method === 'mixed') {
             $this->pago_tarjeta = (float)($this->pago_tarjeta ?: 0);
+            
+            // Auto-equilibrado: Si la tarjeta es menor que el total, el resto va a efectivo
+            if ($this->total > 0 && $this->pago_tarjeta < $this->total) {
+                $this->pago_efectivo = (float)$this->total - (float)$this->pago_tarjeta;
+            } else {
+                // Si la tarjeta ya cubre el total, el efectivo se queda como estaba (o 0 si se prefiere)
+                // Usualmente el efectivo es lo que genera cambio, así que lo dejamos para el cálculo final
+            }
+            
             $this->entrega = (float)$this->pago_efectivo + (float)$this->pago_tarjeta;
         }
     }
