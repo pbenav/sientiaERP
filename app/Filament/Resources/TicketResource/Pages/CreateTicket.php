@@ -674,13 +674,13 @@ protected function procesarLineaProducto()
         }
         
         // PASO 6: Guardar ticket con TODOS los cambios de una vez
-        $this->ticket->descuento_porcentaje = $this->descuento_general_porcentaje;
-        $this->ticket->descuento_importe = $this->descuento_general_importe;
-        $this->ticket->pago_efectivo = $this->pago_efectivo;
-        $this->ticket->pago_tarjeta = $this->pago_tarjeta;
+        $this->ticket->descuento_porcentaje = (float)($this->descuento_general_porcentaje ?: 0);
+        $this->ticket->descuento_importe = (float)($this->descuento_general_importe ?: 0);
+        $this->ticket->pago_efectivo = (float)($this->pago_efectivo ?: 0);
+        $this->ticket->pago_tarjeta = (float)($this->pago_tarjeta ?: 0);
         $this->ticket->payment_method = $this->payment_method;
-        $this->ticket->amount_paid = $this->entrega;
-        $this->ticket->change_given = max(0, $this->entrega - $this->total);
+        $this->ticket->amount_paid = (float)($this->entrega ?: 0);
+        $this->ticket->change_given = max(0, (float)($this->entrega ?: 0) - (float)($this->total ?: 0));
         
         $this->ticket->save();
         

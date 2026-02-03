@@ -33,6 +33,18 @@ class Ticket extends Model
         'completed_at',
     ];
 
+    protected $attributes = [
+        'descuento_porcentaje' => 0,
+        'descuento_importe' => 0,
+        'pago_efectivo' => 0,
+        'pago_tarjeta' => 0,
+        'amount_paid' => 0,
+        'change_given' => 0,
+        'subtotal' => 0,
+        'tax' => 0,
+        'total' => 0,
+    ];
+
     protected $casts = [
         'descuento_porcentaje' => 'decimal:2',
         'descuento_importe' => 'decimal:2',
@@ -87,11 +99,14 @@ class Ticket extends Model
         $this->subtotal = $items->sum('subtotal');
         $this->tax = $items->sum('tax_amount');
         
-        $totalBruto = $this->subtotal + $this->tax;
+        $totalBruto = (float)$this->subtotal + (float)$this->tax;
         
         // Aplicar descuentos generales
-        $descuentoPorcentaje = ($totalBruto * ($this->descuento_porcentaje / 100));
-        $this->total = $totalBruto - $descuentoPorcentaje - $this->descuento_importe;
+        $perc = (float)($this->descuento_porcentaje ?? 0);
+        $imp = (float)($this->descuento_importe ?? 0);
+        
+        $descuentoPorcentajeV = ($totalBruto * ($perc / 100));
+        $this->total = $totalBruto - $descuentoPorcentajeV - $imp;
 
         $this->save();
     }
