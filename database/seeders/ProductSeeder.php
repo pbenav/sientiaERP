@@ -86,10 +86,16 @@ class ProductSeeder extends Seeder
         ];
 
         foreach ($products as $data) {
-            Product::updateOrCreate(
-                ['sku' => $data['sku']],
-                $data
-            );
+            $product = Product::withTrashed()->where('sku', $data['sku'])->first();
+            
+            if ($product) {
+                if ($product->trashed()) {
+                    $product->restore();
+                }
+                $product->update($data);
+            } else {
+                Product::create($data);
+            }
         }
 
         $this->command->info('✓ 8 productos base creados');
