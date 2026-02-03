@@ -66,8 +66,9 @@ class TicketResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')
-                    ->label('ID')
+                Tables\Columns\TextColumn::make('numero')
+                    ->label('Nº Ticket')
+                    ->searchable()
                     ->sortable(),
                 
                 Tables\Columns\TextColumn::make('user.name')
@@ -186,7 +187,7 @@ class TicketResource extends Resource
                             'user_id' => auth()->id(),
                             'estado' => 'borrador',
                             'fecha' => now(),
-                            'observaciones' => "Generada automáticamente desde Ticket #{$record->id}\nFecha ticket: {$record->created_at->format('d/m/Y H:i')}",
+                            'observaciones' => "Generada automáticamente desde Ticket #{$record->numero}\nFecha ticket: {$record->created_at->format('d/m/Y H:i')}",
                         ]);
                         
                         // Copiar líneas
@@ -265,7 +266,7 @@ class TicketResource extends Resource
                             'user_id' => auth()->id(),
                             'estado' => 'borrador',
                             'fecha' => now(),
-                            'observaciones' => "Generada automáticamente desde Ticket #{$record->id}\nFecha ticket: {$record->created_at->format('d/m/Y H:i')}",
+                            'observaciones' => "Generada automáticamente desde Ticket #{$record->numero}\nFecha ticket: {$record->created_at->format('d/m/Y H:i')}",
                         ]);
                         
                         // Copiar líneas del ticket a la factura
@@ -328,7 +329,7 @@ class TicketResource extends Resource
             ->schema([
                 Infolists\Components\Section::make('Información del Ticket')
                     ->schema([
-                        Infolists\Components\TextEntry::make('id')->label('ID'),
+                        Infolists\Components\TextEntry::make('numero')->label('Número'),
                         Infolists\Components\TextEntry::make('session_id')->label('ID de Sesión'),
                         Infolists\Components\TextEntry::make('user.name')->label('Operador'),
                         Infolists\Components\TextEntry::make('tercero.nombre_comercial')->label('Cliente'),
