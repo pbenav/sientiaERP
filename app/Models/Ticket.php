@@ -126,8 +126,31 @@ class Ticket extends Model
 
         // Decrementar stock de productos
         foreach ($this->items as $item) {
-            $item->product->decrementStock($item->quantity);
+            if ($item->product) {
+                $item->product->decrement('stock', $item->quantity);
+            }
         }
+    }
+
+    /**
+     * Anular el ticket y devolver stock
+     */
+    public function cancel(): void
+    {
+        if ($this->status === 'cancelled') {
+            return;
+        }
+
+        // Devolver stock de productos
+        foreach ($this->items as $item) {
+            if ($item->product) {
+                $item->product->increment('stock', $item->quantity);
+            }
+        }
+
+        $this->update([
+            'status' => 'cancelled',
+        ]);
     }
 
     /**

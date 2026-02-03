@@ -752,7 +752,7 @@ protected function procesarLineaProducto()
     {
         if (!$this->ticket) return;
         
-        if ($this->ticket->status === 'open') {
+        if ($this->ticket->numero === 'BORRADOR') {
             // Borrar físicamente si estaba abierto y sin confirmar
             $this->ticket->delete();
             
@@ -761,12 +761,12 @@ protected function procesarLineaProducto()
                 ->warning()
                 ->send();
         } else {
-            // Si ya estaba completado, marcar como cancelado (aunque desde POS solemos gestionar abiertos)
-            $this->ticket->status = 'cancelled';
-            $this->ticket->save();
+            // Si ya tiene número (está completado o fue una edición), usar la lógica de cancelación oficial
+            $this->ticket->cancel();
             
             Notification::make()
-                ->title('Ticket marcado como cancelado')
+                ->title('Ticket ANULADO')
+                ->body('El ticket ha sido marcado como anulado y se ha devuelto el stock.')
                 ->danger()
                 ->send();
         }
