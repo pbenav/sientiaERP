@@ -301,18 +301,18 @@ class LineasRelationManager extends RelationManager
                     
                     // SUBVTOTAL
  
-                    // IMPORTE (Span 2) - Priority for large totals
+                    // IMPORTE (Span 1) - Sufficient for totals
                     Forms\Components\TextInput::make('subtotal')
                         ->hiddenLabel()
                         ->extraInputAttributes(['readonly' => true, 'class' => 'text-right'])
                         ->default(0)
                         ->dehydrated() 
-                        ->columnSpan(2) 
+                        ->columnSpan(1) 
                         ->hidden($isLabel)
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
                         ->dehydrateStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::parseNumber($state)),
 
-                    // IVA (Span 1) - Minimal space
+                    // IVA (Span 2) - More space for the select and arrow
                     Forms\Components\Select::make('iva')
                         ->hiddenLabel()
                         ->options(\App\Models\Impuesto::where('tipo', 'iva')
@@ -320,13 +320,6 @@ class LineasRelationManager extends RelationManager
                             ->get()
                             ->mapWithKeys(fn ($i) => [(string)$i->valor => $i->valor . '%']))
                         ->required()
-                        ->createOptionForm([
-                            Forms\Components\TextInput::make('nombre')->required(),
-                            Forms\Components\TextInput::make('valor')->numeric()->required()->suffix('%'),
-                        ])
-                        ->createOptionUsing(function (array $data) {
-                            return \App\Models\Impuesto::create([...$data, 'tipo' => 'iva', 'activo' => true])->valor;
-                        })
                         ->default(function ($livewire) {
                             $doc = method_exists($livewire, 'getOwnerRecord') ? $livewire->getOwnerRecord() : ($livewire->record ?? null);
                             if (!$doc) return 21;
@@ -339,7 +332,7 @@ class LineasRelationManager extends RelationManager
                         ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
                             self::calcularLinea($set, $get);
                         })
-                        ->columnSpan(1)
+                        ->columnSpan(2)
                         ->hidden($isLabel),
 
                     Forms\Components\Hidden::make('total')->default(0),
