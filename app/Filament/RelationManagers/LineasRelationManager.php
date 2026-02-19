@@ -318,6 +318,7 @@ class LineasRelationManager extends RelationManager
                         ->disabled()
                         ->dehydrated() // Keep sending value
                         ->formatStateUsing(fn ($state) => $state ? $state . '%' : '')
+                        ->dehydrateStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::parseNumber($state))
                         ->extraInputAttributes(['class' => 'text-center', 'style' => 'background-color: transparent; border: none; box-shadow: none; padding: 0;'])
                         ->default(function ($livewire) {
                             $doc = method_exists($livewire, 'getOwnerRecord') ? $livewire->getOwnerRecord() : ($livewire->record ?? null);
