@@ -92,20 +92,32 @@
     margin: 0 !important;
 }
 
-/* Ensure Select components can shrink */
+/* Ensure Select components can shrink and hide unnecessary icons in tight spaces */
 .document-lines-repeater .fi-select-input-wrp {
     min-width: 0 !important;
 }
 
 .document-lines-repeater .choices__inner {
     min-height: 26px !important;
-    padding: 0 4px !important;
+    padding: 0 2px !important;
     display: flex !important;
     align-items: center !important;
 }
 
 .document-lines-repeater .choices__item {
     font-size: 0.8125rem !important;
+    padding-right: 12px !important;
+    /* Space for the arrow */
+}
+
+/* Hide Choices.js search and cross icon for very narrow fields if they cause issues */
+.document-lines-repeater .choices[data-type*="select-one"]::after {
+    right: 4px !important;
+}
+
+.document-lines-repeater .choices__button {
+    display: none !important;
+    /* Hide clear button in repeater to save space */
 }
 
 /* Hide Labels */

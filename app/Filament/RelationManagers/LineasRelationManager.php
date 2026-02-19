@@ -315,9 +315,11 @@ class LineasRelationManager extends RelationManager
                     // IVA (Span 1) - Minimal space
                     Forms\Components\Select::make('iva')
                         ->hiddenLabel()
-                        ->options(\App\Models\Impuesto::where('tipo', 'iva')->where('activo', true)->pluck('nombre', 'valor'))
+                        ->options(\App\Models\Impuesto::where('tipo', 'iva')
+                            ->where('activo', true)
+                            ->get()
+                            ->mapWithKeys(fn ($i) => [(string)$i->valor => $i->valor . '%']))
                         ->required()
-                        ->searchable()
                         ->createOptionForm([
                             Forms\Components\TextInput::make('nombre')->required(),
                             Forms\Components\TextInput::make('valor')->numeric()->required()->suffix('%'),
