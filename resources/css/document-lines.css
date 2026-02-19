@@ -49,19 +49,20 @@
     margin: 0 !important;
 }
 
-/* El header del item contiene el botón de eliminar */
+/* El header del item contiene los botones de acción (eliminar, editar) */
 .document-lines-repeater .fi-fo-repeater-item-header {
     margin: 0 !important;
     padding: 0 4px !important;
     background: transparent !important;
     border: none !important;
-    width: 36px !important;
-    min-width: 36px !important;
+    width: 70px !important;
+    min-width: 70px !important;
     flex-shrink: 0 !important;
     min-height: 0 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    gap: 4px !important;
     align-self: stretch !important;
 }
 
