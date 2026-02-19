@@ -22,3 +22,7 @@ yarn-error.log
 /.vscode
 /.zed
 /IMG*.jpg
+
+# Local configuration overrides
+php-local.ini
+/public/.user.ini
