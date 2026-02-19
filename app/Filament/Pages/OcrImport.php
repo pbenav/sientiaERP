@@ -170,17 +170,17 @@ class OcrImport extends Page implements HasForms
                     $vatAmount = $priceWithoutVat * ($taxRate / 100);
                     
                     $formattedItems[] = [
-                        'description' => $item['description'] ?? '',
+                        'description' => trim($item['description'] ?? '', "*- "),
                         'reference' => $item['reference'] ?? $item['product_code'] ?? '',
                         'product_code' => $item['product_code'] ?? $item['reference'] ?? '',
                         'quantity' => (float)($item['quantity'] ?? 1),
-                        'unit_price' => $purchasePrice,
-                        'discount' => $discount,
-                        'margin' => round($margin, 3),
-                        'benefit' => $benefit,
-                        'vat_rate' => $taxRate,
-                        'vat_amount' => $vatAmount,
-                        'sale_price' => $salePrice,
+                        'unit_price' => round($purchasePrice, 2),
+                        'discount' => round($discount, 2),
+                        'margin' => round($margin, 2),
+                        'benefit' => round($benefit, 2),
+                        'vat_rate' => round($taxRate, 2),
+                        'vat_amount' => round($vatAmount, 2),
+                        'sale_price' => round($salePrice, 2),
                         'matched_product_id' => $item['matched_product_id'] ?? null,
                         'print_label' => true,
                     ];
@@ -472,7 +472,6 @@ class OcrImport extends Page implements HasForms
                                 'active' => true,
                                 'stock' => 0,
                                 'sku' => $productRef,
-                                'code' => $productRef,
                                 'barcode' => $productRef,
                             ]);
 
@@ -531,6 +530,15 @@ class OcrImport extends Page implements HasForms
             if (method_exists($record, 'recalcularTotales')) {
                 $record->recalcularTotales();
                 $record->save();
+            }
+
+            // CONFIRM DOCUMENT TO UPDATE STOCK
+            try {
+                if (method_exists($record, 'confirmar')) {
+                    $record->confirmar();
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Error confirming document from OCR: ' . $e->getMessage());
             }
 
             // REDIRECT OR ADDITIONAL ACTIONS

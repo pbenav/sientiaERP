@@ -2,17 +2,24 @@
 
 /* Scope everything to the repeater */
 
+.document-lines-repeater {
+    gap: 0 !important;
+}
+
+.document-lines-repeater>div,
+.document-lines-repeater>ul {
+    gap: 0 !important;
+}
+
 .document-lines-repeater .fi-fo-repeater-item {
     background-color: transparent !important;
     box-shadow: none !important;
     border: none !important;
-    padding: 2px 0 !important;
-    /* Minimal vertical padding */
-    margin-bottom: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
     border-bottom: 1px solid #f3f4f6 !important;
     display: flex !important;
     flex-direction: row !important;
-    /* Standard direction for easier alignment */
     align-items: center !important;
     flex-wrap: nowrap !important;
     min-width: 0 !important;
@@ -24,10 +31,22 @@
 
 /* Enforce Grid Gap and PADDING REMOVAL */
 .document-lines-repeater .fi-fo-grid {
-    gap: 4px !important;
+    gap: 0 !important;
     padding: 0 !important;
+    margin: 0 !important;
     flex: 1 1 0% !important;
     min-width: 0 !important;
+}
+
+/* Remove space from field wrappers */
+.document-lines-repeater .fi-fo-field-wrp {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.document-lines-repeater .fi-fo-field-wrp>div {
+    padding: 0 !important;
+    margin: 0 !important;
 }
 
 /* El header del item contiene el botón de eliminar */
@@ -37,34 +56,18 @@
     background: transparent !important;
     border: none !important;
     width: 36px !important;
-    /* Slightly wider for better hitbox */
     min-width: 36px !important;
     flex-shrink: 0 !important;
-    /* NEVER SHRINK THE DELETE BUTTON */
     min-height: 0 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     align-self: stretch !important;
-    /* Fill height to center button */
 }
 
-/* Esconder el número de índice y el handle de arrastre, pero PERMITIR el botón de borrar y su contenedor */
+/* Esconder el número de índice y el handle de arrastre */
 .document-lines-repeater .fi-fo-repeater-item-header>*:not(.fi-fo-repeater-item-header-actions):not(ul):not(button) {
     display: none !important;
-}
-
-.document-lines-repeater .fi-fo-repeater-item-header-actions,
-.document-lines-repeater .fi-fo-repeater-item-header ul {
-    margin: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-}
-
-/* Red trash icon styling for consistency */
-.document-lines-repeater .fi-icon-btn.fi-color-danger {
-    color: #ef4444 !important;
 }
 
 /* Compact inputs */
@@ -72,7 +75,7 @@
     box-shadow: none !important;
     background-color: white !important;
     border: 1px solid #e5e7eb !important;
-    height: 30px !important;
+    height: 28px !important;
 }
 
 .dark .document-lines-repeater .fi-input-wrp {
@@ -81,11 +84,11 @@
 }
 
 .document-lines-repeater input {
-    height: 30px !important;
-    padding: 4px 6px !important;
+    height: 26px !important;
+    padding: 2px 4px !important;
     font-size: 0.8125rem !important;
-    /* Slightly smaller for density */
     min-width: 0 !important;
+    margin: 0 !important;
 }
 
 /* Ensure Select components can shrink */
@@ -94,88 +97,17 @@
 }
 
 .document-lines-repeater .choices__inner {
-    min-height: 28px !important;
+    min-height: 26px !important;
     padding: 0 4px !important;
     display: flex !important;
     align-items: center !important;
 }
 
-.document-lines-repeater .choices__list--single {
-    padding: 0 !important;
-}
-
 .document-lines-repeater .choices__item {
     font-size: 0.8125rem !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    max-width: 100% !important;
-}
-
-/* Responsive adjustments for narrow screens */
-@media (max-width: 1024px) {
-
-    .document-lines-repeater input,
-    .document-lines-repeater .choices__item {
-        font-size: 0.75rem !important;
-        padding: 4px 2px !important;
-    }
-
-    .document-lines-header-container {
-        font-size: 0.6rem !important;
-    }
-}
-
-@media (max-width: 768px) {
-
-    .document-lines-repeater input,
-    .document-lines-repeater .choices__item {
-        font-size: 0.7rem !important;
-    }
-
-    .document-lines-header-container {
-        letter-spacing: 0 !important;
-    }
 }
 
 /* Hide Labels */
 .document-lines-repeater .fi-fo-field-wrp-label {
     display: none !important;
-}
-
-/* Force hide clear buttons on selects */
-.document-lines-repeater .fi-select-input-clear-btn {
-    display: none !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-}
-
-/* Hide clear buttons and prevent focus */
-.document-lines-repeater .choices__button {
-    display: none !important;
-    pointer-events: none !important;
-}
-
-/* Prevent focus on internal select elements if triggered by tab */
-.document-lines-repeater select:focus,
-.document-lines-repeater button:focus {
-    outline: none !important;
-    box-shadow: 0 0 0 2px rgb(var(--primary-600)) !important;
-}
-
-/* Ensure aligned text in inputs */
-.document-lines-repeater .fi-input-wrp input[style*="text-align: center"] {
-    text-align: center !important;
-}
-
-.document-lines-repeater .fi-input-wrp input[style*="text-align: right"] {
-    text-align: right !important;
-}
-
-/* Hide dashed border / background of repeater main container */
-.document-lines-repeater {
-    box-shadow: none !important;
-    border: none !important;
-    background: transparent !important;
 }

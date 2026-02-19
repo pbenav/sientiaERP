@@ -13,7 +13,6 @@ class Product extends Model
 
     protected $fillable = [
         'sku',
-        'code',
         'name',
         'description',
         'price',
@@ -33,15 +32,16 @@ class Product extends Model
     ];
 
     /**
-     * Buscar producto por SKU, código o código de barras
+     * Buscar producto por SKU o código de barras
      */
     public static function findByCode(string $searchCode): ?self
     {
-        return static::where('sku', $searchCode)
-            ->orWhere('code', $searchCode)
-            ->orWhere('barcode', $searchCode)
-            ->where('active', true)
-            ->first();
+        return static::where(function($query) use ($searchCode) {
+            $query->where('sku', $searchCode)
+                ->orWhere('barcode', $searchCode);
+        })
+        ->where('active', true)
+        ->first();
     }
 
     /**

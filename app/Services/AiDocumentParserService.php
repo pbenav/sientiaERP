@@ -34,7 +34,7 @@ class AiDocumentParserService
             } elseif ($provider === 'tesseract') {
                 $result = $this->extractWithTesseract($imagePath);
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $error = $e;
             \Illuminate\Support\Facades\Log::warning("Fallo proveedor principal ($provider): " . $e->getMessage());
         }
@@ -62,6 +62,10 @@ class AiDocumentParserService
 
         if (empty($projectId) || empty($processorId) || empty($jsonCredentials)) {
              throw new \Exception("Faltan credenciales de Google Cloud Doc AI en Ajustes.");
+        }
+
+        if (!class_exists(\Google\Cloud\DocumentAI\V1\Client\DocumentProcessorServiceClient::class)) {
+            throw new \Exception("Biblioteca Google Cloud Document AI no encontrada. Por favor, ejecute 'composer install'.");
         }
         
         try {
@@ -182,6 +186,9 @@ class AiDocumentParserService
 
     protected function extractWithTesseract(string $imagePath): array
     {
+        if (!class_exists(TesseractOCR::class)) {
+            throw new \Exception("Biblioteca TesseractOCR no encontrada. Por favor, instale 'thiagoalessio/tesseract_ocr'.");
+        }
         $tesseractPath = Setting::get('tesseract_path', '/usr/bin/tesseract');
         
         try {

@@ -77,6 +77,8 @@ class AlbaranResource extends Resource
                             ->label('Serie')
                             ->options(\App\Models\BillingSerie::where('activo', true)->pluck('nombre', 'codigo'))
                             ->default(fn() => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A')
+                            ->searchable()
+                            ->preload()
                             ->required()
                             ->createOptionForm([
                                 Forms\Components\TextInput::make('codigo')->label('Código de Serie')->required()->maxLength(10),

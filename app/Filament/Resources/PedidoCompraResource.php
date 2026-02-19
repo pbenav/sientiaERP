@@ -36,7 +36,11 @@ class PedidoCompraResource extends Resource
         return $form->schema([
             Forms\Components\Section::make('Datos del Pedido de Compra')->schema([
                 Forms\Components\TextInput::make('numero')->label('Número')->disabled()->dehydrated(false)->columnSpan(1),
-                Forms\Components\Select::make('serie')->label('Serie')->options(\App\Models\BillingSerie::where('activo', true)->pluck('nombre', 'codigo'))->default(fn() => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A')->required()->columnSpan(1)
+                Forms\Components\Select::make('serie')->label('Serie')->options(\App\Models\BillingSerie::where('activo', true)->pluck('nombre', 'codigo'))->default(fn() => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A')
+                    ->searchable()
+                    ->preload()
+                    ->required()
+                    ->columnSpan(1)
                     ->createOptionForm([
                         Forms\Components\TextInput::make('codigo')->label('Código de Serie')->required()->maxLength(10),
                         Forms\Components\TextInput::make('nombre')->label('Nombre')->required(),

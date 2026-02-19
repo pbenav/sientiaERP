@@ -309,7 +309,8 @@ class LineasRelationManager extends RelationManager
                         ->dehydrated() 
                         ->columnSpan(2) 
                         ->hidden($isLabel)
-                        ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2)),
+                        ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
+                        ->dehydrateStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::parseNumber($state)),
 
                     // IVA (Span 1) - Minimal space
                     Forms\Components\Select::make('iva')
