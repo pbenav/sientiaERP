@@ -32,7 +32,8 @@
     padding: 0 4px !important;
     background: transparent !important;
     border: none !important;
-    width: 32px !important;
+    width: 50px !important;
+    min-width: 50px;
     min-height: 0 !important;
 }
 
