@@ -52,11 +52,11 @@
 /* El header del item contiene los botones de acción (eliminar, editar) */
 .document-lines-repeater .fi-fo-repeater-item-header {
     margin: 0 !important;
-    padding: 0 4px !important;
+    padding: 0 8px !important;
     background: transparent !important;
     border: none !important;
-    width: 70px !important;
-    min-width: 70px !important;
+    width: auto !important;
+    min-width: 60px !important;
     flex-shrink: 0 !important;
     min-height: 0 !important;
     display: flex !important;

@@ -79,6 +79,112 @@ class AlbaranCompraResource extends Resource
                 ->live()
                 ->hiddenLabel()
                 ->extraAttributes(['class' => 'document-lines-repeater'])
+                ->extraItemActions([
+                    Forms\Components\Actions\Action::make('editLine')
+                        ->label('Editar Línea')
+                        ->tooltip('Editar datos del producto y de la línea')
+                        ->icon('heroicon-m-pencil-square')
+                        ->color('warning')
+                        ->modalHeading('Editar Línea y Producto')
+                        ->modalSubmitActionLabel('Guardar cambios')
+                        ->form([
+                            Forms\Components\Grid::make(2)
+                                ->schema([
+                                    Forms\Components\TextInput::make('sku')
+                                        ->label('Código/SKU (Producto)')
+                                        ->required(),
+                                    Forms\Components\TextInput::make('name')
+                                        ->label('Nombre/Descripción (Producto)')
+                                        ->columnSpan(2)
+                                        ->required(),
+                                    Forms\Components\Select::make('iva')
+                                        ->label('IVA Aplicable')
+                                        ->options(\App\Models\Impuesto::where('tipo', 'iva')
+                                            ->where('activo', true)
+                                            ->get()
+                                            ->mapWithKeys(fn ($i) => [(string)$i->valor => $i->valor . '%']))
+                                        ->required(),
+                                ])
+                        ])
+                        ->fillForm(function (array $arguments, Forms\Components\Repeater $component) {
+                            $itemData = $component->getItemState($arguments['item']);
+                            $productId = $itemData['product_id'] ?? null;
+                            
+                            $sku = $itemData['codigo'] ?? null;
+                            $name = $itemData['descripcion'] ?? null;
+                            $iva = $itemData['iva'] ?? null;
+
+                            // Fallback to product if line data is missing
+                            if ($productId && (!$sku || !$name)) {
+                                $product = \App\Models\Product::find($productId);
+                                $sku = $product?->sku ?? $sku;
+                                $name = $product?->name ?? $name;
+                                if ($iva === null) $iva = $product?->tax_rate;
+                            }
+                            
+                            return [
+                                'sku' => $sku,
+                                'name' => $name,
+                                'iva' => $iva,
+                            ];
+                        })
+                        ->action(function (array $data, array $arguments, Forms\Components\Repeater $component, Forms\Set $set) {
+                            $itemData = $component->getItemState($arguments['item']);
+                            $productId = $itemData['product_id'] ?? null;
+                            
+                            // 1. Actualizar Maestro de Producto (si existe y ha cambiado)
+                            if ($productId) {
+                                $product = \App\Models\Product::find($productId);
+                                if ($product) {
+                                    $product->update([
+                                        'sku' => $data['sku'],
+                                        'name' => $data['name'],
+                                        // No actualizamos el tax_rate del producto maestro automáticamente para no afectar otros documentos,
+                                        // a menos que sea una política deseada. Por ahora solo SKU y Nombre.
+                                    ]);
+                                }
+                            }
+
+                            // 2. Actualizar datos de la línea
+                            $state = $component->getState();
+                            $row = &$state[$arguments['item']];
+                            
+                            $row['codigo'] = $data['sku'];
+                            $row['descripcion'] = $data['name'];
+                            $row['iva'] = $data['iva'];
+
+                            // 3. Recalcular Totales de la Línea
+                            // Lógica replicada de LineasRelationManager::calcularLinea para consistencia
+                            $cantidad = \App\Helpers\NumberFormatHelper::parseNumber($row['cantidad'] ?? '0');
+                            $precio = \App\Helpers\NumberFormatHelper::parseNumber($row['precio_unitario'] ?? '0');
+                            $descuento = \App\Helpers\NumberFormatHelper::parseNumber($row['descuento'] ?? '0');
+                            $ivaVal = \App\Helpers\NumberFormatHelper::parseNumber($row['iva'] ?? '0');
+
+                            $subtotal = $cantidad * $precio;
+                            if ($descuento > 0) {
+                                $disc = min(100, max(0, $descuento));
+                                $subtotal = $subtotal * (1 - ($disc / 100));
+                            }
+
+                            $importeIva = $subtotal * ($ivaVal / 100);
+                            $total = $subtotal + $importeIva;
+
+                            $row['subtotal'] = \App\Helpers\NumberFormatHelper::formatNumber($subtotal, 2);
+                            $row['importe_iva'] = round($importeIva, 3);
+                            $row['total'] = round($total, 3);
+
+                            // Guardar estado
+                            $component->state($state);
+
+                            Notification::make()
+                                ->title('Línea actualizada')
+                                ->success()
+                                ->send();
+                        })
+                        ->visible(fn (array $arguments, Forms\Components\Repeater $component) => 
+                            isset($component->getItemState($arguments['item'])['product_id'])
+                        ),
+                ])
                 ->columnSpanFull(),
 
 

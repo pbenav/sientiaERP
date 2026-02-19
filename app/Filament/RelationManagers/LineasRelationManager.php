@@ -139,7 +139,7 @@ class LineasRelationManager extends RelationManager
                         ->extraAttributes(['class' => 'hide-select-clear'])
                         ->columnSpan(2),
                     
-                    // DESCRIPCIÓN (Span 4) - Good for long names
+                    // DESCRIPCIÓN (Span 5) - Increased for long names
                     Forms\Components\Select::make('descripcion')
                         ->hiddenLabel()
                         ->required()
@@ -243,7 +243,7 @@ class LineasRelationManager extends RelationManager
                             }
                         })
                         ->extraAttributes(['class' => 'hide-select-clear'])
-                        ->columnSpan(4),
+                        ->columnSpan(5),
                     
                     Forms\Components\Hidden::make('product_id'),
                     
@@ -312,14 +312,13 @@ class LineasRelationManager extends RelationManager
                         ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatNumber($state, 2))
                         ->dehydrateStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::parseNumber($state)),
 
-                    // IVA (Span 2) - More space for the select and arrow
-                    Forms\Components\Select::make('iva')
+                    // IVA (Span 1) - Read only, simplified
+                    Forms\Components\TextInput::make('iva')
                         ->hiddenLabel()
-                        ->options(\App\Models\Impuesto::where('tipo', 'iva')
-                            ->where('activo', true)
-                            ->get()
-                            ->mapWithKeys(fn ($i) => [(string)$i->valor => $i->valor . '%']))
-                        ->required()
+                        ->disabled()
+                        ->dehydrated() // Keep sending value
+                        ->formatStateUsing(fn ($state) => $state ? $state . '%' : '')
+                        ->extraInputAttributes(['class' => 'text-center', 'style' => 'background-color: transparent; border: none; box-shadow: none; padding: 0;'])
                         ->default(function ($livewire) {
                             $doc = method_exists($livewire, 'getOwnerRecord') ? $livewire->getOwnerRecord() : ($livewire->record ?? null);
                             if (!$doc) return 21;
@@ -328,11 +327,7 @@ class LineasRelationManager extends RelationManager
                             if ($serie && $serie->devenga_iva) return $serie->ivaDefecto?->valor ?? $globalDefault;
                             return $serie && !$serie->devenga_iva ? 0 : $globalDefault;
                         })
-                        ->live()
-                        ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                            self::calcularLinea($set, $get);
-                        })
-                        ->columnSpan(2)
+                        ->columnSpan(1)
                         ->hidden($isLabel),
 
                     Forms\Components\Hidden::make('total')->default(0),
