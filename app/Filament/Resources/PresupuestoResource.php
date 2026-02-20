@@ -39,121 +39,39 @@ class PresupuestoResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Datos del Presupuesto')
-                    ->schema([
-                        Forms\Components\TextInput::make('numero')
-                            ->label('Número')
-                            ->disabled()
-                            ->dehydrated(false)
-                            ->placeholder('Se generará automáticamente'),
-                        
-                        Forms\Components\Select::make('serie')
-                            ->label('Serie')
-                            ->options(\App\Models\BillingSerie::where('activo', true)->pluck('nombre', 'codigo'))
-                            ->default(fn() => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A')
-                            ->searchable()
-                            ->preload()
-                            ->required()
-                            ->createOptionForm([
-                                Forms\Components\TextInput::make('codigo')->label('Código de Serie')->required()->maxLength(10),
-                                Forms\Components\TextInput::make('nombre')->label('Nombre')->required(),
-                                Forms\Components\Toggle::make('devenga_iva')->label('Devenga IVA')->default(true),
-                            ])
-                            ->createOptionUsing(fn (array $data) => \App\Models\BillingSerie::create($data)->codigo),
-                        
-                        Forms\Components\DatePicker::make('fecha')
-                            ->label('Fecha')
-                            ->default(now())
-                            ->required(),
-                        
-                        Forms\Components\DatePicker::make('fecha_validez')
-                            ->label('Válido hasta')
-                            ->default(function() {
-                                $diasValidez = (int)\App\Models\Setting::get('presupuesto_validez_dias', 5);
-                                return now()->addDays($diasValidez);
-                            })
-                            ->required(),
-                        
-                        Forms\Components\Select::make('tercero_id')
-                            ->label('Cliente')
-                            ->options(fn() => \App\Models\Tercero::clientes()->pluck('nombre_comercial', 'id'))
-                            ->searchable()
-                            ->preload()
-                            ->live()
-                            ->required()
-                            ->createOptionForm([
-                                Forms\Components\TextInput::make('nombre_comercial')
-                                    ->required(),
-                                Forms\Components\TextInput::make('nif_cif')
-                                    ->required(),
-                            ]),
-                        
-                        Forms\Components\Select::make('forma_pago_id')
-                            ->label('Forma de Pago')
-                            ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
-                            ->searchable()
-                            ->preload()
-                            ->default(fn() => \App\Models\FormaPago::activas()->first()?->id ?? 1)
-                            ->required()
-                            ->createOptionForm([
-                                Forms\Components\TextInput::make('codigo')->required()->maxLength(50),
-                                Forms\Components\TextInput::make('nombre')->required()->maxLength(100),
-                                Forms\Components\Select::make('tipo')->options(['transferencia' => 'Transferencia', 'contado' => 'Contado', 'recibo_bancario' => 'Recibo'])->required()->default('transferencia'),
-                            ])
-                            ->createOptionUsing(function (array $data) {
-                                $fp = \App\Models\FormaPago::create($data);
-                                $fp->tramos()->create(['dias' => 0, 'porcentaje' => 100]);
-                                return $fp->id;
-                            }),
-                        
-                        Forms\Components\Select::make('estado')
-                            ->label('Estado')
-                            ->options([
-                                'borrador' => 'Borrador',
-                                'confirmado' => 'Confirmado',
-                                'anulado' => 'Anulado',
-                            ])
-                            ->default('borrador')
-                            ->required(),
-                    ])->columns(3),
+                \App\Filament\Support\DocumentFormFactory::terceroSection('Cliente', 'CLI'),
 
-                Forms\Components\View::make('filament.components.document-lines-header')
-                    ->columnSpanFull(),
+                \App\Filament\Support\DocumentFormFactory::detailsSection('Datos del Presupuesto', [
+                    Forms\Components\DatePicker::make('fecha_validez')
+                        ->label('Válido hasta')
+                        ->default(function() {
+                            $diasValidez = (int)\App\Models\Setting::get('presupuesto_validez_dias', 5);
+                            return now()->addDays($diasValidez);
+                        })
+                        ->required(),
+                    
+                    Forms\Components\Select::make('forma_pago_id')
+                        ->label('Forma de Pago')
+                        ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
+                        ->searchable()
+                        ->preload()
+                        ->default(fn() => \App\Models\FormaPago::activas()->first()?->id ?? 1)
+                        ->required()
+                        ->createOptionForm([
+                            Forms\Components\TextInput::make('codigo')->required()->maxLength(50),
+                            Forms\Components\TextInput::make('nombre')->required()->maxLength(100),
+                            Forms\Components\Select::make('tipo')->options(['transferencia' => 'Transferencia', 'contado' => 'Contado', 'recibo_bancario' => 'Recibo'])->required()->default('transferencia'),
+                        ])
+                        ->createOptionUsing(function (array $data) {
+                            $fp = \App\Models\FormaPago::create($data);
+                            $fp->tramos()->create(['dias' => 0, 'porcentaje' => 100]);
+                            return $fp->id;
+                        }),
+                ]),
 
-                Forms\Components\Repeater::make('lineas')
-                    ->relationship()
-                    ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
-                    ->columns(1)
-                    ->defaultItems(0)
-                    ->live()
-                    ->hiddenLabel()
-                    ->extraAttributes(['class' => 'document-lines-repeater'])
-                    ->columnSpanFull(),
+                ...\App\Filament\Support\DocumentFormFactory::linesSection(),
 
-
-                Forms\Components\Section::make('Totales')
-                    ->schema([
-                        Forms\Components\Placeholder::make('totales_calculados')
-                            ->hiddenLabel()
-                            ->content(function (Forms\Get $get) {
-                                $lineas = $get('lineas') ?? [];
-                                // Determine if Recargo applies (logic usually depends on Tercero, here simplified or fetched)
-                                $terceroId = $get('tercero_id');
-                                $tieneRecargo = false;
-                                if ($terceroId) {
-                                    $tercero = \App\Models\Tercero::find($terceroId);
-                                    $tieneRecargo = $tercero?->recargo_equivalencia ?? false;
-                                }
-                                
-                                $breakdown = \App\Services\DocumentCalculator::calculate($lineas, $tieneRecargo);
-                                
-                                return view('filament.components.tax-breakdown-live', [
-                                    'breakdown' => $breakdown, 
-                                    'tieneRecargo' => $tieneRecargo
-                                ]);
-                            })
-                            ->columnSpanFull(),
-                    ])
+                \App\Filament\Support\DocumentFormFactory::totalsSection()
                     ->visibleOn('edit')
                     ->collapsible(),
 

@@ -41,174 +41,70 @@ class FacturaResource extends Resource
     {
         return $form
             ->schema([
-                // SECCIÓN 1: CLIENTE Y DATOS
-                Forms\Components\Grid::make(3)
-                    ->schema([
+                \App\Filament\Support\DocumentFormFactory::terceroSection('Cliente', 'CLI')
+                    ->disabled(fn ($record) => $record && $record->estado !== 'borrador'),
+                
+                \App\Filament\Support\DocumentFormFactory::detailsSection('Datos de la Factura', [
+                    Forms\Components\Toggle::make('es_rectificativa')
+                        ->label('Es Rectificativa')
+                        ->inline(false)
+                        ->live()
+                        ->afterStateUpdated(fn ($state, Forms\Set $set) => $state ? null : $set('rectificada_id', null)),
 
-                        Forms\Components\Section::make('Cliente')
-                            ->schema([
-                                Forms\Components\Select::make('tercero_id')
-                                    ->label('Cliente')
-                                    ->options(fn() => \App\Models\Tercero::clientes()->pluck('nombre_comercial', 'id'))
-                                    ->searchable()
-                                    ->preload()
-                                    ->live()
-                                    ->required()
-                                    ->createOptionForm([
-                                        Forms\Components\TextInput::make('nombre_comercial')->required(),
-                                        Forms\Components\TextInput::make('nif_cif')->required(),
-                                        Forms\Components\TextInput::make('email')->email(),
-                                        Forms\Components\TextInput::make('telefono')->tel(),
-                                    ])
-                                    ->createOptionUsing(function (array $data) {
-                                        $tercero = Tercero::create($data);
-                                        $tercero->tipos()->attach(\App\Models\TipoTercero::where('codigo', 'CLI')->first());
-                                        return $tercero->id;
-                                    }),
-                            ])->columnSpan(1)->compact()
-                            ->disabled(fn ($record) => $record && $record->estado !== 'borrador'),
+                    Forms\Components\Select::make('rectificada_id')
+                        ->label('Factura que rectifica')
+                        ->relationship('facturaRectificada', 'numero', function ($query, Forms\Get $get) {
+                            $terceroId = $get('tercero_id');
+                            $query->where('tipo', 'factura')
+                                    ->where('estado', 'anulado');
+                            
+                            if ($terceroId) {
+                                $query->where('tercero_id', $terceroId);
+                            }
+                            return $query;
+                        })
+                        ->searchable()
+                        ->preload()
+                        ->required(fn (Forms\Get $get) => $get('es_rectificativa'))
+                        ->visible(fn (Forms\Get $get) => $get('es_rectificativa'))
+                        ->columnSpan(2),
+                    
+                    Forms\Components\Select::make('porcentaje_irpf')
+                        ->label('IRPF %')
+                        ->options(\App\Models\Impuesto::where('tipo', 'irpf')->where('activo', true)->pluck('nombre', 'valor'))
+                        ->default(0)
+                        ->live()
+                        ->createOptionForm([
+                            Forms\Components\TextInput::make('nombre')->required(),
+                            Forms\Components\TextInput::make('valor')->numeric()->required()->suffix('%'),
+                        ])
+                        ->createOptionUsing(function (array $data) {
+                            return \App\Models\Impuesto::create([...$data, 'tipo' => 'irpf', 'activo' => true])->valor;
+                        })
+                        ->afterStateUpdated(fn ($record) => $record?->recalcularTotales()),
 
-                        Forms\Components\Section::make('Datos de la Factura')
-                            ->schema([
-                                Forms\Components\Grid::make(3)
-                                    ->schema([
-                                        Forms\Components\TextInput::make('numero')
-                                            ->label('Número')
-                                            ->disabled()
-                                            ->dehydrated(false)
-                                            ->placeholder('Automático'),
-                                        
-                                        Forms\Components\Select::make('serie')
-                                            ->label('Serie')
-                                            ->options(\App\Models\BillingSerie::where('activo', true)->pluck('nombre', 'codigo'))
-                                            ->default(fn() => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A')
-                                            ->searchable()
-                                            ->preload()
-                                            ->required()
-                                            ->createOptionForm([
-                                                Forms\Components\TextInput::make('codigo')->label('Código de Serie')->required()->maxLength(10),
-                                                Forms\Components\TextInput::make('nombre')->label('Nombre')->required(),
-                                                Forms\Components\Toggle::make('devenga_iva')->label('Devenga IVA')->default(true),
-                                            ])
-                                            ->createOptionUsing(fn (array $data) => \App\Models\BillingSerie::create($data)->codigo),
+                    Forms\Components\Select::make('forma_pago_id')
+                        ->label('Forma de Pago')
+                        ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
+                        ->searchable()
+                        ->preload()
+                        ->default(fn() => \App\Models\FormaPago::activas()->first()?->id ?? 1)
+                        ->required()
+                        ->createOptionForm([
+                            Forms\Components\TextInput::make('codigo')->required()->maxLength(50),
+                            Forms\Components\TextInput::make('nombre')->required()->maxLength(100),
+                            Forms\Components\Select::make('tipo')->options(['transferencia' => 'Transferencia', 'contado' => 'Contado', 'recibo_bancario' => 'Recibo'])->required()->default('transferencia'),
+                        ])
+                        ->createOptionUsing(function (array $data) {
+                            $fp = \App\Models\FormaPago::create($data);
+                            $fp->tramos()->create(['dias' => 0, 'porcentaje' => 100]);
+                            return $fp->id;
+                        }),
+                ])->disabled(fn ($record) => $record && $record->estado !== 'borrador'),
 
-                                        Forms\Components\Toggle::make('es_rectificativa')
-                                            ->label('Es Rectificativa')
-                                            ->inline(false)
-                                            ->live()
-                                            ->afterStateUpdated(fn ($state, Forms\Set $set) => $state ? null : $set('rectificada_id', null)),
+                ...\App\Filament\Support\DocumentFormFactory::linesSection(),
 
-                                        Forms\Components\Select::make('rectificada_id')
-                                            ->label('Factura que rectifica')
-                                            ->relationship('facturaRectificada', 'numero', function ($query, Forms\Get $get) {
-                                                $terceroId = $get('tercero_id');
-                                                $query->where('tipo', 'factura')
-                                                      ->where('estado', 'anulado');
-                                                
-                                                if ($terceroId) {
-                                                    $query->where('tercero_id', $terceroId);
-                                                }
-                                                return $query;
-                                            })
-                                            ->searchable()
-                                            ->preload()
-                                            ->required(fn (Forms\Get $get) => $get('es_rectificativa'))
-                                            ->visible(fn (Forms\Get $get) => $get('es_rectificativa'))
-                                            ->columnSpan(2),
-                                        
-                                        Forms\Components\DatePicker::make('fecha')
-                                            ->label('Fecha')
-                                            ->default(now())
-                                            ->required()
-                                            ->live(),
-
-                                        Forms\Components\Select::make('porcentaje_irpf')
-                                            ->label('IRPF %')
-                                            ->options(\App\Models\Impuesto::where('tipo', 'irpf')->where('activo', true)->pluck('nombre', 'valor'))
-                                            ->default(0)
-                                            ->live()
-                                            ->createOptionForm([
-                                                Forms\Components\TextInput::make('nombre')->required(),
-                                                Forms\Components\TextInput::make('valor')->numeric()->required()->suffix('%'),
-                                            ])
-                                            ->createOptionUsing(function (array $data) {
-                                                return \App\Models\Impuesto::create([...$data, 'tipo' => 'irpf', 'activo' => true])->valor;
-                                            })
-                                            ->afterStateUpdated(fn ($record) => $record?->recalcularTotales()),
-                                        
-                                        Forms\Components\Select::make('estado')
-                                            ->label('Estado')
-                                            ->options([
-                                                'borrador' => 'Borrador',
-                                                'confirmado' => 'Confirmado',
-                                                'cobrado' => 'Cobrado',
-                                                'anulado' => 'Anulado',
-                                            ])
-                                            ->default('borrador')
-                                            ->required()
-                                            ->disabled(fn ($record) => $record && $record->estado !== 'borrador')
-                                            ->dehydrated()
-                                            ->columnSpan(1),
-
-                                        Forms\Components\Select::make('forma_pago_id')
-                                            ->label('Forma de Pago')
-                                            ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
-                                            ->searchable()
-                                            ->preload()
-                                            ->default(fn() => \App\Models\FormaPago::activas()->first()?->id ?? 1)
-                                            ->required()
-                                            ->createOptionForm([
-                                                Forms\Components\TextInput::make('codigo')->required()->maxLength(50),
-                                                Forms\Components\TextInput::make('nombre')->required()->maxLength(100),
-                                                Forms\Components\Select::make('tipo')->options(['transferencia' => 'Transferencia', 'contado' => 'Contado', 'recibo_bancario' => 'Recibo'])->required()->default('transferencia'),
-                                            ])
-                                            ->createOptionUsing(function (array $data) {
-                                                $fp = \App\Models\FormaPago::create($data);
-                                                $fp->tramos()->create(['dias' => 0, 'porcentaje' => 100]);
-                                                return $fp->id;
-                                            })
-                                            ->columnSpan(1),
-                                    ]),
-                            ])->columnSpan(2)->compact()
-                            ->disabled(fn ($record) => $record && $record->estado !== 'borrador'),
-                    ]),
-
-                 // SECCIÓN 3: PRODUCTOS
-                Forms\Components\View::make('filament.components.document-lines-header')
-                    ->columnSpanFull(),
-
-                Forms\Components\Repeater::make('lineas')
-                    ->relationship()
-                    ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
-                    ->columns(1)
-                    ->defaultItems(0)
-                    ->live()
-                    ->hiddenLabel()
-                    ->extraAttributes(['class' => 'document-lines-repeater'])
-                    ->columnSpanFull(),
-
-                Forms\Components\Section::make('Totales')
-                    ->schema([
-                        Forms\Components\Placeholder::make('totales_calculados')
-                            ->hiddenLabel()
-                            ->content(function (Forms\Get $get) {
-                                $lineas = $get('lineas') ?? [];
-                                $terceroId = $get('tercero_id');
-                                $tieneRecargo = false;
-                                if ($terceroId) {
-                                    $tercero = \App\Models\Tercero::find($terceroId);
-                                    $tieneRecargo = $tercero?->recargo_equivalencia ?? false;
-                                }
-                                
-                                $breakdown = \App\Services\DocumentCalculator::calculate($lineas, $tieneRecargo);
-                                
-                                return view('filament.components.tax-breakdown-live', [
-                                    'breakdown' => $breakdown, 
-                                    'tieneRecargo' => $tieneRecargo
-                                ]);
-                            })
-                            ->columnSpanFull(),
-                    ])
+                \App\Filament\Support\DocumentFormFactory::totalsSection()
                     ->visibleOn('edit')
                     ->collapsible(),
 

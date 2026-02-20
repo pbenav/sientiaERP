@@ -34,37 +34,10 @@ class PedidoCompraResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Section::make('Datos del Pedido de Compra')->schema([
-                Forms\Components\TextInput::make('numero')->label('Número')->disabled()->dehydrated(false)->columnSpan(1),
-                Forms\Components\Select::make('serie')->label('Serie')->options(\App\Models\BillingSerie::where('activo', true)->pluck('nombre', 'codigo'))->default(fn() => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A')
-                    ->searchable()
-                    ->preload()
-                    ->required()
-                    ->columnSpan(1)
-                    ->createOptionForm([
-                        Forms\Components\TextInput::make('codigo')->label('Código de Serie')->required()->maxLength(10),
-                        Forms\Components\TextInput::make('nombre')->label('Nombre')->required(),
-                        Forms\Components\Toggle::make('devenga_iva')->label('Devenga IVA')->default(true),
-                    ])
-                    ->createOptionUsing(fn (array $data) => \App\Models\BillingSerie::create($data)->codigo),
-                Forms\Components\DatePicker::make('fecha')->label('Fecha')->default(now())->required()->columnSpan(1),
-                Forms\Components\DatePicker::make('fecha_entrega')->label('Fecha de Recepción')->default(now()->addDays(7))->columnSpan(1),
-                
-                Forms\Components\Select::make('tercero_id')->label('Proveedor')
-                    ->options(fn() => \App\Models\Tercero::proveedores()->pluck('nombre_comercial', 'id'))
-                    ->searchable()->preload()->live()->required()
-                    ->columnSpan(2)
-                    ->createOptionForm([
-                        Forms\Components\TextInput::make('nombre_comercial')->required(),
-                        Forms\Components\TextInput::make('nif_cif')->required(),
-                        Forms\Components\TextInput::make('email')->email(),
-                        Forms\Components\TextInput::make('telefono')->tel(),
-                    ])
-                    ->createOptionUsing(function (array $data) {
-                        $tercero = Tercero::create($data);
-                        $tercero->tipos()->attach(\App\Models\TipoTercero::where('codigo', 'PRO')->first());
-                        return $tercero->id;
-                    }),
+            \App\Filament\Support\DocumentFormFactory::terceroSection('Proveedor', 'PRO'),
+            
+            \App\Filament\Support\DocumentFormFactory::detailsSection('Datos del Pedido de Compra', [
+                Forms\Components\DatePicker::make('fecha_entrega')->label('Fecha de Recepción')->default(now()->addDays(7)),
                 
                 Forms\Components\Select::make('forma_pago_id')->label('Forma de Pago')
                     ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
@@ -78,57 +51,20 @@ class PedidoCompraResource extends Resource
                         $fp = \App\Models\FormaPago::create($data);
                         $fp->tramos()->create(['dias' => 0, 'porcentaje' => 100]);
                         return $fp->id;
-                    })
-                    ->columnSpan(2),
+                    }),
 
                 Forms\Components\Select::make('estado')->label('Estado')->options([
                     'borrador' => 'Borrador', 'confirmado' => 'Confirmado', 'parcial' => 'Parcial',
                     'completado' => 'Completado', 'anulado' => 'Anulado',
-                ])->default('borrador')->required()->columnSpan(2),
-            ])->columns(3)->compact(),
+                ])->default('borrador')->required(),
+            ]),
 
-            // SECCIÓN 3: PRODUCTOS
-            Forms\Components\View::make('filament.components.document-lines-header')
-                ->columnSpanFull(),
+            ...\App\Filament\Support\DocumentFormFactory::linesSection(),
 
-            Forms\Components\Repeater::make('lineas')
-                ->relationship()
-                ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
-                ->columns(1)
-                ->defaultItems(0)
-                ->live()
-                ->hiddenLabel()
-                ->extraAttributes(['class' => 'document-lines-repeater'])
-                ->columnSpanFull(),
-
-
-            // SECCIÓN 5: TOTALES (solo en edición)
-            Forms\Components\Section::make('Totales')
-                ->schema([
-                    Forms\Components\Placeholder::make('totales_calculados')
-                        ->hiddenLabel()
-                        ->content(function (Forms\Get $get) {
-                            $lineas = $get('lineas') ?? [];
-                            $terceroId = $get('tercero_id');
-                            $tieneRecargo = false;
-                            if ($terceroId) {
-                                $tercero = \App\Models\Tercero::find($terceroId);
-                                $tieneRecargo = $tercero?->recargo_equivalencia ?? false;
-                            }
-                            
-                            $breakdown = \App\Services\DocumentCalculator::calculate($lineas, $tieneRecargo);
-                            
-                            return view('filament.components.tax-breakdown-live', [
-                                'breakdown' => $breakdown, 
-                                'tieneRecargo' => $tieneRecargo
-                            ]);
-                        })
-                        ->columnSpanFull(),
-                ])->columns(3)
+            \App\Filament\Support\DocumentFormFactory::totalsSection()
                 ->visibleOn('edit')
                 ->collapsible(),
 
-            // SECCIÓN 4: OBSERVACIONES
             Forms\Components\Section::make('Observaciones')->schema([
                 Forms\Components\Textarea::make('observaciones')
                     ->label('Observaciones (visibles en el documento)')
