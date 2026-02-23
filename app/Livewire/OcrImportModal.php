@@ -47,12 +47,22 @@ class OcrImportModal extends Component implements HasForms
         'items' => [],
     ];
 
+    public $labelFormats = [];
+    public $generateLabels = false;
+    public $selectedLabelFormatId = null;
+    public $startRow = 1;
+    public $startColumn = 1;
+
     public $maxUploadSize;
 
     public function mount(): void
     {
         $this->form->fill();
         $this->maxUploadSize = ini_get('upload_max_filesize');
+        
+        // Cargar formatos de etiquetas
+        $this->labelFormats = \App\Models\LabelFormat::where('activo', true)->get();
+        $this->selectedLabelFormatId = $this->labelFormats->first()?->id;
     }
 
     public function form(Form $form): Form
@@ -143,13 +153,50 @@ class OcrImportModal extends Component implements HasForms
             // Items
             $formattedItems = [];
             if (!empty($result['items'])) {
+                $defaultMargin = (float)\App\Models\Setting::get('default_profit_percentage', 60);
+                $defaultTaxRate = (float)\App\Models\Setting::get('default_tax_rate', 21);
+                $method = \App\Models\Setting::get('profit_calculation_method', 'from_purchase');
+
                 foreach ($result['items'] as $item) {
+                     $purchasePrice = (float)($item['unit_price'] ?? 0);
+                     $discount = (float)($item['discount'] ?? 0);
+                     $netCost = $purchasePrice * (1 - ($discount / 100));
+                     $margin = $defaultMargin;
+                     $taxRate = (float)($item['vat_rate'] ?? $defaultTaxRate);
+
+                     if ($method === 'from_sale' && $margin >= 100) $margin = 99.99;
+
+                     $priceWithoutVat = \App\Models\Product::calculateSalePriceFromMargin($netCost, $margin, $method);
+                     // Note: We don't have getClosestPsychologicalPrice here, so we'll just use the calculated one
+                     // or we should probably add it to the model or a trait if shared.
+                     // For now, let's just calculate basic price.
+                     $salePrice = $priceWithoutVat * (1 + ($taxRate / 100));
+
+                     // Sanitize description
+                     $description = trim($item['description'] ?? '');
+                     // Remove any punctuation, symbols or whitespace at the beginning or end
+                     $description = preg_replace('/^[\p{P}\p{S}\s]+|[\p{P}\p{S}\s]+$/u', '', $description);
+                     // Standardize internal spaces
+                     $description = preg_replace('/[^\w\s\á\é\í\ó\ú\Á\É\Í\Ó\Ú\ñ\Ñ\.,\-]/u', ' ', $description);
+                     $description = preg_replace('/\s+/', ' ', trim($description));
+
+                     // Sanitize reference/code
+                     $reference = trim($item['reference'] ?? $item['product_code'] ?? '');
+                     // Remove any punctuation, symbols or whitespace at the beginning or end
+                     $reference = preg_replace('/^[\p{P}\p{S}\s]+|[\p{P}\p{S}\s]+$/u', '', $reference);
+                     $reference = preg_replace('/[^\w\-\.]/', '', $reference); 
+                     $reference = strtoupper(trim($reference));
+
                      $formattedItems[] = [
-                        'description' => $item['description'] ?? '',
+                        'description' => $description,
                         'quantity' => $item['quantity'] ?? 1,
-                        'unit_price' => $item['unit_price'] ?? 0,
+                        'unit_price' => round($purchasePrice, 2),
+                        'purchase_price' => round($netCost, 2),
+                        'sale_price' => round($salePrice, 2),
+                        'margin' => round($margin, 2),
+                        'vat_rate' => round($taxRate, 2),
                         'matched_product_id' => $item['matched_product_id'] ?? null,
-                        'reference' => $item['reference'] ?? $item['product_code'] ?? null,
+                        'reference' => $reference,
                     ];
                 }
             }
@@ -289,17 +336,17 @@ class OcrImportModal extends Component implements HasForms
                         $desc = $item['description'] ?? 'Producto Desconocido';
                         if (empty($desc)) $desc = 'Producto sin descripción';
                         
-                        $price = $item['unit_price'] ?? 0;
-                        
-                        $this->streamLog("Producto no existe: '{$desc}'. Creando...", 'warning');
-                        
                         // Create Product
                         try {
+                            $price = $item['sale_price'] ?? 0;
+                            $purchasePrice = $item['purchase_price'] ?? $item['unit_price'] ?? 0;
+
                             $newProduct = \App\Models\Product::create([
                                 'name' => $desc,
                                 'description' => $desc, // Use name as desc
                                 'price' => $price,
-                                'tax_rate' => 21.00, // Default tax
+                                'purchase_price' => $purchasePrice,
+                                'tax_rate' => $item['vat_rate'] ?? 21.00, // Default tax
                                 'active' => true,
                                 'stock' => 0,
                                 'sku' => $item['reference'] ?? ('AUTO-' . strtoupper(uniqid())), // Use Reference if available
@@ -357,6 +404,46 @@ class OcrImportModal extends Component implements HasForms
             if (method_exists($record, 'recalcularTotales')) {
                 $record->recalcularTotales();
                 $record->save();
+            }
+
+            // GENERAR ETIQUETAS
+            if ($this->generateLabels && $this->selectedLabelFormatId) {
+                $selectedItems = $this->parsedData['items']; // In modal, we usually print all from document
+                
+                if (count($selectedItems) > 0) {
+                    $labelDoc = \App\Models\Documento::create([
+                        'tipo' => 'etiqueta',
+                        'estado' => 'borrador',
+                        'user_id' => auth()->id(),
+                        'fecha' => now(),
+                        'label_format_id' => $this->selectedLabelFormatId,
+                        'fila_inicio' => $this->startRow,
+                        'columna_inicio' => $this->startColumn,
+                        'documento_origen_id' => $record->id,
+                        'observaciones' => "Generado desde Modal OCR del Albarán: " . ($record->numero ?? $record->referencia_proveedor),
+                    ]);
+
+                    foreach ($selectedItems as $item) {
+                        $qty = (float)($item['quantity'] ?? 1);
+                        $desc = $item['description'] ?? 'Línea importada';
+                        $prod = !empty($item['matched_product_id']) ? \App\Models\Product::find($item['matched_product_id']) : null;
+                    
+                        $labelDoc->lineas()->create([
+                            'product_id' => $item['matched_product_id'] ?? null,
+                            'codigo' => !empty($item['reference']) ? $item['reference'] : ($prod?->sku ?? $prod?->code ?? $prod?->barcode ?? null),
+                            'descripcion' => $desc,
+                            'cantidad' => $qty,
+                            'unidad' => 'Ud',
+                            'precio_unitario' => $item['unit_price'] ?? 0,
+                        ]);
+                    }
+
+                    \Filament\Notifications\Notification::make()
+                        ->title('Documento de Etiquetas Creado')
+                        ->body('Se ha generado un documento de etiquetas asociado.')
+                        ->success()
+                        ->send();
+                }
             }
 
             \Filament\Notifications\Notification::make()

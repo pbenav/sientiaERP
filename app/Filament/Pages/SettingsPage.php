@@ -60,6 +60,10 @@ class SettingsPage extends Page
             'ai_gemini_api_key' => Setting::get('ai_gemini_api_key', config('services.google.ai_api_key')),
             'ai_openai_api_key' => Setting::get('ai_openai_api_key'),
             'tesseract_path' => Setting::get('tesseract_path', '/usr/bin/tesseract'),
+            'profit_calculation_method' => Setting::get('profit_calculation_method', 'from_purchase'),
+            'default_profit_percentage' => Setting::get('default_profit_percentage', 60),
+            'intermediate_precision' => Setting::get('intermediate_precision', 3),
+            'final_precision' => Setting::get('final_precision', 2),
         ]);
     }
 
@@ -161,6 +165,22 @@ class SettingsPage extends Page
                             ])
                             ->default('.')
                             ->columnSpan(1),
+
+                        TextInput::make('intermediate_precision')
+                            ->label('Decimales en cálculos intermedios (Precios)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(6)
+                            ->default(3)
+                            ->columnSpan(1),
+
+                        TextInput::make('final_precision')
+                            ->label('Decimales en documentos finales (Totales)')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(3)
+                            ->default(2)
+                            ->columnSpan(1),
                     ])
                     ->columns(2)
                     ->collapsible(),
@@ -258,6 +278,31 @@ class SettingsPage extends Page
                             ->default(21)
                             ->suffix('%')
                             ->helperText('Tasa de IVA que se aplicará por defecto en los cálculos de precio de venta')
+                            ->columnSpan(1),
+                    ])
+                    ->columns(2),
+
+                Section::make('Configuración de Precios y Márgenes')
+                    ->description('Define cómo se calculan los precios y beneficios en el sistema')
+                    ->schema([
+                        Select::make('profit_calculation_method')
+                            ->label('Método de Cálculo de Margen')
+                            ->options([
+                                'from_purchase' => 'Sobre Precio de Compra (Margen = (Venta-Compra)/Compra)',
+                                'from_sale' => 'Sobre Precio de Venta (Margen = (Venta-Compra)/Venta)',
+                            ])
+                            ->default('from_purchase')
+                            ->helperText('Cambiar esta opción recalculará automáticamente el % de margen de todos los productos sin variar su precio de venta.')
+                            ->columnSpanFull(),
+
+                        TextInput::make('default_profit_percentage')
+                            ->label('Porcentaje de Beneficio por Defecto')
+                            ->numeric()
+                            ->minValue(0)
+                            ->maxValue(1000)
+                            ->default(60)
+                            ->suffix('%')
+                            ->helperText('Porcentaje de beneficio inicial aplicado al importar productos o crear nuevos.')
                             ->columnSpan(1),
                     ])
                     ->columns(2),
@@ -365,8 +410,9 @@ class SettingsPage extends Page
             ->statePath('data');
     }
 
-    public function save(): void
+    public function save()
     {
+        $oldMethod = Setting::get('profit_calculation_method', 'from_purchase');
         $data = $this->form->getState();
 
         foreach ($data as $key => $value) {
@@ -385,6 +431,10 @@ class SettingsPage extends Page
                 'pos_default_tercero_id' => 'Cliente por Defecto POS',
                 'presupuesto_validez_dias' => 'Días Validez Presupuesto',
                 'default_commercial_margin' => 'Margen Comercial por Defecto',
+                'profit_calculation_method' => 'Método de Cálculo de Margen',
+                'default_profit_percentage' => 'Porcentaje de Beneficio Defecto',
+                'intermediate_precision' => 'Decimales en cálculos intermedios',
+                'final_precision' => 'Decimales en documentos finales',
             ];
             
             $groups = [
@@ -416,14 +466,34 @@ class SettingsPage extends Page
                 'ai_gemini_api_key' => 'IA',
                 'ai_openai_api_key' => 'IA',
                 'tesseract_path' => 'IA',
+                'profit_calculation_method' => 'Precios',
+                'default_profit_percentage' => 'Precios',
+                'intermediate_precision' => 'Formato',
+                'final_precision' => 'Formato',
             ];
 
             Setting::set($key, $value, $labels[$key] ?? $key, $groups[$key] ?? 'General');
+        }
+
+        $newMethod = $data['profit_calculation_method'] ?? $oldMethod;
+        if ($oldMethod !== $newMethod) {
+            \App\Models\Product::all()->each(function($product) {
+                $product->recalculateProfitMargin();
+                $product->save();
+            });
+            
+            Notification::make()
+                ->title('Márgenes actualizados')
+                ->body('Se han recalculado los márgenes de todos los productos según el nuevo método.')
+                ->info()
+                ->send();
         }
 
         Notification::make()
             ->title('Configuración guardada')
             ->success()
             ->send();
+
+        return redirect()->to(\Filament\Pages\Dashboard::getUrl());
     }
 }

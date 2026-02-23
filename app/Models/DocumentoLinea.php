@@ -77,12 +77,13 @@ class DocumentoLinea extends Model
      */
     protected function calcularImportes(): void
     {
+        $precisionLimit = (int) Setting::get('intermediate_precision', 3);
         // 1. Subtotal Línea = Cantidad * Precio Unitario
-        $this->subtotal = round($this->cantidad * $this->precio_unitario, 2);
+        $this->subtotal = round($this->cantidad * $this->precio_unitario, $precisionLimit);
 
         // 2. Aplicar Descuento a la Base
         if ($this->descuento > 0) {
-            $this->subtotal = round($this->subtotal * (1 - ($this->descuento / 100)), 2);
+            $this->subtotal = round($this->subtotal * (1 - ($this->descuento / 100)), $precisionLimit);
         }
 
         // 3. Obtener configuración de impuestos del documento/tercero
@@ -94,7 +95,7 @@ class DocumentoLinea extends Model
         }
 
         // 4. Calcular IVA (Cuota = Base * %IVA)
-        $this->importe_iva = round($this->subtotal * ($this->iva / 100), 2);
+        $this->importe_iva = round($this->subtotal * ($this->iva / 100), $precisionLimit);
 
         // 5. Calcular Recargo de Equivalencia (Si aplica)
         $this->importe_recargo_equivalencia = 0;
@@ -118,7 +119,7 @@ class DocumentoLinea extends Model
             }
 
             if ($this->recargo_equivalencia > 0) {
-                $this->importe_recargo_equivalencia = round($this->subtotal * ($this->recargo_equivalencia / 100), 2);
+                $this->importe_recargo_equivalencia = round($this->subtotal * ($this->recargo_equivalencia / 100), $precisionLimit);
             }
         }
 
@@ -127,9 +128,7 @@ class DocumentoLinea extends Model
         $this->importe_irpf = 0;
 
         // 7. Total Línea = Subtotal + IVA + RE
-        // Nota: El IRPF se resta del total de la factura, no de la línea visualmente aquí, 
-        // aunque matemáticamente: Total = Base + IVA + RE.
-        $this->total = $this->subtotal + $this->importe_iva + $this->importe_recargo_equivalencia;
+        $this->total = round($this->subtotal + $this->importe_iva + $this->importe_recargo_equivalencia, $precisionLimit);
     }
 
     /**

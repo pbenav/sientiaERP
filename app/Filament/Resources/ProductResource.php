@@ -28,6 +28,8 @@ class ProductResource extends Resource
 
     public static function form(Form $form): Form
     {
+        $precision = (int) \App\Models\Setting::get('intermediate_precision', 3);
+
         return $form
             ->schema([
                 Forms\Components\Section::make('Información del Producto')
@@ -53,23 +55,134 @@ class ProductResource extends Resource
                             ->columnSpan(2),
                     ])->columns(3)->compact(),
 
-                Forms\Components\Section::make('Precios y Stock')
+                Forms\Components\Section::make('Precios y Rentabilidad')
                     ->schema([
-                        Forms\Components\TextInput::make('price')
-                            ->label('Precio de Venta (PVP)')
-                            ->required()
-                            ->type('text')
-                            ->inputMode('decimal')
+                        Forms\Components\TextInput::make('purchase_price')
+                            ->label('Precio de Compra')
                             ->numeric()
-                            ->maxValue(9999999999)
+                            ->inputMode('decimal')
                             ->prefix('€')
-                            ->extraInputAttributes(['style' => 'width: 140px']),
+                            ->step(1 / pow(10, $precision))
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) use ($precision) {
+                                $purchasePrice = (float) $state;
+                                $price = (float) $get('price');
+                                $method = \App\Models\Setting::get('profit_calculation_method', 'from_purchase');
+                                
+                                if ($purchasePrice > 0) {
+                                    $profit = $price - $purchasePrice;
+                                    $profitMargin = \App\Models\Product::calculateMarginFromPrices($purchasePrice, $price, $method);
+                                    
+                                    $set('profit', round($profit, $precision));
+                                    $set('profit_margin', round($profitMargin, 2));
+
+                                    // Update IVA, PVP & Suggested PVP display
+                                    $taxRate = (float) $get('tax_rate');
+                                    $set('iva_amount', round($price * ($taxRate / 100), $precision));
+                                    $pvp = round($price * (1 + ($taxRate / 100)), $precision);
+                                    $set('pvp_price', $pvp);
+                                    $set('suggested_pvp', \App\Models\Product::getSuggestedPsychologicalPrice($pvp));
+                                }
+                            }),
+                        
+                        Forms\Components\TextInput::make('profit_margin')
+                            ->label('Margen (%)')
+                            ->numeric()
+                            ->inputMode('decimal')
+                            ->suffix('%')
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) use ($precision) {
+                                $profitMargin = (float) $state;
+                                $purchasePrice = (float) $get('purchase_price');
+                                $method = \App\Models\Setting::get('profit_calculation_method', 'from_purchase');
+                                
+                                if ($purchasePrice > 0) {
+                                    $price = \App\Models\Product::calculateSalePriceFromMargin($purchasePrice, $profitMargin, $method);
+                                    $profit = $price - $purchasePrice;
+                                    
+                                    $set('profit', round($profit, $precision));
+                                    $set('price', round($price, $precision));
+                                    
+                                    // Update IVA, PVP & Suggested PVP display
+                                    $taxRate = (float) $get('tax_rate');
+                                    $set('iva_amount', round($price * ($taxRate / 100), $precision));
+                                    $pvp = round($price * (1 + ($taxRate / 100)), $precision);
+                                    $set('pvp_price', $pvp);
+                                    $set('suggested_pvp', \App\Models\Product::getSuggestedPsychologicalPrice($pvp));
+                                }
+                            }),
+
+                        Forms\Components\TextInput::make('profit')
+                            ->label('Beneficio')
+                            ->numeric()
+                            ->inputMode('decimal')
+                            ->prefix('€')
+                            ->step(1 / pow(10, $precision))
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) use ($precision) {
+                                $profit = (float) $state;
+                                $purchasePrice = (float) $get('purchase_price');
+                                $method = \App\Models\Setting::get('profit_calculation_method', 'from_purchase');
+                                
+                                if ($purchasePrice > 0) {
+                                    $price = $purchasePrice + $profit;
+                                    $profitMargin = \App\Models\Product::calculateMarginFromPrices($purchasePrice, $price, $method);
+                                    
+                                    $set('price', round($price, $precision));
+                                    $set('profit_margin', round($profitMargin, 2));
+                                    
+                                    // Update IVA, PVP & Suggested PVP display
+                                    $taxRate = (float) $get('tax_rate');
+                                    $set('iva_amount', round($price * ($taxRate / 100), $precision));
+                                    $pvp = round($price * (1 + ($taxRate / 100)), $precision);
+                                    $set('pvp_price', $pvp);
+                                    $set('suggested_pvp', \App\Models\Product::getSuggestedPsychologicalPrice($pvp));
+                                }
+                            }),
+
+                        Forms\Components\TextInput::make('price')
+                            ->label('Precio de Venta (Base)')
+                            ->required()
+                            ->numeric()
+                            ->inputMode('decimal')
+                            ->prefix('€')
+                            ->step(1 / pow(10, $precision))
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) use ($precision) {
+                                $price = (float) $state;
+                                $purchasePrice = (float) $get('purchase_price');
+                                $method = \App\Models\Setting::get('profit_calculation_method', 'from_purchase');
+                                
+                                if ($purchasePrice > 0) {
+                                    $profit = $price - $purchasePrice;
+                                    $profitMargin = \App\Models\Product::calculateMarginFromPrices($purchasePrice, $price, $method);
+                                    
+                                    $set('profit', round($profit, $precision));
+                                    $set('profit_margin', round($profitMargin, 2));
+                                }
+                                
+                                // Update IVA, PVP & Suggested PVP display
+                                $taxRate = (float) $get('tax_rate');
+                                $set('iva_amount', round($price * ($taxRate / 100), $precision));
+                                $pvp = round($price * (1 + ($taxRate / 100)), $precision);
+                                $set('pvp_price', $pvp);
+                                $set('suggested_pvp', \App\Models\Product::getSuggestedPsychologicalPrice($pvp));
+                            }),
                         
                         Forms\Components\Select::make('tax_rate')
                             ->label('IVA (%)')
                             ->options(\App\Models\Impuesto::where('tipo', 'iva')->where('activo', true)->pluck('nombre', 'valor'))
                             ->required()
                             ->searchable()
+                            ->live()
+                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) use ($precision) {
+                                $price = (float) $get('price');
+                                $taxRate = (float) $state;
+                                $set('iva_amount', round($price * ($taxRate / 100), $precision));
+                                $pvp = round($price * (1 + ($taxRate / 100)), $precision);
+                                $set('pvp_price', $pvp);
+                                $set('suggested_pvp', \App\Models\Product::getSuggestedPsychologicalPrice($pvp));
+                            })
                             ->createOptionForm([
                                 Forms\Components\TextInput::make('nombre')->required(),
                                 Forms\Components\TextInput::make('valor')->numeric()->required()->suffix('%'),
@@ -77,24 +190,131 @@ class ProductResource extends Resource
                             ->createOptionUsing(function (array $data) {
                                 return \App\Models\Impuesto::create([...$data, 'tipo' => 'iva', 'activo' => true])->valor;
                             })
-                            ->default(fn() => \App\Models\Impuesto::where('tipo', 'iva')->where('es_predeterminado', true)->where('activo', true)->first()?->valor ?? 21.00)
-                            ->extraInputAttributes(['style' => 'width: 220px']),
-                        
+                            ->default(fn() => \App\Models\Impuesto::where('tipo', 'iva')->where('es_predeterminado', true)->where('activo', true)->first()?->valor ?? 21.00),
+
+                        Forms\Components\TextInput::make('iva_amount')
+                            ->label('Cuota IVA')
+                            ->readOnly()
+                            ->prefix('€')
+                            ->step(1 / pow(10, $precision))
+                            ->dehydrated(false)
+                            ->afterStateHydrated(function ($state, Forms\Set $set, Forms\Get $get, $record) use ($precision) {
+                                if ($record) {
+                                    $price = (float) $record->price;
+                                    $taxRate = (float) $record->tax_rate;
+                                    $set('iva_amount', round($price * ($taxRate / 100), $precision));
+                                } else {
+                                    $price = (float) $get('price');
+                                    $taxRate = (float) $get('tax_rate');
+                                    $set('iva_amount', round($price * ($taxRate / 100), $precision));
+                                }
+                            }),
+
+                        Forms\Components\TextInput::make('pvp_price')
+                            ->label('Precio PVP (con IVA)')
+                            ->numeric()
+                            ->inputMode('decimal')
+                            ->prefix('€')
+                            ->step(1 / pow(10, $precision))
+                            ->live(onBlur: true)
+                            ->afterStateHydrated(function ($state, Forms\Set $set, $record, Forms\Get $get) use ($precision) {
+                                if ($record) {
+                                    $price = (float) $record->price;
+                                    $taxRate = (float) $record->tax_rate;
+                                    $set('pvp_price', round($price * (1 + ($taxRate / 100)), $precision));
+                                } else {
+                                    $price = (float) $get('price');
+                                    $taxRate = (float) $get('tax_rate');
+                                    $set('pvp_price', round($price * (1 + ($taxRate / 100)), $precision));
+                                }
+                            })
+                            ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) use ($precision) {
+                                $pvp = (float) $state;
+                                $taxRate = (float) $get('tax_rate');
+                                
+                                if ($pvp > 0) {
+                                    $price = $pvp / (1 + ($taxRate / 100));
+                                    $set('price', round($price, $precision));
+                                    
+                                    // Trigger price update logic
+                                    $purchasePrice = (float) $get('purchase_price');
+                                    $method = \App\Models\Setting::get('profit_calculation_method', 'from_purchase');
+                                    
+                                    if ($purchasePrice > 0) {
+                                        $profit = $price - $purchasePrice;
+                                        $profitMargin = \App\Models\Product::calculateMarginFromPrices($purchasePrice, $price, $method);
+                                        
+                                        $set('profit', round($profit, $precision));
+                                        $set('profit_margin', round($profitMargin, 2));
+                                    }
+                                    
+                                    $set('iva_amount', round($pvp - $price, $precision));
+                                    $set('suggested_pvp', \App\Models\Product::getSuggestedPsychologicalPrice($pvp));
+                                }
+                            }),
+
+                        Forms\Components\TextInput::make('suggested_pvp')
+                            ->label('PVP Psicológico Sugerido')
+                            ->step(1 / pow(10, $precision))
+                            ->readOnly()
+                            ->prefix('€')
+                            ->helperText('Precio psicológico inmediatamente superior al PVP actual.')
+                            ->dehydrated(false)
+                            ->afterStateHydrated(function ($state, Forms\Set $set, $record, Forms\Get $get) use ($precision) {
+                                $pvp = (float) $get('pvp_price');
+                                if ($record && $pvp <= 0) {
+                                    $pvp = (float) $record->price * (1 + ($record->tax_rate / 100));
+                                }
+                                if ($pvp > 0) {
+                                    $set('suggested_pvp', \App\Models\Product::getSuggestedPsychologicalPrice($pvp));
+                                }
+                            })
+                            ->suffixAction(
+                                Forms\Components\Actions\Action::make('apply_suggested')
+                                    ->icon('heroicon-m-check')
+                                    ->tooltip('Aplicar sugerencia')
+                                    ->action(function ($state, Forms\Set $set, Forms\Get $get) use ($precision) {
+                                        $suggested = (float) $state;
+                                        if ($suggested > 0) {
+                                            $set('pvp_price', $suggested);
+                                            // Activar manualmente la lógica de actualización del PVP
+                                            $taxRate = (float) $get('tax_rate');
+                                            $price = $suggested / (1 + ($taxRate / 100));
+                                            $set('price', round($price, $precision));
+                                            
+                                            $purchasePrice = (float) $get('purchase_price');
+                                            $method = \App\Models\Setting::get('profit_calculation_method', 'from_purchase');
+                                            
+                                            if ($purchasePrice > 0) {
+                                                $profit = $price - $purchasePrice;
+                                                $profitMargin = \App\Models\Product::calculateMarginFromPrices($purchasePrice, $price, $method);
+                                                
+                                                $set('profit', round($profit, $precision));
+                                                $set('profit_margin', round($profitMargin, 2));
+                                            }
+                                            
+                                            $set('iva_amount', round($suggested - $price, $precision));
+                                            // Recalcular sugerencia (será la siguiente)
+                                            $set('suggested_pvp', \App\Models\Product::getSuggestedPsychologicalPrice($suggested));
+                                        }
+                                    })
+                            ),
+                    ])->columns(3)->compact(),
+
+                Forms\Components\Section::make('Stock y Visibilidad')
+                    ->schema([
                         Forms\Components\TextInput::make('stock')
                             ->label('Stock')
                             ->required()
-                            ->type('text')
-                            ->inputMode('decimal')
                             ->numeric()
-                            ->maxValue(9999999)
-                            ->extraInputAttributes(['style' => 'width: 120px'])
+                            ->inputMode('decimal')
                             ->default(0),
                         
                         Forms\Components\Toggle::make('active')
                             ->label('Activo')
                             ->default(true)
                             ->required(),
-                    ])->columns(4)->compact(),
+                    ])->columns(2)->compact(),
             ]);
     }
 
@@ -123,7 +343,8 @@ class ProductResource extends Resource
                     ->formatStateUsing(function ($state) {
                         $symbol = \App\Models\Setting::get('currency_symbol', '€');
                         $position = \App\Models\Setting::get('currency_position', 'suffix');
-                        $formatted = number_format($state, 2, ',', '.');
+                        $precision = (int) \App\Models\Setting::get('intermediate_precision', 3);
+                        $formatted = number_format($state, $precision, ',', '.');
                         return $position === 'suffix' ? "$formatted $symbol" : "$symbol $formatted";
                     })
                     ->sortable(),

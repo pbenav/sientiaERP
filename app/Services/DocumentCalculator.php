@@ -13,6 +13,9 @@ class DocumentCalculator
      */
     public static function calculate(array $lineas, bool $tieneRecargo = false): array
     {
+        $intermediatePrecision = (int) \App\Models\Setting::get('intermediate_precision', 3);
+        $finalPrecision = (int) \App\Models\Setting::get('final_precision', 2);
+        
         $breakdown = [];
         $totalBase = 0;
         $totalIva = 0;
@@ -26,9 +29,9 @@ class DocumentCalculator
             $ivaRate = \App\Helpers\NumberFormatHelper::parseNumber($linea['iva'] ?? 0);
             
             // Calculate base for this line
-            $baseLinea = round((float)$cantidad * (float)$precio, 3);
+            $baseLinea = round((float)$cantidad * (float)$precio, $intermediatePrecision);
             if ($descuento > 0) {
-                $baseLinea = round($baseLinea * (1 - ($descuento / 100)), 3);
+                $baseLinea = round($baseLinea * (1 - ($descuento / 100)), $intermediatePrecision);
             }
             
             // Key for grouping: Tax Rate
@@ -55,13 +58,13 @@ class DocumentCalculator
 
         // Now calculate quotas on the summed bases (or sum line quotas? standard is sum bases -> calc quota)
         foreach ($breakdown as $key => &$data) {
-            $data['cuota_iva'] = round($data['base'] * ($data['iva'] / 100), 3);
+            $data['cuota_iva'] = round($data['base'] * ($data['iva'] / 100), $finalPrecision);
             
             if ($tieneRecargo) {
-                $data['cuota_re'] = round($data['base'] * ($data['re'] / 100), 3);
+                $data['cuota_re'] = round($data['base'] * ($data['re'] / 100), $finalPrecision);
             }
             
-            $data['total'] = $data['base'] + $data['cuota_iva'] + $data['cuota_re'];
+            $data['total'] = round($data['base'] + $data['cuota_iva'] + $data['cuota_re'], $finalPrecision);
             
             $totalBase += $data['base'];
             $totalIva += $data['cuota_iva'];

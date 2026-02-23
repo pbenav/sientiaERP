@@ -67,7 +67,9 @@ class SettingResource extends Resource
                                 'ai_gemini_api_key', 
                                 'ai_openai_api_key',
                                 'google_location',
-                                'google_application_credentials'
+                                'google_application_credentials',
+                                'intermediate_precision',
+                                'final_precision'
                             ]))
                             ->columnSpanFull(),
                         
@@ -139,7 +141,9 @@ class SettingResource extends Resource
                                 'ai_openai_api_key',
                                 'google_project_id',
                                 'google_processor_id',
-                                'tesseract_path'
+                                'tesseract_path',
+                                'intermediate_precision',
+                                'final_precision'
                             ]))
                             ->columnSpanFull(),
                     ])->columns(2)->compact(),

@@ -96,7 +96,7 @@ class TicketResource extends Resource
                 
                 Tables\Columns\TextColumn::make('total')
                     ->label('Total')
-                    ->money('EUR')
+                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatCurrency($state))
                     ->sortable(),
                 
                 Tables\Columns\TextColumn::make('payment_method')
@@ -352,9 +352,9 @@ class TicketResource extends Resource
                 
                 Infolists\Components\Section::make('Totales')
                     ->schema([
-                        Infolists\Components\TextEntry::make('subtotal')->label('Subtotal')->money('EUR'),
-                        Infolists\Components\TextEntry::make('tax')->label('IVA')->money('EUR'),
-                        Infolists\Components\TextEntry::make('total')->label('Total')->money('EUR'),
+                        Infolists\Components\TextEntry::make('subtotal')->label('Subtotal')->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatCurrency($state)),
+                        Infolists\Components\TextEntry::make('tax')->label('IVA')->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatCurrency($state)),
+                        Infolists\Components\TextEntry::make('total')->label('Total')->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatCurrency($state)),
                         Infolists\Components\TextEntry::make('payment_method')
                             ->label('Método de Pago')
                             ->formatStateUsing(fn (?string $state): string => match ($state) {
@@ -363,8 +363,8 @@ class TicketResource extends Resource
                                 'mixed' => 'Mixto',
                                 default => '-',
                             }),
-                        Infolists\Components\TextEntry::make('amount_paid')->label('Pagado')->money('EUR'),
-                        Infolists\Components\TextEntry::make('change_given')->label('Cambio')->money('EUR'),
+                        Infolists\Components\TextEntry::make('amount_paid')->label('Pagado')->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatCurrency($state)),
+                        Infolists\Components\TextEntry::make('change_given')->label('Cambio')->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatCurrency($state)),
                     ])->columns(3),
             ]);
     }

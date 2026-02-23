@@ -29,6 +29,8 @@ class OcrImport extends Page implements HasForms
     public $generateLabels = false;
     public $selectedLabelFormatId = null;
     public $print_all_labels = true;
+    public $startRow = 1;
+    public $startColumn = 1;
 
     public $parsedData = [
         'date' => null,
@@ -143,8 +145,9 @@ class OcrImport extends Page implements HasForms
             
             $formattedItems = [];
             if (!empty($result['items'])) {
-                $defaultMargin = (float)\App\Models\Setting::get('default_commercial_margin', 30);
+                $defaultMargin = (float)\App\Models\Setting::get('default_profit_percentage', 60);
                 $defaultTaxRate = (float)\App\Models\Setting::get('default_tax_rate', 21);
+                $method = \App\Models\Setting::get('profit_calculation_method', 'from_purchase');
                 
                 foreach ($result['items'] as $item) {
                     $purchasePrice = (float)($item['unit_price'] ?? 0);
@@ -153,26 +156,38 @@ class OcrImport extends Page implements HasForms
                     $margin = $defaultMargin;
                     $taxRate = (float)($item['vat_rate'] ?? $defaultTaxRate);
                     
-                    if ($margin >= 100) $margin = 99;
+                    if ($method === 'from_sale' && $margin >= 100) $margin = 99.99;
                     
-                    $initialPriceWithoutVat = $netCost / (1 - ($margin / 100));
-                    $theoreticalSalePrice = $initialPriceWithoutVat * (1 + ($taxRate / 100));
+                    $priceWithoutVat = \App\Models\Product::calculateSalePriceFromMargin($netCost, $margin, $method);
+                    $theoreticalSalePrice = $priceWithoutVat * (1 + ($taxRate / 100));
                     $salePrice = $this->getClosestPsychologicalPrice($theoreticalSalePrice);
                     $priceWithoutVat = $salePrice / (1 + ($taxRate / 100));
                     
-                    if ($priceWithoutVat > 0) {
-                        $margin = (1 - ($netCost / $priceWithoutVat)) * 100;
-                    } else {
-                        $margin = 0;
-                    }
+                    $margin = \App\Models\Product::calculateMarginFromPrices($netCost, $priceWithoutVat, $method);
                     
                     $benefit = $priceWithoutVat - $netCost;
                     $vatAmount = $priceWithoutVat * ($taxRate / 100);
                     
+                    // Sanitize description
+                    $description = trim($item['description'] ?? '');
+                    // Remove any punctuation, symbols or whitespace at the beginning or end
+                    $description = preg_replace('/^[\p{P}\p{S}\s]+|[\p{P}\p{S}\s]+$/u', '', $description);
+                    // Standardize internal spaces and remove weird characters
+                    $description = preg_replace('/[^\w\s\á\é\í\ó\ú\Á\É\Í\Ó\Ú\ñ\Ñ\.,\-]/u', ' ', $description);
+                    $description = preg_replace('/\s+/', ' ', trim($description));
+
+                    // Sanitize reference/code
+                    $reference = trim($item['reference'] ?? $item['product_code'] ?? '');
+                    // Remove any punctuation, symbols or whitespace at the beginning or end
+                    $reference = preg_replace('/^[\p{P}\p{S}\s]+|[\p{P}\p{S}\s]+$/u', '', $reference);
+                    // More restrictive for codes: only keep alphanumeric, hyphens and dots internally
+                    $reference = preg_replace('/[^\w\-\.]/', '', $reference);
+                    $reference = strtoupper(trim($reference));
+
                     $formattedItems[] = [
-                        'description' => trim($item['description'] ?? '', "*- "),
-                        'reference' => $item['reference'] ?? $item['product_code'] ?? '',
-                        'product_code' => $item['product_code'] ?? $item['reference'] ?? '',
+                        'description' => $description,
+                        'reference' => $reference,
+                        'product_code' => $reference,
                         'quantity' => (float)($item['quantity'] ?? 1),
                         'unit_price' => round($purchasePrice, 2),
                         'discount' => round($discount, 2),
@@ -437,11 +452,12 @@ class OcrImport extends Page implements HasForms
                             $purchasePriceGross = (float)($item['unit_price'] ?? 0);
                             $discount = (float)($item['discount'] ?? 0);
                             $purchasePriceNet = $purchasePriceGross * (1 - ($discount / 100));
-                            $margin = (float)($item['margin'] ?? 30);
+                            $margin = (float)($item['margin'] ?? 60);
                             $retailPrice = (float)($item['sale_price'] ?? 0);
                             
                             $product->name = !empty($item['description']) ? $item['description'] : $product->name;
                             $product->price = $retailPrice;
+                            $product->purchase_price = $purchasePriceNet; // Set purchase price
                             $product->tax_rate = (float)($item['vat_rate'] ?? $product->tax_rate);
                             $product->addPurchaseHistory(
                                 $purchasePriceGross,
@@ -461,13 +477,14 @@ class OcrImport extends Page implements HasForms
                             $purchasePriceGross = (float)($item['unit_price'] ?? 0);
                             $discount = (float)($item['discount'] ?? 0);
                             $purchasePriceNet = $purchasePriceGross * (1 - ($discount / 100));
-                            $margin = (float)($item['margin'] ?? 30);
+                            $margin = (float)($item['margin'] ?? 60);
                             $retailPrice = (float)($item['sale_price'] ?? 0);
 
                             $newProduct = \App\Models\Product::create([
                                 'name' => $desc,
                                 'description' => $desc,
                                 'price' => $retailPrice,
+                                'purchase_price' => $purchasePriceNet, // Set purchase price
                                 'tax_rate' => (float)($item['vat_rate'] ?? 21.00),
                                 'active' => true,
                                 'stock' => 0,
@@ -552,6 +569,8 @@ class OcrImport extends Page implements HasForms
                         'user_id' => auth()->id(),
                         'fecha' => now(),
                         'label_format_id' => $this->selectedLabelFormatId,
+                        'fila_inicio' => $this->startRow,
+                        'columna_inicio' => $this->startColumn,
                         'documento_origen_id' => $record->id,
                         'observaciones' => "Generado desde importación OCR del Albarán: " . ($record->numero ?? $record->referencia_proveedor),
                     ]);

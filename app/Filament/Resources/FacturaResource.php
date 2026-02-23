@@ -147,12 +147,7 @@ class FacturaResource extends Resource
                 Tables\Columns\TextColumn::make('total')
                     ->label('Total')
                     ->getStateUsing(fn ($record) => $record->total)
-                    ->formatStateUsing(function ($state) {
-                        $symbol = \App\Models\Setting::get('currency_symbol', '€');
-                        $position = \App\Models\Setting::get('currency_position', 'suffix');
-                        $formatted = number_format($state, 2, ',', '.');
-                        return $position === 'suffix' ? "$formatted $symbol" : "$symbol $formatted";
-                    })
+                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatCurrency($state))
                     ->sortable(),
                 
                 Tables\Columns\BadgeColumn::make('estado')

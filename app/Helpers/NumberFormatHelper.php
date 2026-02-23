@@ -114,7 +114,8 @@ class NumberFormatHelper
      */
     public static function formatCurrency($value): string
     {
-        $formatted = self::formatNumber($value, 2);
+        $precision = (int) Setting::get('final_precision', 2);
+        $formatted = self::formatNumber($value, $precision);
         $symbol = Setting::get('currency_symbol', '€');
         $position = Setting::get('currency_position', 'suffix');
 

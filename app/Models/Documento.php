@@ -190,8 +190,9 @@ class Documento extends Model
             $porcentajeIva = $primerLinea->iva;
             $porcentajeRe = $primerLinea->recargo_equivalencia;
 
-            $cuotaIvaGrupo = round($baseGrupo * ($porcentajeIva / 100), 2);
-            $cuotaReGrupo = round($baseGrupo * ($porcentajeRe / 100), 2);
+            $precision = (int) Setting::get('final_precision', 2);
+            $cuotaIvaGrupo = round($baseGrupo * ($porcentajeIva / 100), $precision);
+            $cuotaReGrupo = round($baseGrupo * ($porcentajeRe / 100), $precision);
 
             $desglose[] = [
                 'iva' => $porcentajeIva,
@@ -236,8 +237,9 @@ class Documento extends Model
             $porcentajeRe = $primerLinea->recargo_equivalencia; // Ya calculado en la línea
 
             // Calcular Cuotas del Bucket (Redondeo estándar)
-            $cuotaIvaGrupo = round($baseGrupo * ($porcentajeIva / 100), 2);
-            $cuotaReGrupo = round($baseGrupo * ($porcentajeRe / 100), 2);
+            $precision = (int) Setting::get('final_precision', 2);
+            $cuotaIvaGrupo = round($baseGrupo * ($porcentajeIva / 100), $precision);
+            $cuotaReGrupo = round($baseGrupo * ($porcentajeRe / 100), $precision);
 
             // Acumular al total del documento
             $baseImponibleTotal += $baseGrupo;
@@ -266,7 +268,8 @@ class Documento extends Model
              }
 
              // Cálculo IRPF
-             $this->irpf = round($this->base_imponible * ($this->porcentaje_irpf / 100), 2);
+             $precision = (int) Setting::get('final_precision', 2);
+             $this->irpf = round($this->base_imponible * ($this->porcentaje_irpf / 100), $precision);
         } else {
             $this->irpf = 0;
         }
