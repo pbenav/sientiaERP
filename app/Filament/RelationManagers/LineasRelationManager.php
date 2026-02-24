@@ -193,10 +193,7 @@ class LineasRelationManager extends RelationManager
                                     $producto = \App\Models\Product::where('name', $state)->first();
                                     if ($producto) {
                                         $set('product_id', $producto->id);
-                                        // Solo actualizar código si está vacío
-                                        if (!$get('codigo')) {
-                                            $set('codigo', $producto->sku);
-                                        }
+                                        $set('codigo', $producto->sku);
                                         
                                         // Determine price based on document type
                                         $doc = null;

@@ -18,11 +18,11 @@ class TicketResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-computer-desktop';
 
-    protected static ?string $navigationLabel = 'POS';
+    protected static ?string $navigationLabel = 'TPV';
 
-    protected static ?string $modelLabel = 'POS';
+    protected static ?string $modelLabel = 'TPV';
 
-    protected static ?string $pluralModelLabel = 'POS';
+    protected static ?string $pluralModelLabel = 'TPV';
 
     protected static ?int $navigationSort = 3;
 

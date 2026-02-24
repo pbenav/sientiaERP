@@ -390,7 +390,7 @@ class ProductResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make()->tooltip('Editar')->label(''),
                 Tables\Actions\DeleteAction::make()->tooltip('Borrar')->label(''),
-                Tables\Actions\ForceDeleteAction::make()->tooltip('Eliminar Permanentemente')->label('')->tooltip('Borrar')->label(''),
+                Tables\Actions\ForceDeleteAction::make()->tooltip('Eliminar Permanentemente')->label(''),
                 Tables\Actions\RestoreAction::make()->tooltip('Restaurar')->label(''),
             ])
             ->bulkActions([

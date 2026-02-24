@@ -57,6 +57,8 @@ class PedidoCompraResource extends Resource
                     'borrador' => 'Borrador', 'confirmado' => 'Confirmado', 'parcial' => 'Parcial',
                     'completado' => 'Completado', 'anulado' => 'Anulado',
                 ])->default('borrador')->required(),
+            ], [
+                'exclude_estado' => true,
             ]),
 
             ...\App\Filament\Support\DocumentFormFactory::linesSection(),

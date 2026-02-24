@@ -53,45 +53,52 @@ class DocumentFormFactory
             ])->columns(1);
     }
 
-    public static function detailsSection(string $title = 'Datos del Documento', array $extraFields = []): Forms\Components\Section
+    public static function detailsSection(string $title = 'Datos del Documento', array $extraFields = [], array $options = []): Forms\Components\Section
     {
-        return Forms\Components\Section::make($title)
-            ->schema(array_merge([
-                Forms\Components\TextInput::make('numero')
-                    ->label('Número')
-                    ->disabled()
-                    ->dehydrated(false)
-                    ->placeholder('Se generará automáticamente'),
-                
-                Forms\Components\Select::make('serie')
-                    ->label('Serie')
-                    ->options(BillingSerie::where('activo', true)->pluck('nombre', 'codigo'))
-                    ->default(fn() => BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A')
-                    ->searchable()
-                    ->preload()
-                    ->required()
-                    ->createOptionForm([
-                        Forms\Components\TextInput::make('codigo')->label('Código de Serie')->required()->maxLength(10),
-                        Forms\Components\TextInput::make('nombre')->label('Nombre')->required(),
-                        Forms\Components\Toggle::make('devenga_iva')->label('Devenga IVA')->default(true),
-                    ])
-                    ->createOptionUsing(fn (array $data) => BillingSerie::create($data)->codigo),
-                
-                Forms\Components\DatePicker::make('fecha')
-                    ->label('Fecha')
-                    ->default(now())
-                    ->required(),
+        $schema = [];
 
-                Forms\Components\Select::make('estado')
-                    ->label('Estado')
-                    ->options([
-                        'borrador' => 'Borrador',
-                        'confirmado' => 'Confirmado',
-                        'anulado' => 'Anulado',
-                    ])
-                    ->default('borrador')
-                    ->required(),
-            ], $extraFields))
+        if (!($options['exclude_numero'] ?? false)) {
+            $schema[] = Forms\Components\TextInput::make('numero')
+                ->label('Número')
+                ->disabled($options['disable_numero'] ?? true)
+                ->dehydrated(!($options['disable_numero'] ?? true))
+                ->required($options['numero_required'] ?? false)
+                ->placeholder($options['numero_placeholder'] ?? 'Se generará automáticamente');
+        }
+
+        $schema[] = Forms\Components\Select::make('serie')
+            ->label('Serie')
+            ->options(BillingSerie::where('activo', true)->pluck('nombre', 'codigo'))
+            ->default(fn() => BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A')
+            ->searchable()
+            ->preload()
+            ->required()
+            ->createOptionForm([
+                Forms\Components\TextInput::make('codigo')->label('Código de Serie')->required()->maxLength(10),
+                Forms\Components\TextInput::make('nombre')->label('Nombre')->required(),
+                Forms\Components\Toggle::make('devenga_iva')->label('Devenga IVA')->default(true),
+            ])
+            ->createOptionUsing(fn (array $data) => BillingSerie::create($data)->codigo);
+
+        $schema[] = Forms\Components\DatePicker::make('fecha')
+            ->label('Fecha')
+            ->default(now())
+            ->required();
+
+        if (!($options['exclude_estado'] ?? false)) {
+            $schema[] = Forms\Components\Select::make('estado')
+                ->label('Estado')
+                ->options([
+                    'borrador' => 'Borrador',
+                    'confirmado' => 'Confirmado',
+                    'anulado' => 'Anulado',
+                ])
+                ->default('borrador')
+                ->required();
+        }
+
+        return Forms\Components\Section::make($title)
+            ->schema(array_merge($schema, $extraFields))
             ->columns(3)
             ->compact();
     }
@@ -122,10 +129,10 @@ class DocumentFormFactory
                             Forms\Components\Grid::make(2)
                                 ->schema([
                                     Forms\Components\TextInput::make('sku')
-                                        ->label('Código/SKU (Producto)')
+                                        ->label('Referencia/SKU (Producto)')
                                         ->required(),
                                     Forms\Components\TextInput::make('name')
-                                        ->label('Nombre/Descripción (Producto)')
+                                        ->label('Nombre (Producto)')
                                         ->columnSpan(2)
                                         ->required(),
                                     Forms\Components\Select::make('iva')

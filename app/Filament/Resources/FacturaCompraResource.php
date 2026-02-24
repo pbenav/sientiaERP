@@ -52,6 +52,11 @@ class FacturaCompraResource extends Resource
                 Forms\Components\Select::make('estado')->label('Estado')->options([
                     'borrador' => 'Borrador', 'confirmado' => 'Confirmado', 'pagado' => 'Pagado', 'anulado' => 'Anulado',
                 ])->default('borrador')->required(),
+            ], [
+                'disable_numero' => false,
+                'numero_required' => true,
+                'numero_placeholder' => 'Número de factura del proveedor',
+                'exclude_estado' => true,
             ]),
 
             ...\App\Filament\Support\DocumentFormFactory::linesSection(),

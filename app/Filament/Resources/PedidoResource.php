@@ -77,6 +77,8 @@ class PedidoResource extends Resource
                             $fp->tramos()->create(['dias' => 0, 'porcentaje' => 100]);
                             return $fp->id;
                         }),
+                ], [
+                    'exclude_estado' => true,
                 ]),
 
                 ...\App\Filament\Support\DocumentFormFactory::linesSection(),

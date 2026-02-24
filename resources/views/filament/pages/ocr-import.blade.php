@@ -125,7 +125,7 @@
                                         </th>
                                         <th
                                             class="px-1 py-0 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-24">
-                                            Ref/SKU</th>
+                                            Referencia/SKU</th>
                                         <th
                                             class="px-1 py-0 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                                             Descripción</th>
@@ -137,10 +137,10 @@
                                             P. Compra</th>
                                         <th
                                             class="px-1 py-0 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-16">
-                                            Dto % (%)</th>
+                                            Dto %</th>
                                         <th
                                             class="px-1 py-0 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-20">
-                                            Marg %</th>
+                                            Margen %</th>
                                         <th
                                             class="px-1 py-0 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-24">
                                             Beneficio</th>
@@ -152,7 +152,7 @@
                                             P. Venta</th>
                                         <th
                                             class="px-1 py-0 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-32">
-                                            Imp. total</th>
+                                            Total Línea</th>
                                         <th class="px-1 py-0 w-8"></th>
                                     </tr>
                                 </thead>
