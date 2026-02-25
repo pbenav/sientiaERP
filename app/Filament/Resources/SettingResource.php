@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\SettingResource\Pages;
 use App\Filament\Resources\SettingResource\RelationManagers;
+use App\Filament\Support\HasRoleAccess;
 use App\Models\Setting;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -15,6 +16,13 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class SettingResource extends Resource
 {
+    use HasRoleAccess;
+
+    protected static string $viewPermission   = 'configuracion.view';
+    protected static string $createPermission = 'configuracion.create';
+    protected static string $editPermission   = 'configuracion.edit';
+    protected static string $deletePermission = 'configuracion.delete';
+
     protected static ?string $model = Setting::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';

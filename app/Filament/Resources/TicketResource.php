@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\TicketResource\Pages;
+use App\Filament\Support\HasRoleAccess;
 use App\Models\Ticket;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -14,6 +15,14 @@ use Filament\Infolists\Infolist;
 
 class TicketResource extends Resource
 {
+    use HasRoleAccess;
+
+    // TPV también accesible para vendedores
+    protected static string $viewPermission   = 'pos.view';
+    protected static string $createPermission = 'pos.operate';
+    protected static string $editPermission   = 'pos.operate';
+    protected static string $deletePermission = 'pos.operate';
+
     protected static ?string $model = Ticket::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-computer-desktop';

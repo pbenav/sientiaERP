@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ReciboResource\Pages;
+use App\Filament\Support\HasRoleAccess;
 use App\Models\Documento;
 use App\Models\Tercero;
 use Filament\Forms;
@@ -13,6 +14,13 @@ use Filament\Tables\Table;
 
 class ReciboResource extends Resource
 {
+    use HasRoleAccess;
+
+    protected static string $viewPermission   = 'ventas.view';
+    protected static string $createPermission = 'ventas.create';
+    protected static string $editPermission   = 'ventas.edit';
+    protected static string $deletePermission = 'ventas.delete';
+
     protected static ?string $model = Documento::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-credit-card';

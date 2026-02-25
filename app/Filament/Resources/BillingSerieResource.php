@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\BillingSerieResource\Pages;
 use App\Filament\Resources\BillingSerieResource\RelationManagers;
+use App\Filament\Support\HasRoleAccess;
 use App\Models\BillingSerie;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -15,6 +16,13 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class BillingSerieResource extends Resource
 {
+    use HasRoleAccess;
+
+    protected static string $viewPermission   = 'configuracion.view';
+    protected static string $createPermission = 'configuracion.create';
+    protected static string $editPermission   = 'configuracion.edit';
+    protected static string $deletePermission = 'configuracion.delete';
+
     protected static ?string $model = BillingSerie::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-list-bullet';

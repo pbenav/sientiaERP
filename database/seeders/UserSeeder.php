@@ -2,30 +2,49 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
 {
+    /**
+     * Seed de usuarios iniciales con sus roles.
+     *
+     * Credenciales por defecto:
+     *   Superadmin  → admin@sientia.com     / password123
+     *   Manager     → manager@sientia.com   / password123
+     *   Vendedor    → vendedor@sientia.com  / password123
+     */
     public function run(): void
     {
-        // Crear el usuario admin para el TUI
+        // ── Superadministrador ──────────────────────────────────────────────
         User::updateOrCreate(
             ['email' => 'admin@sientia.com'],
             [
-                'name' => 'Admin',
-                'password' => Hash::make('12345678'),
-                'email_verified_at' => now(),
+                'name'     => 'Administrador',
+                'password' => Hash::make('password123'),
+                'role'     => User::ROLE_SUPERADMIN,
             ]
         );
 
-        // Crear el usuario de test original por si acaso
+        // ── Manager ─────────────────────────────────────────────────────────
         User::updateOrCreate(
-            ['email' => 'demo@example.com'],
+            ['email' => 'manager@sientia.com'],
             [
-                'name' => 'Demo User',
-                'password' => Hash::make('password'),
+                'name'     => 'Manager',
+                'password' => Hash::make('password123'),
+                'role'     => User::ROLE_MANAGER,
+            ]
+        );
+
+        // ── Vendedor ─────────────────────────────────────────────────────────
+        User::updateOrCreate(
+            ['email' => 'vendedor@sientia.com'],
+            [
+                'name'     => 'Vendedor Demo',
+                'password' => Hash::make('password123'),
+                'role'     => User::ROLE_VENDEDOR,
             ]
         );
     }

@@ -64,6 +64,7 @@ class AdminPanelProvider extends PanelProvider
                 'Almacén',
                 'Gestión',
                 'Configuración',
+                'Administración',
             ])
             ->renderHook(
                 'panels::body.end',

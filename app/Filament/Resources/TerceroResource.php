@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\TerceroResource\Pages;
+use App\Filament\Support\HasRoleAccess;
 use App\Models\Tercero;
 use App\Models\TipoTercero;
 use Filament\Forms;
@@ -13,6 +14,13 @@ use Filament\Tables\Table;
 
 class TerceroResource extends Resource
 {
+    use HasRoleAccess;
+
+    protected static string $viewPermission   = 'terceros.view';
+    protected static string $createPermission = 'terceros.create';
+    protected static string $editPermission   = 'terceros.edit';
+    protected static string $deletePermission = 'terceros.delete';
+
     protected static ?string $model = Tercero::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';

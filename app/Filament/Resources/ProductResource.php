@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProductResource\Pages;
+use App\Filament\Support\HasRoleAccess;
 use App\Models\Product;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -12,6 +13,15 @@ use Filament\Tables\Table;
 
 class ProductResource extends Resource
 {
+    use HasRoleAccess;
+
+    // Vendedor puede VER productos pero no crear/editar/borrar
+    // Manager y Superadmin tienen acceso completo
+    protected static string $viewPermission   = 'almacen.view';
+    protected static string $createPermission = 'almacen.create';
+    protected static string $editPermission   = 'almacen.edit';
+    protected static string $deletePermission = 'almacen.delete';
+
     protected static ?string $model = Product::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-cube';

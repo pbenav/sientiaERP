@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\AlbaranCompraResource\Pages;
 use App\Filament\RelationManagers\LineasRelationManager;
+use App\Filament\Support\HasRoleAccess;
 use App\Models\Documento;
 use App\Models\Tercero;
 use App\Services\AgrupacionDocumentosService;
@@ -16,6 +17,13 @@ use Filament\Tables\Table;
 
 class AlbaranCompraResource extends Resource
 {
+    use HasRoleAccess;
+
+    protected static string $viewPermission   = 'compras.view';
+    protected static string $createPermission = 'compras.create';
+    protected static string $editPermission   = 'compras.edit';
+    protected static string $deletePermission = 'compras.delete';
+
     protected static ?string $model = Documento::class;
     protected static ?string $navigationIcon = 'heroicon-o-truck';
     protected static ?string $navigationLabel = 'Albaranes de Compra';

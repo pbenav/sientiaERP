@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\LabelFormatResource\Pages;
 use App\Filament\Resources\LabelFormatResource\RelationManagers;
+use App\Filament\Support\HasRoleAccess;
 use App\Models\LabelFormat;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -15,6 +16,13 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class LabelFormatResource extends Resource
 {
+    use HasRoleAccess;
+
+    protected static string $viewPermission   = 'almacen.view';
+    protected static string $createPermission = 'almacen.create';
+    protected static string $editPermission   = 'almacen.edit';
+    protected static string $deletePermission = 'almacen.delete';
+
     protected static ?string $model = LabelFormat::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-tag';

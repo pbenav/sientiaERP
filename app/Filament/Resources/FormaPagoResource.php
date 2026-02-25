@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\FormaPagoResource\Pages;
+use App\Filament\Support\HasRoleAccess;
 use App\Models\FormaPago;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -14,6 +15,13 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class FormaPagoResource extends Resource
 {
+    use HasRoleAccess;
+
+    protected static string $viewPermission   = 'configuracion.view';
+    protected static string $createPermission = 'configuracion.create';
+    protected static string $editPermission   = 'configuracion.edit';
+    protected static string $deletePermission = 'configuracion.delete';
+
     protected static ?string $model = FormaPago::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';

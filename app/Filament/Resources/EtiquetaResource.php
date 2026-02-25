@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\EtiquetaResource\Pages;
+use App\Filament\Support\HasRoleAccess;
 use App\Models\Documento;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -13,6 +14,13 @@ use Illuminate\Database\Eloquent\Builder;
 
 class EtiquetaResource extends Resource
 {
+    use HasRoleAccess;
+
+    protected static string $viewPermission   = 'almacen.view';
+    protected static string $createPermission = 'almacen.create';
+    protected static string $editPermission   = 'almacen.edit';
+    protected static string $deletePermission = 'almacen.delete';
+
     protected static ?string $model = Documento::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-tag';
