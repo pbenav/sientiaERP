@@ -27,7 +27,7 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\DocumentoLinea::observe(\App\Observers\DocumentoLineaObserver::class);
 
         // CONFIGURACIÓN PARA PROXY SSL
-        if (app()->environment('production') || app()->environment('staging')) {
+        if (env('FORCE_HTTPS', false)) {
             \Illuminate\Support\Facades\URL::forceRootUrl(config('app.url'));
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
