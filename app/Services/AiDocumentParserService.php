@@ -165,6 +165,7 @@ class AiDocumentParserService
                             
                             switch ($cleanType) {
                                 case 'description':
+                                case 'product_description':
                                     $line['description'] = $propValue;
                                     break;
                                 case 'quantity':
