@@ -28,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
 
         // CONFIGURACIÓN PARA PROXY SSL
         if (env('FORCE_HTTPS', false)) {
+            \Illuminate\Support\Facades\URL::forceRootUrl(config('app.url'));
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
     }
