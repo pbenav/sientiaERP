@@ -162,6 +162,8 @@ class AiDocumentParserService
                         } elseif (in_array($cleanPropType, ['product_code', 'sku', 'reference', 'referencia', 'codigo'])) {
                             $line['product_code'] = $propValue;
                             $line['reference'] = $propValue;
+                        } elseif (in_array($cleanPropType, ['discount', 'descuento', 'dto', 'discount_percent', 'pct_descuento', 'pct_dto', 'descuento_porcentaje'])) {
+                            $line['discount'] = (float) filter_var($propValue, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
                         } elseif (in_array($cleanPropType, ['amount', 'line_total', 'importe_linea', 'total'])) {
                             $line['line_total'] = (float) filter_var($propValue, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
                         }
