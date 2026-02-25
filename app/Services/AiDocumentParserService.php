@@ -153,16 +153,16 @@ class AiDocumentParserService
                         $cleanPropType = Str::snake(strtolower(last(explode('/', $rawType))));
                         $propValue = $prop->getMentionText();
                         
-                        if (in_array($cleanPropType, ['description', 'product_description', 'descripcion', 'nombre_articulo'])) {
+                        if (in_array($cleanPropType, ['description', 'product_description', 'item_description', 'descripcion', 'nombre_articulo'])) {
                             $line['description'] = $propValue;
                         } elseif (in_array($cleanPropType, ['quantity', 'cantidad', 'unidades', 'qty'])) {
                             $line['quantity'] = (float) filter_var($propValue, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
                         } elseif (in_array($cleanPropType, ['unit_price', 'precio_unitario', 'precio_coste', 'unit_cost'])) {
                             $line['unit_price'] = (float) filter_var($propValue, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
-                        } elseif (in_array($cleanPropType, ['product_code', 'sku', 'reference', 'referencia', 'codigo'])) {
+                        } elseif (in_array($cleanPropType, ['product_code', 'sku', 'reference', 'referencia', 'codigo', 'item_code'])) {
                             $line['product_code'] = $propValue;
                             $line['reference'] = $propValue;
-                        } elseif (in_array($cleanPropType, ['discount', 'descuento', 'dto', 'discount_percent', 'pct_descuento', 'pct_dto', 'descuento_porcentaje'])) {
+                        } elseif (in_array($cleanPropType, ['discount', 'descuento', 'dto', 'discount_percent', 'discount_percentage', 'pct_descuento', 'pct_dto', 'descuento_porcentaje'])) {
                             $line['discount'] = (float) filter_var($propValue, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
                         } elseif (in_array($cleanPropType, ['amount', 'line_total', 'importe_linea', 'total'])) {
                             $line['line_total'] = (float) filter_var($propValue, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
