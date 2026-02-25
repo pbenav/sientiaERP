@@ -147,11 +147,11 @@ class AiDocumentParserService
                     ];
                     
                     foreach ($entity->getProperties() as $prop) {
-                        $propType = Str::snake(strtolower($prop->getType()));
-                        $propValue = $prop->getMentionText();
+                        $rawType = $prop->getType();
                         
-                        // Normalize the type (remote parent prefix if any, e.g. line_item/description)
-                        $cleanPropType = last(explode('/', $propType));
+                        // Normalizamos: quitamos el prefijo si existe, bajamos a minúsculas y pasamos a snake_case
+                        $cleanPropType = Str::snake(strtolower(last(explode('/', $rawType))));
+                        $propValue = $prop->getMentionText();
                         
                         if (in_array($cleanPropType, ['description', 'product_description', 'descripcion', 'nombre_articulo'])) {
                             $line['description'] = $propValue;
