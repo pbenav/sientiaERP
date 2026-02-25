@@ -131,8 +131,14 @@ class AiDocumentParserService
                             $entity->getNormalizedValue()->getDateValue()->getMonth(),
                             $entity->getNormalizedValue()->getDateValue()->getDay())
                         : $value;
-                } elseif (in_array($type, ['invoice_id', 'numero_documento', 'numero_factura', 'numero_albaran', 'document_id', 'document_number'])) {
+                } elseif (in_array($type, ['invoice_id', 'numero_documento', 'numero_factura', 'numero_albaran', 'document_id', 'document_number', 'delivery_note_number'])) {
                     $data['document_number'] = $value;
+                } elseif (in_array($type, ['subtotal', 'base_imponible', 'net_amount', 'importe_neto', 'subtotal_general'])) {
+                    $data['subtotal'] = (float) filter_var($value, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
+                } elseif (in_array($type, ['total_discount', 'descuento_total', 'descuento_general', 'total_discount_amount'])) {
+                    $data['total_discount'] = (float) filter_var($value, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
+                } elseif (in_array($type, ['total_units', 'unidades_totales', 'cantidad_total', 'total_quantity'])) {
+                    $data['total_units'] = (float) filter_var($value, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
                 } elseif (in_array($type, ['total_amount', 'importe_total', 'total_documento', 'grand_total', 'total'])) {
                      $data['total'] = (float) filter_var($value, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
                 } elseif (in_array($type, ['line_item', 'linea_articulo', 'partida', 'item'])) {
@@ -272,6 +278,10 @@ JSON STRUCTURE:
   "provider_nif": "CIF/NIF of the supplier",
   "document_date": "YYYY-MM-DD",
   "document_number": "Invoice or Delivery Note number",
+  "subtotal": 0.00,
+  "total_discount": 0.00,
+  "total_units": 0.00,
+  "total_amount": 0.00,
   "items": [
     {
       "description": "Full product name (merge multi-line descriptions)",

@@ -103,6 +103,33 @@
                     </div>
                 </div>
 
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unidades
+                            Totales</label>
+                        <input type="number" wire:model="parsedData.total_units"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subtotal
+                            General</label>
+                        <input type="number" step="0.01" wire:model="parsedData.subtotal"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descuento
+                            Total</label>
+                        <input type="number" step="0.01" wire:model="parsedData.total_discount"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Total
+                            Albarán</label>
+                        <input type="number" step="0.01" wire:model="parsedData.total_amount"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    </div>
+                </div>
+
                 @if (!empty($parsedData['items']))
                     <div class="mt-1">
                         <div class="flex justify-between items-center mb-1">

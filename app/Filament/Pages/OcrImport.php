@@ -39,6 +39,10 @@ class OcrImport extends Page implements HasForms
         'supplier' => null,
         'supplier_id' => null,
         'document_number' => null,
+        'subtotal' => 0.0,
+        'total_discount' => 0.0,
+        'total_units' => 0.0,
+        'total_amount' => 0.0,
         'items' => [],
     ];
     
@@ -140,7 +144,10 @@ class OcrImport extends Page implements HasForms
             $this->parsedData['nif'] = $result['provider_nif'] ?? null;
             $this->parsedData['supplier'] = $result['provider_name'] ?? null;
             $this->parsedData['document_number'] = $result['document_number'] ?? null;
-            $this->parsedData['total'] = null;
+            $this->parsedData['subtotal'] = $result['subtotal'] ?? 0.0;
+            $this->parsedData['total_discount'] = $result['total_discount'] ?? 0.0;
+            $this->parsedData['total_units'] = $result['total_units'] ?? 0.0;
+            $this->parsedData['total_amount'] = $result['total'] ?? 0.0;
             $this->parsedData['matched_provider_id'] = $result['matched_provider_id'] ?? null;
             
             $formattedItems = [];
@@ -397,6 +404,9 @@ class OcrImport extends Page implements HasForms
             'serie' => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A',
             'tercero_id' => $supplierId ?? $this->parsedData['matched_provider_id'] ?? null,
             'referencia_proveedor' => (string) ($this->parsedData['document_number'] ?? 'REF-' . strtoupper(uniqid())),
+            'subtotal' => (float) ($this->parsedData['subtotal'] ?? 0),
+            'descuento' => (float) ($this->parsedData['total_discount'] ?? 0),
+            'total' => (float) ($this->parsedData['total_amount'] ?? 0),
             'archivo' => $finalPath,
         ];
 
@@ -423,6 +433,9 @@ class OcrImport extends Page implements HasForms
 
         if (!empty($this->parsedData['supplier']) && empty($this->parsedData['matched_provider_id'])) {
             $observaciones[] = "Proveedor detectado por IA (no macheado): " . $this->parsedData['supplier'];
+        }
+        if (!empty($this->parsedData['total_units'])) {
+            $observaciones[] = "Unidades totales extraídas: " . $this->parsedData['total_units'];
         }
         if (!empty($this->rawText)) {
             $observaciones[] = "--- OCR RAW TEXT ---\n" . $this->rawText;
