@@ -137,33 +137,57 @@ class AiDocumentParserService
                     case 'invoice_id':
                         $data['document_number'] = $value;
                         break;
+                    case 'total_amount':
+                    case 'net_amount':
+                        // Only set if not already set or prioritize total_amount
+                        if ($type === 'total_amount' || empty($data['total'])) {
+                            $data['total'] = (float) filter_var($value, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
+                        }
+                        break;
                     case 'line_item':
-                        // Nested entities for line items
+                        // Hierarchical entities for line items
                         $line = [
                             'description' => '',
-                            'quantity' => 1,
-                            'unit_price' => 0,
-                            'discount' => 0,
+                            'quantity' => 1.0,
+                            'unit_price' => 0.0,
+                            'discount' => 0.0,
                             'reference' => null,
                             'product_code' => null
                         ];
                         
+                        // Recorrer las propiedades hijas (sub-entidades)
                         foreach ($entity->getProperties() as $prop) {
                             $propType = $prop->getType();
                             $propValue = $prop->getMentionText();
                             
-                            if ($propType === 'line_item/description') $line['description'] = $propValue;
-                            if ($propType === 'line_item/quantity') $line['quantity'] = (float) filter_var($propValue, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
-                            if ($propType === 'line_item/unit_price') $line['unit_price'] = (float) filter_var($propValue, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
+                            // Normalizar el tipo (quitar prefijo line_item/ si existe)
+                            $cleanType = str_replace('line_item/', '', $propType);
                             
-                            // Extract product code/SKU/reference
-                            if (in_array($propType, ['line_item/product_code', 'line_item/sku', 'line_item/reference'])) {
-                                $line['product_code'] = $propValue;
-                                $line['reference'] = $propValue;
+                            switch ($cleanType) {
+                                case 'description':
+                                    $line['description'] = $propValue;
+                                    break;
+                                case 'quantity':
+                                    $line['quantity'] = (float) filter_var($propValue, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
+                                    break;
+                                case 'unit_price':
+                                    $line['unit_price'] = (float) filter_var($propValue, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
+                                    break;
+                                case 'product_code':
+                                case 'sku':
+                                case 'reference':
+                                    $line['product_code'] = $propValue;
+                                    $line['reference'] = $propValue;
+                                    break;
+                                case 'amount':
+                                    // Total de la línea (opcional, lo calculamos si no viene)
+                                    $line['line_total'] = (float) filter_var($propValue, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
+                                    break;
                             }
                         }
                         
-                        if (!empty($line['description'])) {
+                        // Solo añadir si tiene descripción o algo de contenido
+                        if (!empty($line['description']) || $line['unit_price'] > 0) {
                             $data['items'][] = $line;
                         }
                         break;
