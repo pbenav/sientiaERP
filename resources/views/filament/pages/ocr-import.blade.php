@@ -68,22 +68,34 @@
             <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-1 space-y-1">
                 <h3 class="text-sm font-semibold">Datos Detectados - Revisa y Edita</h3>
 
-                <div class="grid grid-cols-2 gap-0">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-1 items-end">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha</label>
+                        <label class="block text-[11px] font-medium text-gray-500 dark:text-gray-400">Fecha</label>
                         <input type="date" wire:model="parsedData.date"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            class="mt-0 block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nº
+                        <label class="block text-[11px] font-medium text-gray-500 dark:text-gray-400">Nº
                             Documento</label>
                         <input type="text" wire:model="parsedData.document_number"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            class="mt-0 block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                     </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-gray-500 dark:text-gray-400">NIF/CIF</label>
+                        <input type="text" wire:model="parsedData.nif"
+                            class="mt-0 block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-gray-500 dark:text-gray-400">Unidades
+                            Totales</label>
+                        <input type="number" wire:model="parsedData.total_units"
+                            class="mt-0 block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    </div>
+
                     <div class="col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Proveedor</label>
+                        <label class="block text-[11px] font-medium text-gray-500 dark:text-gray-400">Proveedor</label>
                         <select wire:model="parsedData.supplier_id"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white {{ $displayUppercase ? 'uppercase-display' : '' }}">
+                            class="mt-0 block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white {{ $displayUppercase ? 'uppercase-display' : '' }}">
                             <option value="">-- Seleccionar Proveedor --</option>
                             @foreach ($suppliers as $supplier)
                                 <option value="{{ $supplier->id }}">{{ $supplier->nombre_comercial }} @if ($supplier->nif_cif)
@@ -92,43 +104,32 @@
                                 </option>
                             @endforeach
                         </select>
-                        @if (!empty($parsedData['supplier']))
-                            <p class="text-xs text-gray-500 mt-1">Detectado por OCR: {{ $parsedData['supplier'] }}</p>
-                        @endif
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">NIF/CIF</label>
-                        <input type="text" wire:model="parsedData.nif"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+
+                    <div class="grid grid-cols-3 gap-1 col-span-2">
+                        <div>
+                            <label
+                                class="block text-[11px] font-medium text-gray-500 dark:text-gray-400">Subtotal</label>
+                            <input type="number" step="0.01" wire:model="parsedData.subtotal"
+                                class="mt-0 block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-gray-500 dark:text-gray-400">Dto.
+                                Total</label>
+                            <input type="number" step="0.01" wire:model="parsedData.total_discount"
+                                class="mt-0 block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-gray-500 dark:text-gray-400">Total</label>
+                            <input type="number" step="0.01" wire:model="parsedData.total_amount"
+                                class="mt-0 block w-full rounded border-gray-300 py-1 text-xs shadow-sm font-bold bg-primary-50 dark:bg-primary-900/40 focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unidades
-                            Totales</label>
-                        <input type="number" wire:model="parsedData.total_units"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subtotal
-                            General</label>
-                        <input type="number" step="0.01" wire:model="parsedData.subtotal"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descuento
-                            Total</label>
-                        <input type="number" step="0.01" wire:model="parsedData.total_discount"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Total
-                            Albarán</label>
-                        <input type="number" step="0.01" wire:model="parsedData.total_amount"
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    </div>
-                </div>
+                @if (!empty($parsedData['supplier']))
+                    <p class="text-[10px] text-gray-500 italic">Detectado: {{ $parsedData['supplier'] }}</p>
+                @endif
 
                 @if (!empty($parsedData['items']))
                     <div class="mt-1">

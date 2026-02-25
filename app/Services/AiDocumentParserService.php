@@ -124,7 +124,7 @@ class AiDocumentParserService
                     $data['provider_name'] = $value;
                 } elseif (in_array($type, ['supplier_tax_id', 'nif_proveedor', 'cif_proveedor', 'nif_emisor', 'cif_emisor', 'vendor_tax_id'])) {
                     $data['provider_nif'] = $value;
-                } elseif (in_array($type, ['invoice_date', 'fecha_documento', 'fecha_factura', 'fecha_albaran', 'document_date'])) {
+                } elseif (in_array($type, ['invoice_date', 'fecha_documento', 'fecha_factura', 'fecha_albaran', 'document_date', 'delivery_note_date'])) {
                     $data['document_date'] = $entity->getNormalizedValue()?->getDateValue() 
                         ? sprintf('%04d-%02d-%02d', 
                             $entity->getNormalizedValue()->getDateValue()->getYear(),
