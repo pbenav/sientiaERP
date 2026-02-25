@@ -506,6 +506,7 @@ class OcrImport extends Page implements HasForms
                         }
                     }
                 }
+                unset($item);
             }
 
             // DIRECT CREATION
