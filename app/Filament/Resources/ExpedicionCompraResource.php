@@ -11,7 +11,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Actions\Action;
-use Filament\Notifications\Notification;
 
 class ExpedicionCompraResource extends Resource
 {
@@ -96,7 +95,6 @@ class ExpedicionCompraResource extends Resource
     {
         return $table
             ->defaultSort('fecha', 'desc')
-            ->modifyQueryUsing(fn ($query) => $query->where('archivado', false))
             ->columns([
                 Tables\Columns\TextColumn::make('fecha')
                     ->label('Fecha')
@@ -163,7 +161,7 @@ class ExpedicionCompraResource extends Resource
 
                 Tables\Filters\Filter::make('con_alerta')
                     ->label('⚠️ Pagado sin recoger')
-                    ->query(fn (Builder $q) => $q->where('pagado', true)->where('recogido', false)),
+                    ->query(fn ($query) => $query->where('pagado', true)->where('recogido', false)),
             ])
             ->actions([
                 // ── Importar al OCR ──────────────────────────────────────────
@@ -178,26 +176,6 @@ class ExpedicionCompraResource extends Resource
 
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
-            ])
-            ->headerActions([
-                // ── Resetear expedición ──────────────────────────────────────
-                Action::make('resetear')
-                    ->label('Resetear expedición')
-                    ->icon('heroicon-o-archive-box-arrow-down')
-                    ->color('danger')
-                    ->requiresConfirmation()
-                    ->modalHeading('Resetear expedición activa')
-                    ->modalDescription('Se archivarán todos los registros actuales. Podrás consultarlos en el histórico. ¿Continuar?')
-                    ->modalSubmitActionLabel('Sí, archivar y resetear')
-                    ->action(function () {
-                        $archivados = ExpedicionCompra::where('archivado', false)->update(['archivado' => true]);
-
-                        Notification::make()
-                            ->title('Expedición archivada')
-                            ->body("{$archivados} registros archivados correctamente.")
-                            ->success()
-                            ->send();
-                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
