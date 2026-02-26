@@ -53,6 +53,36 @@ class ExpedicionResource extends Resource
                         ->rows(2)
                         ->columnSpan(2),
                 ]),
+
+            // ── Totales — solo visible al editar ─────────────────────────────
+            Forms\Components\Section::make('Totales de la expedición')
+                ->columns(3)
+                ->visibleOn('edit')
+                ->schema([
+                    Forms\Components\Placeholder::make('total_importe')
+                        ->label('💶 Total compras')
+                        ->content(function ($record) {
+                            if (!$record) return '—';
+                            $total = $record->compras()->sum('importe');
+                            return number_format($total, 2, ',', '.') . ' €';
+                        }),
+
+                    Forms\Components\Placeholder::make('pendientes_recogida')
+                        ->label('🚚 Pendientes de recoger')
+                        ->content(function ($record) {
+                            if (!$record) return '—';
+                            $n = $record->compras()->where('pagado', true)->where('recogido', false)->count();
+                            return $n > 0 ? "⚠️ {$n} compra(s)" : '✅ Todo recogido';
+                        }),
+
+                    Forms\Components\Placeholder::make('sin_pagar')
+                        ->label('💳 Sin pagar')
+                        ->content(function ($record) {
+                            if (!$record) return '—';
+                            $n = $record->compras()->where('pagado', false)->count();
+                            return $n > 0 ? "⚠️ {$n} compra(s)" : '✅ Todo pagado';
+                        }),
+                ]),
         ]);
     }
 
