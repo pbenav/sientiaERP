@@ -10,7 +10,7 @@ use Carbon\Carbon;
 class DailySalesChart extends ChartWidget
 {
     protected static ?string $heading = 'Ventas del Día (POS + Gestión)';
-    protected static ?int $sort = 3;
+    protected static ?int $sort = 2;
     protected static ?string $maxHeight = '275px';
 
     protected function getData(): array

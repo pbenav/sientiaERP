@@ -10,7 +10,7 @@ use Carbon\Carbon;
 class MonthlySalesChart extends ChartWidget
 {
     protected static ?string $heading = 'Ventas del Mes (POS + Gestión)';
-    protected static ?int $sort = 4;
+    protected static ?int $sort = 3;
     protected static ?string $maxHeight = '275px';
 
     protected function getData(): array

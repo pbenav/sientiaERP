@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 class TopProductsChart extends ChartWidget
 {
     protected static ?string $heading = 'Top 10 Productos por Ingresos (Últimos 30 días)';
-    protected static ?int $sort = 3;
+    protected static ?int $sort = 4;
     protected static ?string $maxHeight = '275px';
 
     protected function getData(): array
