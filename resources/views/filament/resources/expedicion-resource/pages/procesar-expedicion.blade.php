@@ -94,10 +94,17 @@
                             </td>
                             {{-- Acción OCR --}}
                             <td class="px-4 py-3 text-center">
-                                <a href="{{ $this->getOcrUrl($compra->id) }}"
-                                   class="inline-flex items-center gap-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-3 py-1.5 transition-colors shadow-sm">
-                                    🤖 Importar IA
-                                </a>
+                                @if ($compra->documento_id)
+                                    <a href="{{ route('filament.admin.resources.albaran-compras.edit', ['record' => $compra->documento_id]) }}"
+                                       class="inline-flex items-center gap-1 rounded-lg bg-green-500 hover:bg-green-600 text-white text-xs font-semibold px-3 py-1.5 transition-colors shadow-sm">
+                                        ✅ Ver Albarán #{{ $compra->documento?->numero ?? $compra->documento_id }}
+                                    </a>
+                                @else
+                                    <a href="{{ $this->getOcrUrl($compra->id) }}"
+                                       class="inline-flex items-center gap-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-3 py-1.5 transition-colors shadow-sm">
+                                        🤖 Importar IA
+                                    </a>
+                                @endif
                             </td>
                         </tr>
                     @empty
