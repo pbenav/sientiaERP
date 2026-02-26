@@ -20,6 +20,7 @@ class ExpedicionCompra extends Model
         'pagado',
         'recogido',
         'documento_path',
+        'documento_id',
         'archivado',
     ];
 
@@ -28,6 +29,7 @@ class ExpedicionCompra extends Model
         'importe'   => 'decimal:2',
         'pagado'    => 'boolean',
         'recogido'  => 'boolean',
+        'documento_id' => 'integer',
         'archivado' => 'boolean',
     ];
 
@@ -41,6 +43,11 @@ class ExpedicionCompra extends Model
     public function tercero(): BelongsTo
     {
         return $this->belongsTo(\App\Models\Tercero::class);
+    }
+
+    public function documento(): BelongsTo
+    {
+        return $this->belongsTo(Documento::class, 'documento_id');
     }
 
     // ── Scopes ────────────────────────────────────────────────────────────────
