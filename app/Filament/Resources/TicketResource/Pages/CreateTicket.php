@@ -840,11 +840,22 @@ protected function procesarLineaProducto()
         // PASO 6: Guardar ticket con TODOS los cambios de una vez
         $this->ticket->descuento_porcentaje = (float)($this->descuento_general_porcentaje ?: 0);
         $this->ticket->descuento_importe = (float)($this->descuento_general_importe ?: 0);
-        $this->ticket->pago_efectivo = (float)($this->pago_efectivo ?: 0);
-        $this->ticket->pago_tarjeta = (float)($this->pago_tarjeta ?: 0);
+        
+        // ASEGURAR DESGLOSE DE PAGO si no se ha especificado manualmente (PAGO ÚNICO)
+        $pEf = (float)($this->pago_efectivo ?: 0);
+        $pTa = (float)($this->pago_tarjeta ?: 0);
+        
+        if ($this->payment_method === 'cash' && $pEf == 0) {
+            $pEf = (float)$this->total;
+        } elseif ($this->payment_method === 'card' && $pTa == 0) {
+            $pTa = (float)$this->total;
+        }
+        
+        $this->ticket->pago_efectivo = $pEf;
+        $this->ticket->pago_tarjeta = $pTa;
         $this->ticket->payment_method = $this->payment_method;
-        $this->ticket->amount_paid = (float)($this->entrega ?: 0);
-        $this->ticket->change_given = max(0, (float)($this->entrega ?: 0) - (float)($this->total ?: 0));
+        $this->ticket->amount_paid = (float)($this->entrega ?: ($pEf + $pTa));
+        $this->ticket->change_given = max(0, (float)$this->ticket->amount_paid - (float)($this->total ?: 0));
         
         // Vincular a la sesión activa
         if ($this->activeSession) {
