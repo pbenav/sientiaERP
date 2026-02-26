@@ -54,6 +54,30 @@
             {{ $this->form }}
             <p class="text-xs text-gray-500 text-right mt-2">Límite: {{ $maxUploadSize }}</p>
 
+            {{-- ── Banner: documento precargado desde la expedición ─────────────── --}}
+            @if ($preloadedDocumentPath)
+                <div class="mt-3 rounded-lg border border-blue-300 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-700 p-3 flex items-start gap-3">
+                    <div class="flex-shrink-0 text-blue-500 mt-0.5 text-2xl">📄</div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-bold text-blue-800 dark:text-blue-200">
+                            Documento listo para procesar
+                        </p>
+                        <p class="text-xs text-blue-700 dark:text-blue-300 mt-0.5 truncate">
+                            <strong>{{ $preloadedDocumentLabel }}</strong>
+                        </p>
+                        <p class="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                            Este fichero se usará automáticamente al pulsar <em>"Procesar Imagen"</em>.
+                            No es necesario subir ningún archivo adicional.
+                        </p>
+                        <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($preloadedDocumentPath) }}"
+                           target="_blank"
+                           class="inline-flex items-center mt-1.5 text-xs font-medium text-blue-700 dark:text-blue-300 hover:underline">
+                            👁 Ver documento
+                        </a>
+                    </div>
+                </div>
+            @endif
+
             @if (!$showDataForm)
                 <div class="flex justify-end mt-4">
                     <x-filament::button wire:click="processImage" wire:loading.attr="disabled">

@@ -103,7 +103,7 @@ class ExpedicionResource extends Resource
                     ->label('Procesar IA')
                     ->icon('heroicon-o-cpu-chip')
                     ->color('warning')
-                    ->url(fn ($record) => Pages\ProcesarExpedicion::getUrl(['record' => $record]))
+                    ->url(fn ($record) => static::getUrl('procesar', ['record' => $record]))
                     ->tooltip('Importar albaranes de esta expedición con IA'),
                 Tables\Actions\EditAction::make()
                     ->label('Editar'),
