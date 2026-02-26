@@ -10,12 +10,6 @@ class ExpedicionStatsWidget extends BaseWidget
 {
     protected static ?string $pollingInterval = null;
 
-    // Vinculado al Resource para que solo aparezca en sus páginas
-    public static function canView(): bool
-    {
-        return true;
-    }
-
     protected function getStats(): array
     {
         $total        = ExpedicionCompra::activas()->sum('importe');

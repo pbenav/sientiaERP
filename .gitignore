@@ -26,3 +26,4 @@ yarn-error.log
 # Local configuration overrides
 php-local.ini
 /public/.user.ini
+shop
