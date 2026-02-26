@@ -39,10 +39,9 @@
             }
         }
     }"
-        class="flex flex-col bg-white border border-gray-200 shadow-sm font-sans text-sm text-gray-900 h-[calc(100vh-170px)] md:h-[calc(100vh-200px)] overflow-hidden md:rounded-lg">
-
+        class="flex flex-col text-gray-500 bg-white border border-gray-200 shadow-sm font-sans text-sm h-[calc(100vh-170px)] md:h-[calc(100vh-200px)] overflow-hidden md:rounded-lg">
         {{-- Barra de Navegación Profesional --}}
-        <div class="bg-gray-800 text-white px-4 py-2 flex justify-between items-center shrink-0">
+        <div class="bg-gray-800 text-red-300 px-4 py-2 flex justify-between items-center shrink-0">
             <div class="flex items-center gap-4">
                 <div class="flex items-center gap-2">
                     <x-heroicon-s-computer-desktop class="w-5 h-5 text-primary-400" />
@@ -71,14 +70,14 @@
             <div class="flex items-center gap-2">
                 @if ($isSessionOpen)
                     <button wire:click="openClosingModal" type="button"
-                        class="group flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-gray-900 rounded-md font-black text-[11px] uppercase transition shadow-lg active:scale-95">
+                        class="group flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600  rounded-md font-black text-[11px] uppercase transition shadow-lg active:scale-95">
                         <x-heroicon-s-banknotes class="w-4 h-4 group-hover:rotate-12 transition-transform" />
                         CIERRE / ARQUEO
                     </button>
                 @endif
 
                 <button wire:click="salirPos" type="button"
-                    class="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-red-600 text-white rounded-md font-black text-[11px] uppercase transition shadow-lg active:scale-95 border border-white/10">
+                    class="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-red-600 rounded-md font-black text-[11px] uppercase transition shadow-lg active:scale-95 border border-white/10">
                     <x-heroicon-s-arrow-left-on-rectangle class="w-4 h-4" />
                     SALIR (TPV)
                 </button>
@@ -163,29 +162,31 @@
                 x-data="{ focusNext(nextId) { setTimeout(() => document.getElementById(nextId)?.focus(), 100); } }" @focus-cantidad.window="focusNext('pos-cantidad')"
                 @focus-precio.window="focusNext('pos-precio')" @focus-descuento.window="focusNext('pos-descuento')"
                 @focus-codigo.window="focusNext('pos-codigo')">
-                <div class="w-32">
+                <div class="w-32" wire:key="container-codigo">
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Código</label>
-                    <input type="text" wire:model.live="nuevoCodigo" wire:blur="buscarProducto(true)"
+                    <input type="text" wire:model.live.debounce.500ms="nuevoCodigo"
                         wire:keydown.enter.prevent="buscarProducto(true)" list="codigos-list" id="pos-codigo"
+                        autocomplete="off"
                         class="pos-input w-full h-9 border-gray-300 rounded px-2 font-mono text-sm focus:ring-primary-500 focus:border-primary-500 uppercase"
                         placeholder="SKU" autofocus />
                     <datalist id="codigos-list">
                         @foreach ($resultadosCodigo as $id => $sku)
-                            <option value="{{ $sku }}">{{ $sku }}</option>
+                            <option value="{{ $sku }}">
                         @endforeach
                     </datalist>
                 </div>
 
-                <div class="flex-1 min-w-[200px]">
+                <div class="flex-1 min-w-[200px]" wire:key="container-descripcion">
                     <label
                         class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Descripción</label>
-                    <input type="text" wire:model.live="nuevoNombre" wire:blur="buscarProducto(true)"
+                    <input type="text" wire:model.live.debounce.500ms="nuevoNombre"
                         wire:keydown.enter.prevent="buscarProducto(true)" list="productos-list" id="pos-descripcion"
+                        autocomplete="off"
                         class="pos-input w-full h-9 border-gray-300 rounded px-2 text-sm focus:ring-primary-500 focus:border-primary-500"
                         placeholder="Escribe para buscar..." />
                     <datalist id="productos-list">
                         @foreach ($resultadosNombre as $id => $nombre)
-                            <option value="{{ $nombre }}">{{ $nombre }}</option>
+                            <option value="{{ $nombre }}">
                         @endforeach
                     </datalist>
                 </div>
@@ -231,8 +232,9 @@
             </div>
 
             {{-- Grid --}}
-            <div class="flex-1 border border-gray-200 rounded-lg bg-white shadow-sm overflow-hidden flex flex-col">
-                <div class="overflow-y-auto flex-1">
+            <div class="border border-gray-200 rounded-lg bg-white shadow-sm overflow-hidden flex flex-col shrink-0"
+                style="height: 380px !important;">
+                <div class="overflow-y-auto" style="height: 100% !important;">
                     <table class="w-full text-sm text-left">
                         <thead class="bg-gray-200 text-gray-700 text-xs uppercase sticky top-0">
                             <tr>

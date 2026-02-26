@@ -134,26 +134,27 @@ class CreateTicket extends Page
     {
         $this->tpvActivo = $slot;
         
-        // Intentar cargar ticket abierto para este slot
+        // Intentar cargar el ticket abierto más RECIENTE para este usuario y slot
         $ticketExistente = Ticket::where('tpv_slot', $slot)
+                                 ->where('user_id', auth()->id())
                                  ->where('status', 'open')
+                                 ->orderBy('created_at', 'desc')
                                  ->first();
         
-        $ticketExistia = (bool) $ticketExistente;
-        
-        $this->ticket = Ticket::firstOrCreate(
-            [
+        if ($ticketExistente) {
+            $this->ticket = $ticketExistente;
+        } else {
+            // Solo crear si no existe uno abierto
+            $this->ticket = Ticket::create([
                 'tpv_slot' => $slot,
-                'status' => 'open',
-            ],
-            [
                 'user_id' => auth()->id(),
+                'status' => 'open',
                 'session_id' => (string) \Illuminate\Support\Str::uuid(),
                 'cash_session_id' => $this->activeSession?->id,
                 'numero' => 'BORRADOR',
                 'created_at' => now(),
-            ]
-        );
+            ]);
+        }
         
         // IMPORTANTE: Asignar cliente por defecto si no tiene cliente asignado
         if (!$this->ticket->tercero_id) {
@@ -814,6 +815,7 @@ protected function procesarLineaProducto()
         
         // PASO 4: Cambiar estado del ticket
         $this->ticket->status = 'completed';
+        $this->ticket->completed_at = now();
         
         // PASO 5: Asignar número definitivo si aún es BORRADOR
         if ($this->ticket->numero === 'BORRADOR') {
@@ -838,11 +840,22 @@ protected function procesarLineaProducto()
         // PASO 6: Guardar ticket con TODOS los cambios de una vez
         $this->ticket->descuento_porcentaje = (float)($this->descuento_general_porcentaje ?: 0);
         $this->ticket->descuento_importe = (float)($this->descuento_general_importe ?: 0);
-        $this->ticket->pago_efectivo = (float)($this->pago_efectivo ?: 0);
-        $this->ticket->pago_tarjeta = (float)($this->pago_tarjeta ?: 0);
+        
+        // ASEGURAR DESGLOSE DE PAGO si no se ha especificado manualmente (PAGO ÚNICO)
+        $pEf = (float)($this->pago_efectivo ?: 0);
+        $pTa = (float)($this->pago_tarjeta ?: 0);
+        
+        if ($this->payment_method === 'cash' && $pEf == 0) {
+            $pEf = (float)$this->total;
+        } elseif ($this->payment_method === 'card' && $pTa == 0) {
+            $pTa = (float)$this->total;
+        }
+        
+        $this->ticket->pago_efectivo = $pEf;
+        $this->ticket->pago_tarjeta = $pTa;
         $this->ticket->payment_method = $this->payment_method;
-        $this->ticket->amount_paid = (float)($this->entrega ?: 0);
-        $this->ticket->change_given = max(0, (float)($this->entrega ?: 0) - (float)($this->total ?: 0));
+        $this->ticket->amount_paid = (float)($this->entrega ?: ($pEf + $pTa));
+        $this->ticket->change_given = max(0, (float)$this->ticket->amount_paid - (float)($this->total ?: 0));
         
         // Vincular a la sesión activa
         if ($this->activeSession) {
@@ -881,8 +894,22 @@ protected function procesarLineaProducto()
         // Si el ticket actual está vacío y es borrador, no hacemos nada especial
         // Si tiene líneas, preguntamos? (Por ahora reseteamos)
         
-        if ($this->ticket && $this->ticket->status === 'open' && $this->ticket->items()->count() === 0) {
-            // Ya está vacío, solo limpiar inputs
+        // Buscar si ya existe un ticket abierto para este slot y usuario
+        $ticketExistente = Ticket::where('tpv_slot', $this->tpvActivo)
+                                 ->where('user_id', auth()->id())
+                                 ->where('status', 'open')
+                                 ->first();
+        
+        if ($ticketExistente) {
+            // Si ya existe uno, simplemente lo limpiamos (vaciamos líneas y reseteamos totales)
+            $ticketExistente->items()->delete();
+            $ticketExistente->descuento_porcentaje = 0;
+            $ticketExistente->descuento_importe = 0;
+            $ticketExistente->pago_efectivo = 0;
+            $ticketExistente->pago_tarjeta = 0;
+            $ticketExistente->amount_paid = 0;
+            $ticketExistente->save();
+            $this->ticket = $ticketExistente;
         } else {
             // Crear un nuevo ticket para este slot
             $this->ticket = Ticket::create([
@@ -893,13 +920,13 @@ protected function procesarLineaProducto()
                 'status' => 'open',
                 'created_at' => now(),
             ]);
-            
-            // Asignar cliente por defecto
-            $clientePorDefectoId = \App\Models\Setting::get('pos_default_tercero_id');
-            if ($clientePorDefectoId) {
-                $this->ticket->tercero_id = $clientePorDefectoId;
-                $this->ticket->save();
-            }
+        }
+
+        // Re-asignar cliente por defecto si es necesario
+        $clientePorDefectoId = \App\Models\Setting::get('pos_default_tercero_id');
+        if ($clientePorDefectoId) {
+            $this->ticket->tercero_id = $clientePorDefectoId;
+            $this->ticket->save();
         }
         
         $this->lineas = [];
