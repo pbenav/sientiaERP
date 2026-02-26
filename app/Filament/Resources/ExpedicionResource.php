@@ -30,19 +30,20 @@ class ExpedicionResource extends Resource
         return $form->schema([
             // ── Cabecera de la expedición ─────────────────────────────────────
             Forms\Components\Section::make('Datos de la expedición')
-                ->columns(2)
+                ->columns(['default' => 1, 'md' => 2])
                 ->schema([
                     Forms\Components\TextInput::make('nombre')
                         ->label('Nombre / Feria')
                         ->placeholder('ej: FITUR 2026')
                         ->required()
                         ->maxLength(255)
-                        ->columnSpan(2),
+                        ->columnSpanFull(),
 
                     Forms\Components\DatePicker::make('fecha')
                         ->label('Fecha')
                         ->default(now())
-                        ->required(),
+                        ->required()
+                        ->native(false),   // datepicker consistente en todos los navegadores
 
                     Forms\Components\TextInput::make('lugar')
                         ->label('Lugar')
@@ -52,7 +53,7 @@ class ExpedicionResource extends Resource
                     Forms\Components\Textarea::make('descripcion')
                         ->label('Descripción / Notas')
                         ->rows(2)
-                        ->columnSpan(2),
+                        ->columnSpanFull(),
                 ]),
         ]);
     }
