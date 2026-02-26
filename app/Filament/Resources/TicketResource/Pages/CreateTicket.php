@@ -815,6 +815,7 @@ protected function procesarLineaProducto()
         
         // PASO 4: Cambiar estado del ticket
         $this->ticket->status = 'completed';
+        $this->ticket->completed_at = now();
         
         // PASO 5: Asignar número definitivo si aún es BORRADOR
         if ($this->ticket->numero === 'BORRADOR') {

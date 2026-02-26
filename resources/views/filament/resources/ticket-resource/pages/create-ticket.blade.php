@@ -162,29 +162,31 @@
                 x-data="{ focusNext(nextId) { setTimeout(() => document.getElementById(nextId)?.focus(), 100); } }" @focus-cantidad.window="focusNext('pos-cantidad')"
                 @focus-precio.window="focusNext('pos-precio')" @focus-descuento.window="focusNext('pos-descuento')"
                 @focus-codigo.window="focusNext('pos-codigo')">
-                <div class="w-32">
+                <div class="w-32" wire:key="container-codigo">
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Código</label>
-                    <input type="text" wire:model.live="nuevoCodigo" wire:blur="buscarProducto(true)"
+                    <input type="text" wire:model.live.debounce.500ms="nuevoCodigo"
                         wire:keydown.enter.prevent="buscarProducto(true)" list="codigos-list" id="pos-codigo"
+                        autocomplete="off"
                         class="pos-input w-full h-9 border-gray-300 rounded px-2 font-mono text-sm focus:ring-primary-500 focus:border-primary-500 uppercase"
                         placeholder="SKU" autofocus />
                     <datalist id="codigos-list">
                         @foreach ($resultadosCodigo as $id => $sku)
-                            <option value="{{ $sku }}">{{ $sku }}</option>
+                            <option value="{{ $sku }}">
                         @endforeach
                     </datalist>
                 </div>
 
-                <div class="flex-1 min-w-[200px]">
+                <div class="flex-1 min-w-[200px]" wire:key="container-descripcion">
                     <label
                         class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Descripción</label>
-                    <input type="text" wire:model.live="nuevoNombre" wire:blur="buscarProducto(true)"
+                    <input type="text" wire:model.live.debounce.500ms="nuevoNombre"
                         wire:keydown.enter.prevent="buscarProducto(true)" list="productos-list" id="pos-descripcion"
+                        autocomplete="off"
                         class="pos-input w-full h-9 border-gray-300 rounded px-2 text-sm focus:ring-primary-500 focus:border-primary-500"
                         placeholder="Escribe para buscar..." />
                     <datalist id="productos-list">
                         @foreach ($resultadosNombre as $id => $nombre)
-                            <option value="{{ $nombre }}">{{ $nombre }}</option>
+                            <option value="{{ $nombre }}">
                         @endforeach
                     </datalist>
                 </div>

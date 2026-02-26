@@ -53,16 +53,16 @@ class TopPurchasedProductsChart extends ChartWidget
 
     protected function getType(): string
     {
-        return 'bar';
+        return 'pie';
     }
 
     protected function getOptions(): array
     {
         return [
-            'indexAxis' => 'y',
-            'scales' => [
-                'x' => [
-                    'beginAtZero' => true,
+            'plugins' => [
+                'legend' => [
+                    'display' => true,
+                    'position' => 'bottom',
                 ],
             ],
         ];
