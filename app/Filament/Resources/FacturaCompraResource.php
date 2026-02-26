@@ -101,7 +101,11 @@ class FacturaCompraResource extends Resource
             Tables\Filters\Filter::make('sin_recibos')->label('Sin recibos')
                 ->query(fn ($query) => $query->whereDoesntHave('documentosDerivados', fn($q) => $q->where('tipo', 'recibo')))->toggle(),
         ])->actions([
-            Tables\Actions\EditAction::make()->tooltip('Editar')->label('')->visible(fn($record) => $record->puedeEditarse()),
+            Tables\Actions\EditAction::make()->tooltip('Editar')->label('')
+                ->visible(fn($record) => $record->puedeEditarse()),
+            
+            Tables\Actions\DeleteAction::make()->tooltip('Eliminar')->label('')
+                ->visible(fn($record) => $record->puedeEliminarse()),
             Tables\Actions\Action::make('pdf')
                 ->label('')
                 ->tooltip('Descargar PDF')
@@ -128,6 +132,16 @@ class FacturaCompraResource extends Resource
                         Notification::make()->title('Error al generar recibos')->danger()->body($e->getMessage())->send();
                     }
                 }),
+            Tables\Actions\Action::make('anular')
+                ->label('')
+                ->tooltip('Anular')
+                ->icon('heroicon-o-x-circle')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('Anular Factura')
+                ->modalDescription('¿Está seguro de que desea anular esta factura de compra? Esta acción no se puede deshacer.')
+                ->visible(fn($record) => $record->estado === 'confirmado' && !empty($record->numero))
+                ->action(fn($record) => $record->anular()),
         ])->bulkActions([
             Tables\Actions\BulkActionGroup::make([
                 Tables\Actions\DeleteBulkAction::make()->visible(fn($records) => $records && $records->every(fn($record) => $record->puedeEliminarse())),

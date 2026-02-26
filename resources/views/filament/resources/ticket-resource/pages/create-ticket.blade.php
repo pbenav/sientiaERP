@@ -490,18 +490,18 @@
                             <h3 class="text-xs font-black text-gray-400 uppercase mb-4 border-b pb-1">Desglose de
                                 Efectivo</h3>
                             <div class="grid grid-cols-2 gap-x-6 gap-y-2">
-                                @foreach ($cashBreakdown as $val => $qty)
+                                @foreach ($cashBreakdown as $cents => $qty)
                                     <div class="flex items-center gap-2">
                                         <span class="w-16 text-right font-bold text-gray-600 text-xs">
-                                            @if ((float) $val >= 5)
+                                            @if ((int) $cents >= 500)
                                                 <span
-                                                    class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-300">{{ number_format($val, 0) }}
+                                                    class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-300">{{ number_format($cents / 100, 0) }}
                                                     €</span>
                                             @else
-                                                <span class="text-amber-700">{{ number_format($val, 2) }} €</span>
+                                                <span class="text-amber-700">{{ number_format($cents / 100, 2) }} €</span>
                                             @endif
                                         </span>
-                                        <input type="number" wire:model.live="cashBreakdown.{{ $val }}"
+                                        <input type="number" wire:model.live="cashBreakdown.{{ $cents }}"
                                             class="w-full h-8 text-center text-sm font-bold border-gray-300 rounded focus:ring-primary-500 focus:border-primary-500 px-1"
                                             placeholder="0" min="0" />
                                     </div>
@@ -594,7 +594,7 @@
                             Cancelar
                         </button>
                         <button wire:click="confirmSessionClosure" type="button"
-                            class="px-8 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-black text-sm uppercase shadow-lg transition active:scale-95 flex items-center gap-2">
+                            class="px-8 py-2.5 bg-red-600 hover:bg-red-700 text-gray-500 rounded-lg font-black text-sm uppercase shadow-lg transition active:scale-95 flex items-center gap-2">
                             <x-heroicon-o-check class="w-5 h-5" /> Confirmar Arqueo y Cerrar
                         </button>
                     </div>

@@ -186,6 +186,9 @@ class FacturaResource extends Resource
                 Tables\Actions\EditAction::make()->tooltip('Editar')->label('')
                     ->visible(fn($record) => $record->puedeEditarse()),
                 
+                Tables\Actions\DeleteAction::make()->tooltip('Eliminar')->label('')
+                    ->visible(fn($record) => $record->puedeEliminarse()),
+                
                 Tables\Actions\Action::make('pdf')
                     ->label('')
                     ->tooltip('Descargar PDF')
