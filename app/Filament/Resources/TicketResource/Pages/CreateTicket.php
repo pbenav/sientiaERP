@@ -24,6 +24,20 @@ class CreateTicket extends Page
     public $tpvActivo = 1;
     public $ticket; // Modelo Ticket actual
     
+    // Sesión de Caja
+    public $activeSession = null;
+    public $isSessionOpen = false;
+    public $openingFund = 0;
+    
+    // Cierre de Caja
+    public $showClosingModal = false;
+    public $realFinalCash = 0;
+    public $sessionNotes = '';
+    public $cashBreakdown = [
+        '500' => 0, '200' => 0, '100' => 0, '50' => 0, '20' => 0, '10' => 0, '5' => 0,
+        '2' => 0, '1' => 0, '0.50' => 0, '0.20' => 0, '0.10' => 0, '0.05' => 0, '0.02' => 0, '0.01' => 0
+    ];
+    
     // FECHA - Propiedad dedicada para binding
     public $fecha;
 
@@ -72,13 +86,28 @@ class CreateTicket extends Page
         // No llamamos parent::mount() porque gestionamos el registro manualmente
         $this->form->fill();
         
-        // Cargar primeros 10 clientes para dropdown inicial
         $this->resultadosClientes = Tercero::clientes()
                                     ->activos()
                                     ->orderBy('nombre_comercial')
                                     ->limit(10)
                                     ->pluck('nombre_comercial', 'id')
                                     ->toArray();
+        
+        // Verificar sesión activa
+        $this->activeSession = \App\Models\CashSession::where('user_id', auth()->id())
+            ->where('estado', 'open')
+            ->first();
+        
+        $this->isSessionOpen = (bool) $this->activeSession;
+        
+        // Si no hay sesión abierta, intentar proponer fondo de apertura del último cierre
+        if (!$this->isSessionOpen) {
+            $ultimaSesion = \App\Models\CashSession::where('user_id', auth()->id())
+                ->where('estado', 'closed')
+                ->orderBy('fecha_fin', 'desc')
+                ->first();
+            $this->openingFund = $ultimaSesion ? $ultimaSesion->efectivo_final_real : 0;
+        }
         
         // Cargar primeros productos para mostrar en datalist al hacer focus
         $this->cargarProductosIniciales();
@@ -196,6 +225,96 @@ class CreateTicket extends Page
 
         // Limpiar inputs entrada
         $this->limpiarInputs();
+    }
+    
+    /**
+     * Abrir una nueva sesión de caja
+     */
+    public function openSession()
+    {
+        $this->activeSession = \App\Models\CashSession::create([
+            'user_id' => auth()->id(),
+            'fecha_inicio' => now(),
+            'estado' => 'open',
+            'fondo_apertura' => $this->openingFund,
+        ]);
+        
+        $this->isSessionOpen = true;
+        
+        Notification::make()
+            ->title('Sesión iniciada')
+            ->body("Fondo de apertura: " . number_format($this->openingFund, 2) . " €")
+            ->success()
+            ->send();
+            
+        $this->dispatch('close-modal', id: 'modal-apertura');
+    }
+    
+    /**
+     * Iniciar proceso de cierre de caja
+     */
+    public function openClosingModal()
+    {
+        $this->calcularTotalesSesion();
+        $this->showClosingModal = true;
+    }
+    
+    protected function calcularTotalesSesion()
+    {
+        if (!$this->activeSession) return;
+        
+        $tickets = $this->activeSession->tickets()->where('status', 'completed')->get();
+        
+        $this->activeSession->total_tickets_efectivo = $tickets->sum('pago_efectivo');
+        $this->activeSession->total_tickets_tarjeta = $tickets->sum('pago_tarjeta');
+        $this->activeSession->save();
+    }
+    
+    /**
+     * Calcular total de efectivo real basado en el desglose
+     */
+    public function updatedCashBreakdown()
+    {
+        $total = 0;
+        foreach ($this->cashBreakdown as $denominacion => $cantidad) {
+            $total += (float)$denominacion * (int)($cantidad ?: 0);
+        }
+        $this->realFinalCash = round($total, 2);
+    }
+    
+    /**
+     * Confirmar y cerrar la sesión de caja
+     */
+    public function confirmSessionClosure()
+    {
+        if (!$this->activeSession) return;
+        
+        $this->calcularTotalesSesion();
+        
+        $totalTeorico = $this->activeSession->fondo_apertura + $this->activeSession->total_tickets_efectivo;
+        $desfase = $this->realFinalCash - $totalTeorico;
+        
+        $this->activeSession->update([
+            'fecha_fin' => now(),
+            'estado' => 'closed',
+            'efectivo_final_real' => $this->realFinalCash,
+            'desfase' => $desfase,
+            'notas' => $this->sessionNotes,
+            'desglose_efectivo' => $this->cashBreakdown,
+        ]);
+        
+        $this->activeSession = null;
+        $this->isSessionOpen = false;
+        $this->showClosingModal = false;
+        
+        Notification::make()
+            ->title('Sesión cerrada correctamente')
+            ->body("Efectivo real: {$this->realFinalCash} € | Desfase: " . number_format($desfase, 2) . " €")
+            ->success()
+            ->persistent()
+            ->send();
+            
+        return redirect()->to(TicketResource::getUrl('index'));
     }
     
     public function cargarProductosIniciales()
@@ -711,6 +830,11 @@ protected function procesarLineaProducto()
         $this->ticket->payment_method = $this->payment_method;
         $this->ticket->amount_paid = (float)($this->entrega ?: 0);
         $this->ticket->change_given = max(0, (float)($this->entrega ?: 0) - (float)($this->total ?: 0));
+        
+        // Vincular a la sesión activa
+        if ($this->activeSession) {
+            $this->ticket->cash_session_id = $this->activeSession->id;
+        }
         
         $this->ticket->save();
         
