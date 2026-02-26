@@ -12,6 +12,7 @@ class CustomersBySalesChart extends ChartWidget
 {
     protected static ?string $heading = 'Ventas por Cliente (Top 10)';
     protected static ?int $sort = 5;
+    protected static ?string $maxHeight = '400px';
 
     protected function getData(): array
     {
@@ -66,5 +67,22 @@ class CustomersBySalesChart extends ChartWidget
     protected function getType(): string
     {
         return 'doughnut';
+    }
+
+    protected function getOptions(): array
+    {
+        return [
+            'plugins' => [
+                'legend' => [
+                    'display' => true,
+                    'position' => 'bottom',
+                ],
+            ],
+            'scales' => [
+                'x' => ['display' => false],
+                'y' => ['display' => false],
+            ],
+            'maintainAspectRatio' => false,
+        ];
     }
 }

@@ -11,7 +11,7 @@ class TopPurchasedProductsChart extends ChartWidget
 {
     protected static ?string $heading = 'Top 10 Productos Comprados (Últimos 30 días)';
     protected static ?int $sort = 6;
-    protected static ?string $maxHeight = '275px';
+    protected static ?string $maxHeight = '400px';
 
     protected function getData(): array
     {
@@ -19,7 +19,7 @@ class TopPurchasedProductsChart extends ChartWidget
 
         $topProducts = DB::table('documento_lineas')
             ->join('documentos', 'documentos.id', '=', 'documento_lineas.documento_id')
-            ->where('documentos.tipo', 'factura_compra')
+            ->where('documentos.tipo', 'albaran_compra')
             ->whereNotIn('documentos.estado', ['borrador', 'anulado'])
             ->where('documentos.fecha', '>=', $startDate)
             ->select('product_id', DB::raw('SUM(documento_lineas.subtotal) as total_cost'))
@@ -54,7 +54,7 @@ class TopPurchasedProductsChart extends ChartWidget
 
     protected function getType(): string
     {
-        return 'pie';
+        return 'doughnut';
     }
 
     protected function getOptions(): array

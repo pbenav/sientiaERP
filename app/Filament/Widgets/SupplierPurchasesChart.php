@@ -11,14 +11,14 @@ class SupplierPurchasesChart extends ChartWidget
 {
     protected static ?string $heading = 'Compras por Proveedor (Top 10)';
     protected static ?int $sort = 7;
-    protected static ?string $maxHeight = '275px';
+    protected static ?string $maxHeight = '400px';
 
     protected function getData(): array
     {
         $startDate = now()->subDays(90);
 
         $topSuppliers = DB::table('documentos')
-            ->where('tipo', 'factura_compra')
+            ->where('tipo', 'albaran_compra')
             ->whereNotIn('estado', ['borrador', 'anulado'])
             ->where('fecha', '>=', $startDate)
             ->select('tercero_id', DB::raw('SUM(total) as total_spent'))

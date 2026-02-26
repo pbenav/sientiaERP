@@ -39,7 +39,16 @@ class ProductFactory extends Factory
         ];
 
         $productName = fake()->randomElement($products) . ' ' . fake()->randomElement($adjectives);
-        $sku = fake()->randomElement($prefixes) . fake()->unique()->numberBetween(1000, 9999);
+        
+        // Ensure unique SKU in DB
+        do {
+            $sku = fake()->bothify(fake()->randomElement($prefixes) . '####');
+        } while (Product::where('sku', $sku)->exists());
+
+        // Ensure unique Barcode in DB
+        do {
+            $barcode = fake()->ean13();
+        } while (Product::where('barcode', $barcode)->exists());
         
         return [
             'sku' => $sku,
@@ -48,7 +57,7 @@ class ProductFactory extends Factory
             'price' => fake()->randomFloat(2, 5, 2000),
             'tax_rate' => fake()->randomElement([0, 4, 10, 21]),
             'stock' => fake()->numberBetween(0, 500),
-            'barcode' => fake()->unique()->ean13(),
+            'barcode' => $barcode,
         ];
     }
 }

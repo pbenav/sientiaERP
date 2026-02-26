@@ -11,7 +11,7 @@ class MonthlySalesChart extends ChartWidget
 {
     protected static ?string $heading = 'Ventas del Mes (POS + Gestión)';
     protected static ?int $sort = 3;
-    protected static ?string $maxHeight = '275px';
+    protected static ?string $maxHeight = '400px';
 
     protected function getData(): array
     {

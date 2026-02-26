@@ -24,6 +24,11 @@ class ImportDemoData extends Page implements HasForms
     protected static ?string $navigationGroup = 'Configuración';
     protected static ?int $navigationSort = 100;
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->isSuperAdmin() ?? false;
+    }
+
     protected static string $view = 'filament.pages.import-demo-data';
 
     public ?array $data = [];

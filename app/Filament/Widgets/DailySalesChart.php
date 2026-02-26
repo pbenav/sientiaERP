@@ -11,7 +11,7 @@ class DailySalesChart extends ChartWidget
 {
     protected static ?string $heading = 'Ventas del Día (POS + Gestión)';
     protected static ?int $sort = 2;
-    protected static ?string $maxHeight = '275px';
+    protected static ?string $maxHeight = '400px';
 
     protected function getData(): array
     {
