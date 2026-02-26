@@ -90,6 +90,7 @@ class ComprasRelationManager extends RelationManager
             Forms\Components\FileUpload::make('documento_path')
                 ->label('Albarán (foto o PDF)')
                 ->disk('public')
+                ->visibility('public')
                 ->directory('expediciones/documentos')
                 ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
                 ->maxSize(10240)
