@@ -525,7 +525,7 @@ protected function procesarLineaProducto()
     {
         $oldTotal = $this->total;
         $subtotalLineas = collect($this->lineas)->sum('importe');
-        
+
         // El ticket model tiene la lógica de descuentos
         if ($this->ticket) {
             $this->ticket->descuento_porcentaje = $this->descuento_general_porcentaje;
@@ -536,9 +536,27 @@ protected function procesarLineaProducto()
             $this->total = $subtotalLineas;
         }
 
-        // Si la entrega era 0 o igual al total anterior, actualizar al nuevo total
-        if ($this->entrega == 0 || $this->entrega == $oldTotal) {
-            $this->entrega = $this->total;
+        if ($this->payment_method === 'mixed') {
+            // ── PAGO DIVIDIDO ─────────────────────────────────────────────────
+            // Si el total cambió, rebalancear: mantener efectivo, recalcular tarjeta
+            if ((float)$this->total !== (float)$oldTotal || $this->pago_efectivo + $this->pago_tarjeta == 0) {
+                $efectivo = (float)($this->pago_efectivo ?: 0);
+                if ($efectivo > 0 && $efectivo < $this->total) {
+                    // El efectivo es válido: ajustar tarjeta al resto
+                    $this->pago_tarjeta = round($this->total - $efectivo, 2);
+                } elseif ($efectivo >= $this->total && $this->total > 0) {
+                    // Descuento dejó el total por debajo del efectivo introducido
+                    $this->pago_efectivo = $this->total;
+                    $this->pago_tarjeta  = 0;
+                }
+                // Si efectivo == 0: no tocar (el usuario aún no ha introducido nada)
+                $this->entrega = (float)$this->pago_efectivo + (float)$this->pago_tarjeta;
+            }
+        } else {
+            // ── PAGO ÚNICO (efectivo o tarjeta) ───────────────────────────────
+            if ($this->entrega == 0 || $this->entrega == $oldTotal) {
+                $this->entrega = $this->total;
+            }
         }
     }
     

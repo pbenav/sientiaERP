@@ -112,11 +112,11 @@ class DocumentFormFactory
             Forms\Components\Repeater::make('lineas')
                 ->relationship()
                 ->schema(LineasRelationManager::getLineFormSchema())
-                ->columns(1)
                 ->defaultItems(0)
+
                 ->live()
                 ->hiddenLabel()
-                ->extraAttributes(['class' => 'document-lines-repeater'])
+                ->extraAttributes(['class' => 'document-lines-repeater gap-0'])
                 ->extraItemActions([
                     Forms\Components\Actions\Action::make('editLine')
                         ->label('Editar Línea')

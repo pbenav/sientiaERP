@@ -50,6 +50,7 @@ class OcrImport extends Page implements HasForms
     public ?string $backUrl = null;               // URL de retorno (desde expedición)
     public ?string $preloadedDocumentPath = null;  // Ruta del doc. adjunto de la compra
     public ?string $preloadedDocumentLabel = null; // Etiqueta informativa
+    public ?int $fromCompraId = null;             // ID de la compra origen (ExpedicionCompra)
 
 
     public $parsedData = [
@@ -106,7 +107,8 @@ class OcrImport extends Page implements HasForms
 
         $compraId = request()->query('from_compra');
         if ($compraId) {
-            $compra = \App\Models\ExpedicionCompra::with('tercero')->find($compraId);
+            $this->fromCompraId = (int) $compraId;
+            $compra = \App\Models\ExpedicionCompra::with('tercero')->find($this->fromCompraId);
             if ($compra) {
                 // Preseleccionar proveedor del maestro
                 if ($compra->tercero_id) {
@@ -735,7 +737,17 @@ class OcrImport extends Page implements HasForms
                 ->success()
                 ->send();
 
-            // Redirect: back to expedition processing page or to the albaran edit page
+            // ── Vincular con Expedición de Compra ────────────────────────────
+            if ($this->fromCompraId) {
+                $compra = \App\Models\ExpedicionCompra::find($this->fromCompraId);
+                if ($compra) {
+                    $compra->update([
+                        'documento_id' => $record->id,
+                        'recogido'     => true, // Marcamos como recogido al importar
+                    ]);
+                }
+            }
+
             if ($this->backUrl) {
                 \Filament\Notifications\Notification::make()
                     ->title('Albarán creado · Volviendo a la expedición')
