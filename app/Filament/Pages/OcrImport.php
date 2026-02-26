@@ -78,7 +78,27 @@ class OcrImport extends Page implements HasForms
         // Cargar formatos de etiquetas
         $this->labelFormats = \App\Models\LabelFormat::where('activo', true)->get();
         $this->selectedLabelFormatId = $this->labelFormats->first()?->id;
+
+        // ── Integración con Expedición de Compras ─────────────────────────
+        // Si llegamos desde una expedición con ?from_expedicion=ID,
+        // precargamos el documento adjunto para que el usuario solo pulse "Procesar".
+        $expedicionId = request()->query('from_expedicion');
+        if ($expedicionId) {
+            $expedicion = \App\Models\ExpedicionCompra::find($expedicionId);
+            if ($expedicion && !empty($expedicion->documento_path)) {
+                // Precargamos el documento en el formulario
+                $this->data['documento'] = $expedicion->documento_path;
+                $this->form->fill(['documento' => $expedicion->documento_path]);
+
+                \Filament\Notifications\Notification::make()
+                    ->title('Documento cargado desde expedición')
+                    ->body("Proveedor: {$expedicion->proveedor} · Importe: " . number_format($expedicion->importe, 2, ',', '.') . ' €')
+                    ->info()
+                    ->send();
+            }
+        }
     }
+
 
     public function createSupplier(): void
     {
