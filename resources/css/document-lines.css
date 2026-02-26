@@ -1,22 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
-/* ── REPEATER COMPACTO PARA LÍNEAS DE DOCUMENTOS ─────────────────────────── */
+/* ── REPEATER ULTRA-COMPACTO FILAMENT V3 ────────────────────────────────── */
 
 .document-lines-repeater {
     gap: 0 !important;
 }
 
-.document-lines-repeater > div,
-.document-lines-repeater > ul {
+.document-lines-repeater>div,
+.document-lines-repeater>ul {
     gap: 0 !important;
 }
 
-/* Item del Repeater */
+/* Item del Repeater - Fila horizontal */
 .document-lines-repeater .fi-fo-repeater-item {
     background-color: transparent !important;
     box-shadow: none !important;
     border: none !important;
-    padding: 2px 0 !important;
+    padding: 0 !important;
     margin: 0 !important;
     border-bottom: 1px solid #f3f4f6 !important;
     display: flex !important;
@@ -24,53 +24,62 @@
     align-items: center !important;
     flex-wrap: nowrap !important;
     min-width: 0 !important;
+    min-height: 34px !important;
+    /* Altura de fila muy pequeña */
 }
 
 .dark .document-lines-repeater .fi-fo-repeater-item {
     border-bottom-color: #374151 !important;
 }
 
-/* Botones de acción (Editar/Eliminar) - Forzar a la IZQUIERDA */
+/* Header (acciones) - Mover a la IZQUIERDA */
 .document-lines-repeater .fi-fo-repeater-item-header {
-    order: -1 !important; /* Mover al principio de la fila flex */
+    order: -1 !important;
     margin: 0 !important;
-    padding: 0 4px !important;
+    padding: 0 8px !important;
     background: transparent !important;
     border: none !important;
     width: auto !important;
-    min-width: 50px !important;
+    min-width: 60px !important;
     flex-shrink: 0 !important;
-    min-height: 32px !important;
     display: flex !important;
     align-items: center !important;
-    justify-content: flex-start !important;
-    gap: 4px !important;
+    justify-content: center !important;
     align-self: stretch !important;
 }
 
-/* Esconder número de índice, handle y separadores */
-.document-lines-repeater .fi-fo-repeater-item-header > *:not(.fi-fo-repeater-item-header-actions) {
+/* Asegurar que las acciones (ul) se vean y ocultar el resto (índice, drag handle) */
+.document-lines-repeater .fi-fo-repeater-item-header>*:not(ul) {
     display: none !important;
 }
 
-/* El grid de campos internos */
-.document-lines-repeater .fi-fo-grid {
-    gap: 0.5rem !important; /* Pequeño gap entre columnas */
+.document-lines-repeater .fi-fo-repeater-item-header ul {
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 4px !important;
+}
+
+/* Contenido del item (los campos) */
+.document-lines-repeater .fi-fo-repeater-item-content {
     padding: 0 !important;
     margin: 0 !important;
     flex: 1 1 0% !important;
     min-width: 0 !important;
-    display: grid !important;
-    align-items: center !important;
 }
 
-/* Contenedor de campo individual */
-.document-lines-repeater .fi-fo-field-wrp {
-    padding: 0 !important;
+/* Grid interno de campos */
+.document-lines-repeater .fi-fo-grid {
+    gap: 0.4rem !important;
+    padding: 0 8px 0 0 !important;
     margin: 0 !important;
 }
 
-/* Inputs y Selects ultra-compactos */
+/* Forzar que el grid NO rompa la fila */
+.document-lines-repeater .fi-fo-grid>div {
+    padding: 0 !important;
+}
+
+/* Inputs y Selects */
 .document-lines-repeater .fi-input-wrp {
     box-shadow: none !important;
     background-color: white !important;
@@ -86,43 +95,27 @@
 
 .document-lines-repeater input {
     height: 24px !important;
-    padding: 0 4px !important;
+    padding: 0 6px !important;
     font-size: 0.78rem !important;
-    min-width: 0 !important;
 }
 
-/* Select de Filament (Choices.js o Nativo) */
-.document-lines-repeater .fi-select-input-wrp {
-    min-width: 0 !important;
+/* Ocultar etiquetas */
+.document-lines-repeater .fi-fo-field-wrp-label {
+    display: none !important;
 }
 
-/* Estilos para Choices.js si está activo */
+/* Dropdowns/Selects */
 .document-lines-repeater .choices__inner {
     min-height: 24px !important;
     padding: 0 4px !important;
-    border: none !important;
-    background: transparent !important;
     display: flex !important;
     align-items: center !important;
+    border: none !important;
 }
 
 .document-lines-repeater .choices__list--single {
     padding: 0 !important;
     font-size: 0.78rem !important;
-}
-
-.document-lines-repeater .choices__item {
-    font-size: 0.78rem !important;
-}
-
-/* Ocultar botones de borrar en el select para ganar espacio */
-.document-lines-repeater .choices__button {
-    display: none !important;
-}
-
-/* Ocultar etiquetas (labels) roban demasiado espacio */
-.document-lines-repeater .fi-fo-field-wrp-label {
-    display: none !important;
 }
 
 /* ── TABLA COMPACTA (RelationManager) ────────────────────────────────────── */
