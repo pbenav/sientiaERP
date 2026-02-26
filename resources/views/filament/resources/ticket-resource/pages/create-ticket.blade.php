@@ -18,6 +18,7 @@
                     outline: 2px solid #F59E0B;
                     /* Amber-500 */
                     border-color: #F59E0B;
+                    color: black !important;
                 }
 
                 /* Clase para auto-seleccionar al enfocar */
@@ -99,44 +100,40 @@
                     {{-- Número --}}
                     <div class="w-24 md:w-32">
                         <label
-                            class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Número</label>
+                            class="block text-[10px] uppercase font-black !text-black mb-1 leading-none">Número</label>
                         <input type="text" value="{{ $this->data['numero'] ?? 'AUTO' }}" readonly
-                            class="w-full h-9 bg-gray-50 border border-gray-300 rounded px-2 text-sm font-mono font-medium text-gray-700" />
+                            class="w-full h-9 bg-gray-50 border border-gray-300 rounded px-2 text-sm font-mono font-bold text-gray-900" />
                     </div>
 
                     {{-- Fecha --}}
                     <div class="w-32 md:w-40">
                         <label
-                            class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Fecha</label>
+                            class="block text-[10px] uppercase font-black !text-black mb-1 leading-none">Fecha</label>
                         <input type="date" wire:model="fecha" id="pos-fecha"
-                            class="w-full h-9 border-gray-300 rounded px-2 text-sm font-medium focus:ring-primary-500 focus:border-primary-500" />
+                            class="w-full h-9 border-gray-300 rounded px-2 text-sm font-bold text-gray-900 focus:ring-primary-500 focus:border-primary-500" />
                     </div>
 
                     {{-- Cliente --}}
                     <div class="flex-1">
                         <label
-                            class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Cliente</label>
+                            class="block text-[10px] uppercase font-black !text-black mb-1 leading-none">Cliente</label>
                         <div class="relative">
                             <select wire:model.live="nuevoClienteNombre" id="pos-cliente"
-                                class="w-full h-9 border-gray-300 rounded px-2 pl-8 text-sm font-bold focus:ring-primary-500 focus:border-primary-500 appearance-none">
+                                class="w-full h-9 border-gray-300 rounded px-2 text-sm font-bold text-gray-900 focus:ring-primary-500 focus:border-primary-500 appearance-none">
                                 <option value="">Selecciona un cliente...</option>
                                 @foreach ($resultadosClientes as $id => $nombre)
                                     <option value="{{ $id }}">{{ $nombre }}</option>
                                 @endforeach
                             </select>
-                            <x-heroicon-o-magnifying-glass
-                                class="w-4 h-4 text-gray-400 absolute left-2 top-2.5 pointer-events-none" />
-                            <x-heroicon-o-chevron-down
-                                class="w-4 h-4 text-gray-400 absolute right-2 top-2.5 pointer-events-none" />
                         </div>
                     </div>
 
                     {{-- Teléfono oculto en móvil --}}
                     <div class="hidden lg:block w-40">
                         <label
-                            class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Teléfono</label>
+                            class="block text-[10px] uppercase font-bold text-gray-700 mb-1 leading-none">Teléfono</label>
                         <input type="text" value="{{ $this->clienteTelefono }}" readonly
-                            class="w-full h-9 bg-gray-50 border border-gray-300 rounded px-2 text-sm text-gray-600" />
+                            class="w-full h-9 bg-gray-50 border border-gray-300 rounded px-2 text-sm text-gray-700" />
                     </div>
                 </div>
 
@@ -145,10 +142,10 @@
                     <div class="flex gap-1 flex-1">
                         @foreach (range(1, 4) as $tpv)
                             <button wire:click="cambiarTpv({{ $tpv }})" type="button"
-                                class="flex-1 px-2 md:px-3 py-1.5 rounded text-xs font-bold transition-all duration-200 shadow-md active:scale-95
-                                       {{ $tpvActivo === $tpv
-                                           ? 'bg-primary-600 text-white shadow-lg ring-2 ring-primary-300'
-                                           : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:shadow-lg' }}"
+                                class="flex-1 px-2 md:px-3 py-1.5 rounded text-xs font-black transition-all duration-200 shadow-md active:scale-95
+                                       {{ (int) $tpvActivo === (int) $tpv
+                                           ? 'bg-primary-600 text-white shadow-lg ring-2 ring-primary-400'
+                                           : 'bg-gray-100 !text-black border border-gray-300 hover:bg-gray-200 hover:shadow-lg' }}"
                                 wire:loading.class="opacity-50 cursor-wait" wire:target="cambiarTpv">
                                 TPV {{ $tpv }}
                             </button>
@@ -179,7 +176,7 @@
                     @focus-codigo.window="focusNext('pos-codigo')">
                     <div class="w-32">
                         <label
-                            class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Código</label>
+                            class="block text-[10px] uppercase font-black !text-black mb-1 leading-none">Código</label>
                         <input type="text" wire:model.live="nuevoCodigo" wire:blur="buscarProducto(true)"
                             wire:keydown.enter.prevent="buscarProducto(true)" list="codigos-list" id="pos-codigo"
                             class="pos-input w-full h-9 border-gray-300 rounded px-2 font-mono text-sm focus:ring-primary-500 focus:border-primary-500 uppercase"
@@ -193,7 +190,7 @@
 
                     <div class="flex-1 min-w-[200px]">
                         <label
-                            class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Descripción</label>
+                            class="block text-[10px] uppercase font-black !text-black mb-1 leading-none">Descripción</label>
                         <input type="text" wire:model.live="nuevoNombre" wire:blur="buscarProducto(true)"
                             wire:keydown.enter.prevent="buscarProducto(true)" list="productos-list" id="pos-descripcion"
                             class="pos-input w-full h-9 border-gray-300 rounded px-2 text-sm focus:ring-primary-500 focus:border-primary-500"
@@ -207,7 +204,7 @@
 
                     <div class="w-20">
                         <label
-                            class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Cant</label>
+                            class="block text-[10px] uppercase font-black !text-black mb-1 leading-none text-right">Cant</label>
                         <input type="number" wire:model.live="nuevoCantidad"
                             x-on:keydown.enter.prevent="document.getElementById('pos-precio').focus()"
                             id="pos-cantidad"
@@ -216,7 +213,7 @@
 
                     <div class="w-24">
                         <label
-                            class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Precio</label>
+                            class="block text-[10px] uppercase font-black !text-black mb-1 leading-none text-right">Precio</label>
                         <input type="number" wire:model.live="nuevoPrecio"
                             x-on:keydown.enter.prevent="document.getElementById('pos-descuento').focus()"
                             step="0.01" id="pos-precio"
@@ -225,7 +222,7 @@
 
                     <div class="w-16">
                         <label
-                            class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Dto
+                            class="block text-[10px] uppercase font-black !text-black mb-1 leading-none text-right">Dto
                             %</label>
                         <input type="number" wire:model.live="nuevoDescuento"
                             x-on:keydown.enter.prevent="document.getElementById('btn-anadir-producto').focus()"
@@ -333,9 +330,9 @@
                                 type="button"
                                 class="flex flex-col items-center justify-center rounded border-2 shadow-md hover:shadow-lg transition-all duration-150 bg-gradient-to-b {{ $btn[2] }} w-20 h-20 shrink-0 {{ $btn[0] === 'Grabar' ? 'ring-2 ring-green-300 scale-105 z-10' : 'active:shadow-sm active:scale-95' }}">
                                 <x-dynamic-component :component="$btn[1]"
-                                    class="w-6 h-6 mb-1 {{ $btn[0] === 'Grabar' ? 'transition-transform hover:scale-110' : '' }}" />
+                                    class="w-6 h-6 mb-1 {{ $btn[0] === 'Grabar' ? 'transition-transform hover:scale-110' : '!text-black' }}" />
                                 <span
-                                    class="font-bold text-[9px] leading-none text-center uppercase">{{ $btn[0] }}</span>
+                                    class="font-black text-[10px] leading-none text-center uppercase !text-black">{{ $btn[0] }}</span>
                                 @if ($btn[0] === 'Grabar')
                                     <span wire:loading wire:target="grabarTicket"
                                         class="absolute inset-0 flex items-center justify-center bg-green-700 bg-opacity-90 rounded text-white font-bold text-[8px]">
@@ -446,170 +443,179 @@
                     </div>
                 </div>
             </div>
-        </div>
-</div>
 
-{{-- Overlay de Sesión Cerrada --}}
-@if (!$isSessionOpen)
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/80 backdrop-blur-sm px-4">
-        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-8 border-t-8 border-primary-600">
-            <div class="text-center mb-6">
-                <div class="bg-primary-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <x-heroicon-o-lock-open class="w-10 h-10 text-primary-600" />
+            {{-- Overlay de Sesión Cerrada --}}
+            @if (!$isSessionOpen)
+                <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/80 backdrop-blur-sm px-4">
+                    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-8 border-t-8 border-primary-600">
+                        <div class="text-center mb-6">
+                            <div
+                                class="bg-primary-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <x-heroicon-o-lock-open class="w-10 h-10 text-primary-600" />
+                            </div>
+                            <h2 class="text-2xl font-black text-gray-900 uppercase">Apertura de Caja</h2>
+                            <p class="text-gray-500 text-sm mt-1">Debe iniciar una sesión de venta para operar el TPV.
+                            </p>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase mb-2">Fondo de Apertura
+                                    (€)</label>
+                                <input type="number" wire:model="openingFund" step="0.01"
+                                    class="w-full h-14 text-center text-3xl font-black border-2 border-gray-200 rounded-lg focus:border-primary-500 focus:ring-primary-500 bg-gray-50" />
+                            </div>
+
+                            <button wire:click="openSession" type="button"
+                                class="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-black text-lg uppercase shadow-xl transition active:scale-95 flex items-center justify-center gap-2">
+                                <x-heroicon-o-play class="w-6 h-6" /> ABRIR DÍA / VENTA
+                            </button>
+
+                            <button wire:click="salirPos" type="button"
+                                class="w-full py-2 text-gray-500 hover:text-gray-700 font-bold text-sm uppercase">
+                                Cancelar y Volver
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <h2 class="text-2xl font-black text-gray-900 uppercase">Apertura de Caja</h2>
-                <p class="text-gray-500 text-sm mt-1">Debe iniciar una sesión de venta para operar el TPV.</p>
-            </div>
+            @endif
 
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase mb-2">Fondo de Apertura (€)</label>
-                    <input type="number" wire:model="openingFund" step="0.01"
-                        class="w-full h-14 text-center text-3xl font-black border-2 border-gray-200 rounded-lg focus:border-primary-500 focus:ring-primary-500 bg-gray-50" />
-                </div>
+            {{-- Modal de Cierre (Arqueo) --}}
+            @if ($showClosingModal)
+                <div
+                    class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/80 backdrop-blur-sm px-4 py-8 overflow-y-auto">
+                    <div
+                        class="bg-white rounded-xl shadow-2xl max-w-4xl w-full p-0 border-t-8 border-red-600 flex flex-col max-h-full">
+                        {{-- Header Modal --}}
+                        <div
+                            class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-xl shrink-0">
+                            <div>
+                                <h2 class="text-xl font-black text-gray-900 uppercase">Cierre de Caja (Arqueo)</h2>
+                                <p class="text-[10px] text-gray-500 font-bold">FECHA: {{ now()->format('d/m/Y H:i') }}
+                                    | USUARIO:
+                                    {{ auth()->user()->name }}</p>
+                            </div>
+                            <button wire:click="$set('showClosingModal', false)"
+                                class="text-gray-400 hover:text-gray-600 text-2xl font-bold">&times;</button>
+                        </div>
 
-                <button wire:click="openSession" type="button"
-                    class="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-black text-lg uppercase shadow-xl transition active:scale-95 flex items-center justify-center gap-2">
-                    <x-heroicon-o-play class="w-6 h-6" /> ABRIR DÍA / VENTA
-                </button>
+                        <div class="p-6 overflow-y-auto grid md:grid-cols-2 gap-8">
+                            {{-- Columna Izquierda: Desglose de Monedas --}}
+                            <div>
+                                <h3 class="text-xs font-black text-gray-400 uppercase mb-4 border-b pb-1">Desglose de
+                                    Efectivo</h3>
+                                <div class="grid grid-cols-2 gap-x-6 gap-y-2">
+                                    @foreach ($cashBreakdown as $val => $qty)
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-16 text-right font-bold text-gray-600 text-xs">
+                                                @if ((float) $val >= 5)
+                                                    <span
+                                                        class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-300">{{ number_format($val, 0) }}
+                                                        €</span>
+                                                @else
+                                                    <span class="text-amber-700">{{ number_format($val, 2) }} €</span>
+                                                @endif
+                                            </span>
+                                            <input type="number" wire:model.live="cashBreakdown.{{ $val }}"
+                                                class="w-full h-8 text-center text-sm font-bold border-gray-300 rounded focus:ring-primary-500 focus:border-primary-500 px-1"
+                                                placeholder="0" min="0" />
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
 
-                <button wire:click="salirPos" type="button"
-                    class="w-full py-2 text-gray-500 hover:text-gray-700 font-bold text-sm uppercase">
-                    Cancelar y Volver
-                </button>
-            </div>
-        </div>
-    </div>
-@endif
+                            {{-- Columna Derecha: Resumen y Cuadre --}}
+                            <div class="space-y-6">
+                                <div class="bg-gray-100 p-4 rounded-xl border border-gray-200">
+                                    <h3
+                                        class="text-[10px] font-black text-gray-500 uppercase mb-3 text-center tracking-widest leading-none">
+                                        Cálculo del Sistema</h3>
+                                    <div class="space-y-2">
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-gray-600">Fondo de Apertura:</span>
+                                            <span
+                                                class="font-bold text-gray-900">{{ number_format($activeSession->fondo_apertura, 2) }}
+                                                €</span>
+                                        </div>
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-gray-600">Ventas en Efectivo:</span>
+                                            <span class="font-bold text-green-600">+
+                                                {{ number_format($activeSession->total_tickets_efectivo, 2) }} €</span>
+                                        </div>
+                                        <div class="border-t border-gray-300 pt-2 flex justify-between">
+                                            <span class="font-black text-xs uppercase text-gray-700">Total
+                                                Teórico:</span>
+                                            <span
+                                                class="font-black text-lg text-gray-900 underline decoration-primary-500">{{ number_format($activeSession->fondo_apertura + $activeSession->total_tickets_efectivo, 2) }}
+                                                €</span>
+                                        </div>
+                                        <div
+                                            class="flex justify-between text-sm pt-4 border-t border-dashed border-gray-300">
+                                            <span class="text-gray-600">Ventas en Tarjeta:</span>
+                                            <span
+                                                class="font-bold text-blue-600">{{ number_format($activeSession->total_tickets_tarjeta, 2) }}
+                                                €</span>
+                                        </div>
+                                    </div>
+                                </div>
 
-{{-- Modal de Cierre (Arqueo) --}}
-@if ($showClosingModal)
-    <div
-        class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/80 backdrop-blur-sm px-4 py-8 overflow-y-auto">
-        <div
-            class="bg-white rounded-xl shadow-2xl max-w-4xl w-full p-0 border-t-8 border-red-600 flex flex-col max-h-full">
-            {{-- Header Modal --}}
-            <div
-                class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-xl shrink-0">
-                <div>
-                    <h2 class="text-xl font-black text-gray-900 uppercase">Cierre de Caja (Arqueo)</h2>
-                    <p class="text-[10px] text-gray-500 font-bold">FECHA: {{ now()->format('d/m/Y H:i') }} | USUARIO:
-                        {{ auth()->user()->name }}</p>
-                </div>
-                <button wire:click="$set('showClosingModal', false)"
-                    class="text-gray-400 hover:text-gray-600 text-2xl font-bold">&times;</button>
-            </div>
-
-            <div class="p-6 overflow-y-auto grid md:grid-cols-2 gap-8">
-                {{-- Columna Izquierda: Desglose de Monedas --}}
-                <div>
-                    <h3 class="text-xs font-black text-gray-400 uppercase mb-4 border-b pb-1">Desglose de Efectivo</h3>
-                    <div class="grid grid-cols-2 gap-x-6 gap-y-2">
-                        @foreach ($cashBreakdown as $val => $qty)
-                            <div class="flex items-center gap-2">
-                                <span class="w-16 text-right font-bold text-gray-600 text-xs">
-                                    @if ((float) $val >= 5)
+                                <div class="bg-primary-50 p-4 rounded-xl border-2 border-primary-200">
+                                    <h3
+                                        class="text-[10px] font-black text-primary-600 uppercase mb-2 text-center tracking-widest leading-none">
+                                        TOTAL EFECTIVO REAL</h3>
+                                    <div class="text-center">
                                         <span
-                                            class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-300">{{ number_format($val, 0) }}
+                                            class="text-4xl font-black text-primary-700 leading-none">{{ number_format($realFinalCash, 2) }}
                                             €</span>
-                                    @else
-                                        <span class="text-amber-700">{{ number_format($val, 2) }} €</span>
-                                    @endif
-                                </span>
-                                <input type="number" wire:model.live="cashBreakdown.{{ $val }}"
-                                    class="w-full h-8 text-center text-sm font-bold border-gray-300 rounded focus:ring-primary-500 focus:border-primary-500 px-1"
-                                    placeholder="0" min="0" />
+                                    </div>
+
+                                    @php
+                                        $teorico =
+                                            $activeSession->fondo_apertura + $activeSession->total_tickets_efectivo;
+                                        $diff = round($realFinalCash - $teorico, 2);
+                                    @endphp
+
+                                    <div
+                                        class="mt-4 pt-3 border-t border-primary-200 flex justify-center items-center gap-2">
+                                        <span
+                                            class="text-xs font-bold uppercase {{ $diff == 0 ? 'text-green-600' : ($diff < 0 ? 'text-red-600' : 'text-amber-600') }}">
+                                            Desfase: {{ number_format($diff, 2) }} €
+                                        </span>
+                                        @if ($diff == 0)
+                                            <x-heroicon-s-check-circle class="w-5 h-5 text-green-600" />
+                                        @elseif($diff < 0)
+                                            <x-heroicon-s-x-circle class="w-5 h-5 text-red-600" />
+                                        @else
+                                            <x-heroicon-s-exclamation-triangle class="w-5 h-5 text-amber-600" />
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label
+                                        class="block text-[10px] font-black text-gray-500 uppercase mb-1">Observaciones
+                                        /
+                                        Notas</label>
+                                    <textarea wire:model="sessionNotes" rows="3"
+                                        class="w-full text-sm border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                        placeholder="Escribe alguna observación sobre el arqueo si es necesario..."></textarea>
+                                </div>
                             </div>
-                        @endforeach
+                        </div>
+
+                        {{-- Footer Modal --}}
+                        <div
+                            class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3 rounded-b-xl shrink-0">
+                            <button wire:click="$set('showClosingModal', false)" type="button"
+                                class="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg font-bold text-sm uppercase hover:bg-gray-100 transition">
+                                Cancelar
+                            </button>
+                            <button wire:click="confirmSessionClosure" type="button"
+                                class="px-8 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-black text-sm uppercase shadow-lg transition active:scale-95 flex items-center gap-2">
+                                <x-heroicon-o-check class="w-5 h-5" /> Confirmar Arqueo y Cerrar
+                            </button>
+                        </div>
                     </div>
                 </div>
-
-                {{-- Columna Derecha: Resumen y Cuadre --}}
-                <div class="space-y-6">
-                    <div class="bg-gray-100 p-4 rounded-xl border border-gray-200">
-                        <h3
-                            class="text-[10px] font-black text-gray-500 uppercase mb-3 text-center tracking-widest leading-none">
-                            Cálculo del Sistema</h3>
-                        <div class="space-y-2">
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-600">Fondo de Apertura:</span>
-                                <span
-                                    class="font-bold text-gray-900">{{ number_format($activeSession->fondo_apertura, 2) }}
-                                    €</span>
-                            </div>
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-600">Ventas en Efectivo:</span>
-                                <span class="font-bold text-green-600">+
-                                    {{ number_format($activeSession->total_tickets_efectivo, 2) }} €</span>
-                            </div>
-                            <div class="border-t border-gray-300 pt-2 flex justify-between">
-                                <span class="font-black text-xs uppercase text-gray-700">Total Teórico:</span>
-                                <span
-                                    class="font-black text-lg text-gray-900 underline decoration-primary-500">{{ number_format($activeSession->fondo_apertura + $activeSession->total_tickets_efectivo, 2) }}
-                                    €</span>
-                            </div>
-                            <div class="flex justify-between text-sm pt-4 border-t border-dashed border-gray-300">
-                                <span class="text-gray-600">Ventas en Tarjeta:</span>
-                                <span
-                                    class="font-bold text-blue-600">{{ number_format($activeSession->total_tickets_tarjeta, 2) }}
-                                    €</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-primary-50 p-4 rounded-xl border-2 border-primary-200">
-                        <h3
-                            class="text-[10px] font-black text-primary-600 uppercase mb-2 text-center tracking-widest leading-none">
-                            TOTAL EFECTIVO REAL</h3>
-                        <div class="text-center">
-                            <span
-                                class="text-4xl font-black text-primary-700 leading-none">{{ number_format($realFinalCash, 2) }}
-                                €</span>
-                        </div>
-
-                        @php
-                            $teorico = $activeSession->fondo_apertura + $activeSession->total_tickets_efectivo;
-                            $diff = round($realFinalCash - $teorico, 2);
-                        @endphp
-
-                        <div class="mt-4 pt-3 border-t border-primary-200 flex justify-center items-center gap-2">
-                            <span
-                                class="text-xs font-bold uppercase {{ $diff == 0 ? 'text-green-600' : ($diff < 0 ? 'text-red-600' : 'text-amber-600') }}">
-                                Desfase: {{ number_format($diff, 2) }} €
-                            </span>
-                            @if ($diff == 0)
-                                <x-heroicon-s-check-circle class="w-5 h-5 text-green-600" />
-                            @elseif($diff < 0)
-                                <x-heroicon-s-x-circle class="w-5 h-5 text-red-600" />
-                            @else
-                                <x-heroicon-s-exclamation-triangle class="w-5 h-5 text-amber-600" />
-                            @endif
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-[10px] font-black text-gray-500 uppercase mb-1">Observaciones /
-                            Notas</label>
-                        <textarea wire:model="sessionNotes" rows="3"
-                            class="w-full text-sm border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                            placeholder="Escribe alguna observación sobre el arqueo si es necesario..."></textarea>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Footer Modal --}}
-            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3 rounded-b-xl shrink-0">
-                <button wire:click="$set('showClosingModal', false)" type="button"
-                    class="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg font-bold text-sm uppercase hover:bg-gray-100 transition">
-                    Cancelar
-                </button>
-                <button wire:click="confirmSessionClosure" type="button"
-                    class="px-8 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-black text-sm uppercase shadow-lg transition active:scale-95 flex items-center gap-2">
-                    <x-heroicon-o-check class="w-5 h-5" /> Confirmar Arqueo y Cerrar
-                </button>
-            </div>
-        </div>
-    </div>
-@endif
-</x-filament-panels::page>
-</div>
+            @endif
+    </x-filament-panels::page>

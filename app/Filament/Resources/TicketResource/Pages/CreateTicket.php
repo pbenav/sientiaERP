@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\TicketResource\Pages;
 
 use App\Filament\Resources\TicketResource;
+use App\Filament\Resources\CashSessionResource;
 use Filament\Resources\Pages\Page;
 use Livewire\Component;
 use Filament\Actions;
@@ -315,7 +316,7 @@ class CreateTicket extends Page
             ->persistent()
             ->send();
             
-        return redirect()->to(TicketResource::getUrl('index'));
+        return redirect()->to(CashSessionResource::getUrl('index'));
     }
     
     public function cargarProductosIniciales()
