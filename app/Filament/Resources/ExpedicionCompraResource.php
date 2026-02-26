@@ -106,7 +106,7 @@ class ExpedicionCompraResource extends Resource
 
                 Tables\Columns\IconColumn::make('alerta')
                     ->label('⚠️')
-                    ->state(fn (ExpedicionCompra $r) => $r->tieneAlerta())
+                    ->state(fn ($record) => $record->pagado && !$record->recogido)
                     ->boolean()
                     ->trueIcon('heroicon-o-exclamation-triangle')
                     ->falseIcon('')
@@ -148,7 +148,7 @@ class ExpedicionCompraResource extends Resource
 
                 Tables\Columns\IconColumn::make('documento_path')
                     ->label('Doc.')
-                    ->state(fn (ExpedicionCompra $r) => !empty($r->documento_path))
+                    ->state(fn ($record) => !empty($record->documento_path))
                     ->boolean()
                     ->trueIcon('heroicon-o-paper-clip')
                     ->falseIcon('')
@@ -172,8 +172,8 @@ class ExpedicionCompraResource extends Resource
                     ->label('Importar albarán')
                     ->icon('heroicon-o-document-arrow-up')
                     ->color('info')
-                    ->visible(fn (ExpedicionCompra $r) => !empty($r->documento_path))
-                    ->url(fn (ExpedicionCompra $r) => route('filament.admin.pages.ocr-import') . '?from_expedicion=' . $r->id)
+                    ->visible(fn ($record) => !empty($record->documento_path))
+                    ->url(fn ($record) => route('filament.admin.pages.ocr-import') . '?from_expedicion=' . $record->id)
                     ->openUrlInNewTab(false)
                     ->tooltip('Enviar documento al importador OCR'),
 

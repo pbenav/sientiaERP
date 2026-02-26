@@ -15,15 +15,11 @@ class EditExpedicionCompra extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            // Botón "Importar al OCR" visible cuando hay documento
             Action::make('importar_albaran')
                 ->label('📤 Importar albarán')
                 ->icon('heroicon-o-document-arrow-up')
                 ->color('info')
                 ->visible(fn () => !empty($this->record->documento_path))
-                ->action(function () {
-                    session(['expedicion_documento_path' => $this->record->documento_path]);
-                })
                 ->url(fn () => route('filament.admin.pages.ocr-import') . '?from_expedicion=' . $this->record->id)
                 ->tooltip('Enviar documento adjunto al importador OCR de albaranes'),
 
