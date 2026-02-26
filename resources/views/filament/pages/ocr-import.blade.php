@@ -260,7 +260,7 @@
                                             P. Compra</th>
                                         <th
                                             class="px-1 py-0 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-16">
-                                            Dto %</th>
+                                            Dto%</th>
                                         <th
                                             class="px-1 py-0 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase w-20">
                                             Margen %</th>
