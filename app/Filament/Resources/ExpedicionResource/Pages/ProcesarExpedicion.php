@@ -11,36 +11,43 @@ class ProcesarExpedicion extends Page
 {
     protected static string $resource = ExpedicionResource::class;
     protected static string $view = 'filament.resources.expedicion-resource.pages.procesar-expedicion';
-    protected static ?string $title = 'Procesar expedición con IA';
 
-    public Expedicion $record;
+    // No type-hint del modelo: Livewire serializa mejor con mixed
+    public mixed $record = null;
 
-    public function mount(int|string $record): void
+    /**
+     * Filament puede pasar el {record} como ID (int/string) o como
+     * modelo ya resuelto por route model binding. Aceptamos ambos.
+     */
+    public function mount($record): void
     {
-        $this->record = Expedicion::with(['compras.tercero'])->findOrFail($record);
+        if ($record instanceof Expedicion) {
+            $this->record = $record->load('compras.tercero');
+        } else {
+            $this->record = Expedicion::with(['compras.tercero'])->findOrFail($record);
+        }
     }
 
     public function getTitle(): string
     {
-        return 'Procesar: ' . $this->record->nombre;
+        return 'Procesar: ' . ($this->record?->nombre ?? '—');
     }
 
-    /**
-     * URL de vuelta después de crear un albarán en OcrImport.
-     * Se pasa como query param ?back= a OcrImport.
-     */
+    /** URL de retorno para OcrImport (?back=...) */
     public function getBackUrl(): string
     {
-        return ExpedicionResource::getUrl('procesar', ['record' => $this->record]);
+        return route(
+            'filament.admin.resources.expedicions.procesar',
+            ['record' => $this->record->id]
+        );
     }
 
-    /**
-     * URL para enviar una compra concreta al importador OCR.
-     */
+    /** URL completa al importador OCR con contexto de la compra */
     public function getOcrUrl(int $compraId): string
     {
-        $back = urlencode($this->getBackUrl());
-        return route('filament.admin.pages.ocr-import') . "?from_compra={$compraId}&back={$back}";
+        return route('filament.admin.pages.ocr-import')
+            . '?from_compra=' . $compraId
+            . '&back=' . urlencode($this->getBackUrl());
     }
 
     protected function getHeaderActions(): array
@@ -48,7 +55,7 @@ class ProcesarExpedicion extends Page
         return [
             Action::make('volver')
                 ->label('← Volver a la expedición')
-                ->url(ExpedicionResource::getUrl('edit', ['record' => $this->record]))
+                ->url(ExpedicionResource::getUrl('edit', ['record' => $this->record?->id]))
                 ->color('gray'),
         ];
     }

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use Filament\Actions\Action;
 use Filament\Pages\Page;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -20,6 +21,21 @@ class OcrImport extends Page implements HasForms
     protected static ?string $navigationLabel = 'OCR Import';
     protected static bool $shouldRegisterNavigation = false; // Hidden from menu
 
+    /** Botón "Cancelar y volver" — solo visible cuando se llega desde una expedición */
+    protected function getHeaderActions(): array
+    {
+        if ($this->backUrl) {
+            return [
+                Action::make('cancelar_volver')
+                    ->label('← Cancelar y volver a la expedición')
+                    ->url($this->backUrl)
+                    ->color('gray')
+                    ->icon('heroicon-o-arrow-left'),
+            ];
+        }
+        return [];
+    }
+
     public ?array $data = [];
     public $rawText = '';
     public $showDataForm = false;
@@ -31,7 +47,10 @@ class OcrImport extends Page implements HasForms
     public $print_all_labels = true;
     public $startRow = 1;
     public $startColumn = 1;
-    public ?string $backUrl = null; // URL de retorno (desde expedición)
+    public ?string $backUrl = null;               // URL de retorno (desde expedición)
+    public ?string $preloadedDocumentPath = null;  // Ruta del doc. adjunto de la compra
+    public ?string $preloadedDocumentLabel = null; // Etiqueta informativa
+
 
     public $parsedData = [
         'date' => null,
@@ -93,10 +112,11 @@ class OcrImport extends Page implements HasForms
                 if ($compra->tercero_id) {
                     $this->parsedData['supplier_id'] = $compra->tercero_id;
                 }
-                // Precargar documento adjunto
+                // Precargar documento adjunto → NO llenar el FileUpload (Livewire lo bloquea)
+                // Guardamos la ruta aparte y processImage() la usará como fallback
                 if (!empty($compra->documento_path)) {
-                    $this->data['documento'] = $compra->documento_path;
-                    $this->form->fill(['documento' => $compra->documento_path]);
+                    $this->preloadedDocumentPath  = $compra->documento_path;
+                    $this->preloadedDocumentLabel = basename($compra->documento_path);
                 }
 
                 $label = $compra->tercero?->nombre_comercial ?? 'sin proveedor';
@@ -180,14 +200,19 @@ class OcrImport extends Page implements HasForms
 
     public function processImage()
     {
-        // Reuse the exact same logic from OcrImportModal
+        // 1. Intentar obtener ruta del FileUpload (subida nueva del usuario)
         $state = $this->data['documento'] ?? null;
         $path = null;
-        
+
         if (is_array($state)) {
             $path = array_values($state)[0] ?? null;
         } else {
             $path = $state;
+        }
+
+        // 2. Fallback: documento precargado desde la compra de la expedición
+        if (!$path && $this->preloadedDocumentPath) {
+            $path = $this->preloadedDocumentPath;
         }
 
         if (!$path) {
