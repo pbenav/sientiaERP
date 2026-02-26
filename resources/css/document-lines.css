@@ -6,7 +6,9 @@
 .document-lines-repeater>div,
 .document-lines-repeater>ul,
 .document-lines-repeater .fi-fo-repeater-items,
-.document-lines-repeater .fi-fo-repeater-item {
+.document-lines-repeater .fi-fo-repeater-item,
+.document-lines-repeater .fi-section-content,
+.document-lines-repeater .fi-fo-grid {
     gap: 0 !important;
 }
 

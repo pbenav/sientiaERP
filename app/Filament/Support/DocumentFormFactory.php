@@ -112,7 +112,6 @@ class DocumentFormFactory
             Forms\Components\Repeater::make('lineas')
                 ->relationship()
                 ->schema(LineasRelationManager::getLineFormSchema())
-                ->compact()
                 ->columns(1)
                 ->defaultItems(0)
                 ->live()
