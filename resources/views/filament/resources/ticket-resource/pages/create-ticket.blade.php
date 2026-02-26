@@ -39,10 +39,9 @@
             }
         }
     }"
-        class="flex flex-col bg-white border border-gray-200 shadow-sm font-sans text-sm text-gray-900 h-[calc(100vh-170px)] md:h-[calc(100vh-200px)] overflow-hidden md:rounded-lg">
-
+        class="flex flex-col text-gray-500 bg-white border border-gray-200 shadow-sm font-sans text-sm h-[calc(100vh-170px)] md:h-[calc(100vh-200px)] overflow-hidden md:rounded-lg">
         {{-- Barra de Navegación Profesional --}}
-        <div class="bg-gray-800 text-white px-4 py-2 flex justify-between items-center shrink-0">
+        <div class="bg-gray-800 text-red-300 px-4 py-2 flex justify-between items-center shrink-0">
             <div class="flex items-center gap-4">
                 <div class="flex items-center gap-2">
                     <x-heroicon-s-computer-desktop class="w-5 h-5 text-primary-400" />
@@ -71,14 +70,14 @@
             <div class="flex items-center gap-2">
                 @if ($isSessionOpen)
                     <button wire:click="openClosingModal" type="button"
-                        class="group flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-gray-900 rounded-md font-black text-[11px] uppercase transition shadow-lg active:scale-95">
+                        class="group flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600  rounded-md font-black text-[11px] uppercase transition shadow-lg active:scale-95">
                         <x-heroicon-s-banknotes class="w-4 h-4 group-hover:rotate-12 transition-transform" />
                         CIERRE / ARQUEO
                     </button>
                 @endif
 
                 <button wire:click="salirPos" type="button"
-                    class="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-red-600 text-white rounded-md font-black text-[11px] uppercase transition shadow-lg active:scale-95 border border-white/10">
+                    class="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-red-600 rounded-md font-black text-[11px] uppercase transition shadow-lg active:scale-95 border border-white/10">
                     <x-heroicon-s-arrow-left-on-rectangle class="w-4 h-4" />
                     SALIR (TPV)
                 </button>
@@ -231,8 +230,9 @@
             </div>
 
             {{-- Grid --}}
-            <div class="flex-1 border border-gray-200 rounded-lg bg-white shadow-sm overflow-hidden flex flex-col">
-                <div class="overflow-y-auto flex-1">
+            <div class="border border-gray-200 rounded-lg bg-white shadow-sm overflow-hidden flex flex-col shrink-0"
+                style="height: 380px !important;">
+                <div class="overflow-y-auto" style="height: 100% !important;">
                     <table class="w-full text-sm text-left">
                         <thead class="bg-gray-200 text-gray-700 text-xs uppercase sticky top-0">
                             <tr>
