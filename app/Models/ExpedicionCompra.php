@@ -4,15 +4,17 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ExpedicionCompra extends Model
 {
     protected $table = 'expediciones_compra';
 
     protected $fillable = [
+        'expedicion_id',
+        'tercero_id',
         'fecha',
-        'proveedor',
-        'direccion',
+        'proveedor',    // texto libre de respaldo (legado)
         'importe',
         'observaciones',
         'pagado',
@@ -29,31 +31,37 @@ class ExpedicionCompra extends Model
         'archivado' => 'boolean',
     ];
 
+    // ── Relaciones ────────────────────────────────────────────────────────────
+
+    public function expedicion(): BelongsTo
+    {
+        return $this->belongsTo(Expedicion::class);
+    }
+
+    public function tercero(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Tercero::class);
+    }
+
     // ── Scopes ────────────────────────────────────────────────────────────────
 
-    /** Solo expediciones del periodo activo (no archivadas). */
     public function scopeActivas(Builder $query): Builder
     {
         return $query->where('archivado', false);
     }
 
-    /** Pagadas pero aún no recogidas → alerta ⚠️ */
     public function scopePendientesRecogida(Builder $query): Builder
     {
-        return $query->where('archivado', false)
-                     ->where('pagado', true)
-                     ->where('recogido', false);
+        return $query->where('pagado', true)->where('recogido', false);
     }
 
-    /** Sin pagar todavía. */
     public function scopeSinPagar(Builder $query): Builder
     {
-        return $query->where('archivado', false)->where('pagado', false);
+        return $query->where('pagado', false);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /** ¿Tiene alerta? (pagado pero no recogido) */
     public function tieneAlerta(): bool
     {
         return $this->pagado && !$this->recogido;
