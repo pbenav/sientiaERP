@@ -34,49 +34,67 @@ class CashSessionResource extends Resource
                         Forms\Components\Select::make('user_id')
                             ->relationship('user', 'name')
                             ->label('Usuario')
+                            ->default(auth()->id())
+                            ->dehydrated()
                             ->disabled(),
                         Forms\Components\DateTimePicker::make('fecha_inicio')
                             ->label('Inicio')
+                            ->default(now())
+                            ->dehydrated()
                             ->disabled(),
                         Forms\Components\DateTimePicker::make('fecha_fin')
                             ->label('Cierre')
                             ->disabled(),
                         Forms\Components\TextInput::make('estado')
                             ->label('Estado')
-                            ->formatStateUsing(fn (string $state): string => match ($state) {
+                            ->formatStateUsing(fn (?string $state): string => match ($state) {
                                 'open' => 'Abierta',
                                 'closed' => 'Cerrada',
-                                default => $state,
+                                default => $state ?? 'N/A',
                             })
                             ->disabled(),
                     ])->columns(2),
 
-                Forms\Components\Section::make('Totales')
+
+                Forms\Components\Section::make('Apertura')
                     ->schema([
                         Forms\Components\TextInput::make('fondo_apertura')
                             ->label('Fondo Apertura')
                             ->numeric()
-                            ->prefix('€'),
-                        Forms\Components\TextInput::make('total_tickets_efectivo')
-                            ->label('Ventas Efectivo')
-                            ->numeric()
                             ->prefix('€')
-                            ->disabled(),
-                        Forms\Components\TextInput::make('total_tickets_tarjeta')
-                            ->label('Ventas Tarjeta')
-                            ->numeric()
-                            ->prefix('€')
-                            ->disabled(),
+                            ->default(0),
+                    ])->columns(1),
+
+                Forms\Components\Section::make('Conciliación y Métodos de Pago')
+                    ->schema([
+                        Forms\Components\Placeholder::make('teorico_efectivo')
+                            ->label('Teórico Efectivo (Sistema)')
+                            ->content(fn (CashSession $record) => \App\Helpers\NumberFormatHelper::formatCurrency($record->fondo_apertura + $record->total_tickets_efectivo)),
+                        
+                        Forms\Components\Placeholder::make('teorico_tarjeta')
+                            ->label('Teórico Tarjeta (Sistema)')
+                            ->content(fn (CashSession $record) => \App\Helpers\NumberFormatHelper::formatCurrency($record->total_tickets_tarjeta)),
+                        
                         Forms\Components\TextInput::make('efectivo_final_real')
                             ->label('Efectivo Real (Cierre)')
                             ->numeric()
-                            ->prefix('€'),
+                            ->prefix('€')
+                            ->live()
+                            ->afterStateUpdated(function ($state, Forms\Set $set, CashSession $record) {
+                                $teorico = $record->fondo_apertura + $record->total_tickets_efectivo;
+                                $set('desfase', (float)$state - $teorico);
+                            }),
+                        
                         Forms\Components\TextInput::make('desfase')
-                            ->label('Desfase')
+                            ->label('Desfase Detectado')
                             ->numeric()
                             ->prefix('€')
-                            ->disabled(),
-                    ])->columns(3),
+                            ->disabled()
+                            ->dehydrated()
+                            ->extraInputAttributes(fn ($state) => [
+                                'class' => $state < 0 ? 'text-danger-600 font-bold' : ($state > 0 ? 'text-warning-600 font-bold' : 'text-success-600 font-bold'),
+                            ]),
+                    ])->columns(2)->visible(fn (?CashSession $record) => $record !== null),
             ]);
     }
 
@@ -140,7 +158,7 @@ class CashSessionResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\TicketsRelationManager::class,
         ];
     }
 

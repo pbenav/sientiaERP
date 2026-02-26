@@ -23,6 +23,8 @@ class TicketResource extends Resource
     protected static string $editPermission   = 'pos.operate';
     protected static string $deletePermission = 'pos.operate';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $model = Ticket::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-computer-desktop';
