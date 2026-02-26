@@ -1,21 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
-/* Scope everything to the repeater */
+/* ── REPEATER COMPACTO PARA LÍNEAS DE DOCUMENTOS ─────────────────────────── */
 
 .document-lines-repeater {
     gap: 0 !important;
 }
 
-.document-lines-repeater>div,
-.document-lines-repeater>ul {
+.document-lines-repeater > div,
+.document-lines-repeater > ul {
     gap: 0 !important;
 }
 
+/* Item del Repeater */
 .document-lines-repeater .fi-fo-repeater-item {
     background-color: transparent !important;
     box-shadow: none !important;
     border: none !important;
-    padding: 0 !important;
+    padding: 2px 0 !important;
     margin: 0 !important;
     border-bottom: 1px solid #f3f4f6 !important;
     display: flex !important;
@@ -29,54 +30,53 @@
     border-bottom-color: #374151 !important;
 }
 
-/* Enforce Grid Gap and PADDING REMOVAL */
+/* Botones de acción (Editar/Eliminar) - Forzar a la IZQUIERDA */
+.document-lines-repeater .fi-fo-repeater-item-header {
+    order: -1 !important; /* Mover al principio de la fila flex */
+    margin: 0 !important;
+    padding: 0 4px !important;
+    background: transparent !important;
+    border: none !important;
+    width: auto !important;
+    min-width: 50px !important;
+    flex-shrink: 0 !important;
+    min-height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 4px !important;
+    align-self: stretch !important;
+}
+
+/* Esconder número de índice, handle y separadores */
+.document-lines-repeater .fi-fo-repeater-item-header > *:not(.fi-fo-repeater-item-header-actions) {
+    display: none !important;
+}
+
+/* El grid de campos internos */
 .document-lines-repeater .fi-fo-grid {
-    gap: 0 !important;
+    gap: 0.5rem !important; /* Pequeño gap entre columnas */
     padding: 0 !important;
     margin: 0 !important;
     flex: 1 1 0% !important;
     min-width: 0 !important;
+    display: grid !important;
+    align-items: center !important;
 }
 
-/* Remove space from field wrappers */
+/* Contenedor de campo individual */
 .document-lines-repeater .fi-fo-field-wrp {
     padding: 0 !important;
     margin: 0 !important;
 }
 
-.document-lines-repeater .fi-fo-field-wrp>div {
-    padding: 0 !important;
-    margin: 0 !important;
-}
-
-/* El header del item contiene los botones de acción (eliminar, editar) */
-.document-lines-repeater .fi-fo-repeater-item-header {
-    margin: 0 !important;
-    padding: 0 8px !important;
-    background: transparent !important;
-    border: none !important;
-    width: auto !important;
-    min-width: 60px !important;
-    flex-shrink: 0 !important;
-    min-height: 50px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 4px !important;
-    align-self: stretch !important;
-}
-
-/* Esconder el número de índice y el handle de arrastre */
-.document-lines-repeater .fi-fo-repeater-item-header>*:not(.fi-fo-repeater-item-header-actions):not(ul):not(button) {
-    display: none !important;
-}
-
-/* Compact inputs */
+/* Inputs y Selects ultra-compactos */
 .document-lines-repeater .fi-input-wrp {
     box-shadow: none !important;
     background-color: white !important;
     border: 1px solid #e5e7eb !important;
-    height: 28px !important;
+    height: 26px !important;
+    border-radius: 4px !important;
 }
 
 .dark .document-lines-repeater .fi-input-wrp {
@@ -85,69 +85,67 @@
 }
 
 .document-lines-repeater input {
-    height: 26px !important;
-    padding: 2px 4px !important;
-    font-size: 0.8125rem !important;
+    height: 24px !important;
+    padding: 0 4px !important;
+    font-size: 0.78rem !important;
     min-width: 0 !important;
-    margin: 0 !important;
 }
 
-/* Ensure Select components can shrink and hide unnecessary icons in tight spaces */
+/* Select de Filament (Choices.js o Nativo) */
 .document-lines-repeater .fi-select-input-wrp {
     min-width: 0 !important;
 }
 
+/* Estilos para Choices.js si está activo */
 .document-lines-repeater .choices__inner {
-    min-height: 26px !important;
+    min-height: 24px !important;
     padding: 0 4px !important;
+    border: none !important;
+    background: transparent !important;
     display: flex !important;
     align-items: center !important;
 }
 
+.document-lines-repeater .choices__list--single {
+    padding: 0 !important;
+    font-size: 0.78rem !important;
+}
+
 .document-lines-repeater .choices__item {
-    font-size: 0.8125rem !important;
-    padding-right: 16px !important;
-    /* Space for the arrow */
+    font-size: 0.78rem !important;
 }
 
-/* Hide Choices.js search and cross icon for very narrow fields if they cause issues */
-.document-lines-repeater .choices[data-type*="select-one"]::after {
-    right: 8px !important;
-}
-
+/* Ocultar botones de borrar en el select para ganar espacio */
 .document-lines-repeater .choices__button {
     display: none !important;
-    /* Hide clear button in repeater to save space */
 }
 
-/* Hide Labels */
+/* Ocultar etiquetas (labels) roban demasiado espacio */
 .document-lines-repeater .fi-fo-field-wrp-label {
     display: none !important;
 }
-/* ── Tabla compacta de líneas del albarán ─────────────────────────────────── */
-/* Aplicado cuando LineasRelationManager tiene class="fi-lineas-compactas"     */
+
+/* ── TABLA COMPACTA (RelationManager) ────────────────────────────────────── */
 
 .fi-lineas-compactas .fi-ta-cells,
 .fi-lineas-compactas tr td,
 .fi-lineas-compactas tr th {
-    padding-top: 0.2rem !important;
-    padding-bottom: 0.2rem !important;
-}
-
-.fi-lineas-compactas td .fi-ta-col-wrp {
     padding-top: 0.15rem !important;
     padding-bottom: 0.15rem !important;
 }
 
-/* Fila de cabecera compacta */
-.fi-lineas-compactas thead th {
-    padding-top: 0.25rem !important;
-    padding-bottom: 0.25rem !important;
+.fi-lineas-compactas td .fi-ta-col-wrp {
+    padding-top: 0.1rem !important;
+    padding-bottom: 0.1rem !important;
 }
 
-/* Texto más pequeño en celdas */
+.fi-lineas-compactas thead th {
+    padding-top: 0.2rem !important;
+    padding-bottom: 0.2rem !important;
+}
+
 .fi-lineas-compactas td span,
 .fi-lineas-compactas td .fi-ta-cell {
-    font-size: 0.78rem !important;
-    line-height: 1.25rem !important;
+    font-size: 0.75rem !important;
+    line-height: 1.15rem !important;
 }
