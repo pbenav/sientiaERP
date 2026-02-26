@@ -38,13 +38,13 @@ class StatsOverviewWidget extends BaseWidget
             ->where('status', 'completed')
             ->sum('total');
 
-        // Purchases
-        $currentPurchases = Documento::where('tipo', 'factura_compra')
+        // Purchases (Delivery Notes)
+        $currentPurchases = Documento::where('tipo', 'albaran_compra')
             ->whereBetween('fecha', [$startDate, $endDate])
             ->whereNotIn('estado', ['borrador', 'anulado'])
             ->sum('total');
 
-        $prevPurchases = Documento::where('tipo', 'factura_compra')
+        $prevPurchases = Documento::where('tipo', 'albaran_compra')
             ->whereBetween('fecha', [$prevStartDate, $prevEndDate])
             ->whereNotIn('estado', ['borrador', 'anulado'])
             ->sum('total');
