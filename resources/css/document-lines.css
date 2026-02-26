@@ -8,9 +8,11 @@
 .document-lines-repeater .fi-fo-repeater-items,
 .document-lines-repeater .fi-fo-repeater-item,
 .document-lines-repeater .fi-section-content,
-.document-lines-repeater .fi-fo-grid {
+.document-lines-repeater .fi-fo-grid,
+.document-lines-repeater .grid {
     gap: 0 !important;
 }
+
 
 
 /* Item del Repeater - Fila horizontal */
@@ -73,6 +75,13 @@
     min-width: 0 !important;
     gap: 0 !important;
 }
+
+/* Forzar gap-0 en el div que Filament inyecta para el grid de items */
+.document-lines-repeater ul>div.grid,
+.document-lines-repeater .grid.gap-4 {
+    gap: 0 !important;
+}
+
 
 
 /* Grid interno de campos */
