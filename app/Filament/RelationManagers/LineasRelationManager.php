@@ -7,8 +7,11 @@ use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\ActionsPosition;
 use App\Models\Product;
 use Illuminate\Database\Eloquent\Model;
+
 
 class LineasRelationManager extends RelationManager
 {
@@ -440,6 +443,8 @@ class LineasRelationManager extends RelationManager
                     
                 // Ocultamos la columna Total porque se desgloza al final
             ])
+            ->extraAttributes(['class' => 'fi-lineas-compactas'])
+            ->striped()
             ->filters([
                 //
             ])
@@ -458,6 +463,7 @@ class LineasRelationManager extends RelationManager
                     ->visible(fn ($livewire) => strtolower($livewire->getOwnerRecord()->estado) === 'borrador')
                     ->after(fn ($livewire) => $livewire->dispatch('refresh-document-totals')),
             ])
+            ->actionsPosition(ActionsPosition::BeforeColumns)
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()

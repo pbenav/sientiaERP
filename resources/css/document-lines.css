@@ -124,3 +124,30 @@
 .document-lines-repeater .fi-fo-field-wrp-label {
     display: none !important;
 }
+/* ── Tabla compacta de líneas del albarán ─────────────────────────────────── */
+/* Aplicado cuando LineasRelationManager tiene class="fi-lineas-compactas"     */
+
+.fi-lineas-compactas .fi-ta-cells,
+.fi-lineas-compactas tr td,
+.fi-lineas-compactas tr th {
+    padding-top: 0.2rem !important;
+    padding-bottom: 0.2rem !important;
+}
+
+.fi-lineas-compactas td .fi-ta-col-wrp {
+    padding-top: 0.15rem !important;
+    padding-bottom: 0.15rem !important;
+}
+
+/* Fila de cabecera compacta */
+.fi-lineas-compactas thead th {
+    padding-top: 0.25rem !important;
+    padding-bottom: 0.25rem !important;
+}
+
+/* Texto más pequeño en celdas */
+.fi-lineas-compactas td span,
+.fi-lineas-compactas td .fi-ta-cell {
+    font-size: 0.78rem !important;
+    line-height: 1.25rem !important;
+}
