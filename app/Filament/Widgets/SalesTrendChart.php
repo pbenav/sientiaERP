@@ -36,7 +36,7 @@ class SalesTrendChart extends ChartWidget
                 ->where('status', 'completed')
                 ->sum('total');
 
-            $monthPurchases = Documento::where('tipo', 'factura_compra')
+            $monthPurchases = Documento::where('tipo', 'albaran_compra')
                 ->whereYear('fecha', $year)
                 ->whereMonth('fecha', $m)
                 ->whereNotIn('estado', ['borrador', 'anulado'])

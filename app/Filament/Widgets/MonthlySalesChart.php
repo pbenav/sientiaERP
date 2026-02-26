@@ -7,31 +7,31 @@ use App\Models\Ticket;
 use Filament\Widgets\ChartWidget;
 use Carbon\Carbon;
 
-class DailySalesChart extends ChartWidget
+class MonthlySalesChart extends ChartWidget
 {
-    protected static ?string $heading = 'Ventas del Día (POS + Gestión)';
-    protected static ?int $sort = 2;
+    protected static ?string $heading = 'Ventas del Mes (POS + Gestión)';
+    protected static ?int $sort = 3;
     protected static ?string $maxHeight = '400px';
 
     protected function getData(): array
     {
-        $today = Carbon::today();
+        $startOfMonth = Carbon::now()->startOfMonth();
+        $endOfMonth = Carbon::now()->endOfMonth();
 
         // POS Cash
         $posCash = Ticket::where('status', 'completed')
-            ->whereDate('completed_at', $today)
+            ->whereBetween('completed_at', [$startOfMonth, $endOfMonth])
             ->sum('pago_efectivo');
 
         // POS Card
         $posCard = Ticket::where('status', 'completed')
-            ->whereDate('completed_at', $today)
+            ->whereBetween('completed_at', [$startOfMonth, $endOfMonth])
             ->sum('pago_tarjeta');
 
         // Paid Receipts (Sales)
-        // We use fecha_vencimiento as it stores the payment date in RecibosService::marcarComoCobrado
         $receipts = Documento::where('tipo', 'recibo')
             ->where('estado', 'cobrado')
-            ->whereDate('fecha_vencimiento', $today)
+            ->whereBetween('fecha_vencimiento', [$startOfMonth, $endOfMonth])
             ->sum('total');
 
         return [
