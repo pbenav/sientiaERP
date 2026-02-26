@@ -19,9 +19,14 @@ class TopPurchasedProductsChart extends ChartWidget
 
         $topProducts = DB::table('documento_lineas')
             ->join('documentos', 'documentos.id', '=', 'documento_lineas.documento_id')
-            ->where('documentos.tipo', 'albaran_compra')
-            ->whereNotIn('documentos.estado', ['borrador', 'anulado'])
+            ->where(function($query) {
+                $query->where('documentos.tipo', 'albaran_compra')->where('documentos.estado', 'confirmado');
+            })
+            ->orWhere(function($query) {
+                $query->where('documentos.tipo', 'factura_compra')->whereNotIn('documentos.estado', ['borrador', 'anulado']);
+            })
             ->where('documentos.fecha', '>=', $startDate)
+            ->whereNull('documentos.deleted_at')
             ->select('product_id', DB::raw('SUM(documento_lineas.subtotal) as total_cost'))
             ->groupBy('product_id')
             ->orderBy('total_cost', 'desc')

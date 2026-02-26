@@ -8,6 +8,7 @@ use App\Filament\Support\HasRoleAccess;
 use App\Models\Documento;
 use App\Models\Tercero;
 use App\Services\AgrupacionDocumentosService;
+use App\Filament\Resources\FacturaCompraResource;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -117,6 +118,20 @@ class AlbaranCompraResource extends Resource
                 ->visible(fn (Documento $record) => !Documento::where('tipo', 'etiqueta')
                     ->where('documento_origen_id', $record->id)
                     ->exists()),
+            Tables\Actions\Action::make('ver_bloqueante')
+                ->label('')
+                ->tooltip('Ver bloqueante')
+                ->icon('heroicon-o-lock-closed')
+                ->color('warning')
+                ->visible(fn($record) => !$record->puedeEditarse() && $record->getDocumentosBloqueantes()->isNotEmpty())
+                ->url(function ($record) {
+                    $bloqueante = $record->getDocumentosBloqueantes()->first();
+                    return match($bloqueante->tipo) {
+                        'factura_compra' => FacturaCompraResource::getUrl('edit', ['record' => $bloqueante]),
+                        default => null,
+                    };
+                })
+                ->openUrlInNewTab(),
             Tables\Actions\Action::make('pdf')
                 ->label('')
                 ->tooltip('Descargar PDF')

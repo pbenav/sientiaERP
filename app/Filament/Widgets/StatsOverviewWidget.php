@@ -38,15 +38,24 @@ class StatsOverviewWidget extends BaseWidget
             ->where('status', 'completed')
             ->sum('total');
 
-        // Purchases (Delivery Notes)
-        $currentPurchases = Documento::where('tipo', 'albaran_compra')
+        // Purchases (Only confirmed Delivery Notes + Confirmed Purchase Invoices)
+        // We exclude 'procesado' delivery notes because they are already invoiced
+        $currentPurchases = Documento::where(function($query) {
+                $query->where('tipo', 'albaran_compra')->where('estado', 'confirmado');
+            })
+            ->orWhere(function($query) {
+                $query->where('tipo', 'factura_compra')->whereNotIn('estado', ['borrador', 'anulado']);
+            })
             ->whereBetween('fecha', [$startDate, $endDate])
-            ->whereNotIn('estado', ['borrador', 'anulado'])
             ->sum('total');
 
-        $prevPurchases = Documento::where('tipo', 'albaran_compra')
+        $prevPurchases = Documento::where(function($query) {
+                $query->where('tipo', 'albaran_compra')->where('estado', 'confirmado');
+            })
+            ->orWhere(function($query) {
+                $query->where('tipo', 'factura_compra')->whereNotIn('estado', ['borrador', 'anulado']);
+            })
             ->whereBetween('fecha', [$prevStartDate, $prevEndDate])
-            ->whereNotIn('estado', ['borrador', 'anulado'])
             ->sum('total');
 
         return [

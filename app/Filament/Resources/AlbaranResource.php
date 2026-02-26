@@ -10,6 +10,7 @@ use App\Models\FormaPago;
 use App\Models\Tercero;
 use App\Models\Product;
 use App\Services\AgrupacionDocumentosService;
+use App\Filament\Resources\FacturaResource;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -129,9 +130,10 @@ class AlbaranResource extends Resource
                     ->visible(fn($record) => !$record->puedeEditarse() && $record->getDocumentosBloqueantes()->isNotEmpty())
                     ->url(function ($record) {
                         $bloqueante = $record->getDocumentosBloqueantes()->first();
-                        return $bloqueante->tipo === 'pedido' 
-                            ? PedidoResource::getUrl('edit', ['record' => $bloqueante])
-                            : null;
+                        return match($bloqueante->tipo) {
+                            'factura' => FacturaResource::getUrl('edit', ['record' => $bloqueante]),
+                            default => null,
+                        };
                     })
                     ->openUrlInNewTab(),
                 
