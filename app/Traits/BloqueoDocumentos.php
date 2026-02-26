@@ -34,13 +34,13 @@ trait BloqueoDocumentos
             return true;
         }
 
-        // 3. Si el estado es procesado o anulado, NO se edita
-        if (in_array(strtolower($this->estado), ['procesado', 'anulado'])) {
+        // 3. Si el estado es procesado, anulado o pagado, NO se edita
+        if (in_array(strtolower($this->estado), ['procesado', 'anulado', 'pagado'])) {
             return false;
         }
 
         // 4. Regla de Oro para Facturas: Si tiene número (está confirmada), NO se edita jamás
-        if ($this->tipo === 'factura' && !empty($this->numero)) {
+        if (in_array($this->tipo, ['factura', 'factura_compra']) && !empty($this->numero)) {
             return false;
         }
         
@@ -62,14 +62,25 @@ trait BloqueoDocumentos
      */
     public function puedeEliminarse(): bool
     {
-        // No se elimina si está anulado o procesado
+        // 1. No se elimina si está anulado o procesado
         if (in_array(strtolower($this->estado), ['procesado', 'anulado'])) {
             return false;
         }
 
-        // Regla de Oro para Facturas
-        if ($this->tipo === 'factura' && !empty($this->numero)) {
+        // 2. Una factura PAGADA no se puede eliminar (debe anularse)
+        if (strtolower($this->estado) === 'pagado') {
             return false;
+        }
+
+        // 3. Regla de Oro para Facturas: Si tiene número, no se elimina jamás
+        if (in_array($this->tipo, ['factura', 'factura_compra']) && !empty($this->numero)) {
+            return false;
+        }
+
+        // 4. Si es una factura en borrador (sin número), permitimos eliminar aunque tenga recibos
+        // (porque los borraremos en cascada en el hook deleting)
+        if (in_array($this->tipo, ['factura', 'factura_compra']) && empty($this->numero)) {
+            return true;
         }
 
         return !$this->tieneDocumentosDerivados();
@@ -81,15 +92,27 @@ trait BloqueoDocumentos
     public static function bootBloqueoDocumentos()
     {
         static::deleting(function ($model) {
-            // REVERTIR STOCK al eliminar (si no estaba anulado ya)
+            // 1. REVERTIR STOCK al eliminar (si no estaba anulado ya)
             if ($model->stock_actualizado && $model->estado !== 'anulado') {
                 $stockService = new \App\Services\StockService();
                 $stockService->actualizarStockDesdeDocumento($model, true);
             }
+
+            // 2. BORRADO EN CASCADA DE RECIBOS para facturas (Venta y Compra)
+            if (in_array($model->tipo, ['factura', 'factura_compra'])) {
+                // Buscamos derivados que sean recibos
+                $recibos = $model->documentosDerivados()
+                    ->whereIn('tipo', ['recibo', 'recibo_compra'])
+                    ->get();
+                
+                foreach ($recibos as $recibo) {
+                    $recibo->delete();
+                }
+            }
         });
 
         static::deleted(function ($model) {
-            // DESBLOQUEAR EL ORIGEN
+            // 1. DESBLOQUEAR EL ORIGEN (Relación Simple)
             if ($model->documento_origen_id) {
                 $origen = $model->documentoOrigen;
                 if ($origen && $origen->estado === 'procesado') {
@@ -98,6 +121,21 @@ trait BloqueoDocumentos
                         $origen->update(['estado' => 'confirmado']);
                     }
                 }
+            }
+
+            // 2. DESBLOQUEAR ORÍGENES MÚLTIPLES (Relación Many-to-Many - Agrupaciones)
+            if ($model->documentosOrigenMultiples()->exists()) {
+                foreach ($model->documentosOrigenMultiples as $origen) {
+                    if ($origen->estado === 'procesado') {
+                        // Verificamos si este origen todavía tiene otros derivados múltiples activos
+                        // (menos el que acabamos de borrar, que ya no aparecerá en la relación)
+                        if (!$origen->tieneDocumentosDerivados()) {
+                            $origen->update(['estado' => 'confirmado']);
+                        }
+                    }
+                }
+                // Desligar orígenes para limpieza (aunque el registro se borre, esto es buena práctica)
+                $model->documentosOrigenMultiples()->detach();
             }
         });
     }

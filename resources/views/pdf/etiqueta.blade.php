@@ -21,7 +21,9 @@
             height: {{ $format->document_height }}mm;
             margin: 0;
             padding: 0;
-            page-break-after: always;
+        }
+        .sheet + .sheet {
+            page-break-before: always;
         }
         .label {
             position: absolute;

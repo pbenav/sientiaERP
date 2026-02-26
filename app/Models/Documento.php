@@ -506,6 +506,13 @@ class Documento extends Model
             // Recalcular totales
             $nuevoDocumento->recalcularTotales();
 
+            // Marcar orígenes como procesados
+            foreach ($documentos as $documento) {
+                if ($documento->estado === 'confirmado') {
+                    $documento->update(['estado' => 'procesado']);
+                }
+            }
+
             DB::commit();
             return $nuevoDocumento;
             

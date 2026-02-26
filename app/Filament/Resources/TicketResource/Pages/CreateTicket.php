@@ -35,8 +35,8 @@ class CreateTicket extends Page
     public $realFinalCash = 0;
     public $sessionNotes = '';
     public $cashBreakdown = [
-        '500' => 0, '200' => 0, '100' => 0, '50' => 0, '20' => 0, '10' => 0, '5' => 0,
-        '2' => 0, '1' => 0, '0.50' => 0, '0.20' => 0, '0.10' => 0, '0.05' => 0, '0.02' => 0, '0.01' => 0
+        '50000' => 0, '20000' => 0, '10000' => 0, '5000' => 0, '2000' => 0, '1000' => 0, '500' => 0,
+        '200' => 0, '100' => 0, '50' => 0, '20' => 0, '10' => 0, '5' => 0, '2' => 0, '1' => 0
     ];
     
     // FECHA - Propiedad dedicada para binding
@@ -130,7 +130,7 @@ class CreateTicket extends Page
     }
     
     // Cargar un slot de TPV específico
-    public function cargarTpv($slot)
+    public function cargarTpv($slot, $limpiar = true)
     {
         $this->tpvActivo = $slot;
         
@@ -226,8 +226,10 @@ class CreateTicket extends Page
         $this->payment_method = $this->ticket->payment_method ?? 'cash';
         $this->entrega = $this->ticket->amount_paid;
 
-        // Limpiar inputs entrada
-        $this->limpiarInputs();
+        // Limpiar inputs entrada solo si se solicita
+        if ($limpiar) {
+            $this->limpiarInputs();
+        }
     }
     
     /**
@@ -279,8 +281,8 @@ class CreateTicket extends Page
     public function updatedCashBreakdown()
     {
         $total = 0;
-        foreach ($this->cashBreakdown as $denominacion => $cantidad) {
-            $total += (float)$denominacion * (int)($cantidad ?: 0);
+        foreach ($this->cashBreakdown as $cents => $cantidad) {
+            $total += ((float)$cents / 100) * (int)($cantidad ?: 0);
         }
         $this->realFinalCash = round($total, 2);
     }
@@ -576,7 +578,7 @@ protected function procesarLineaProducto()
     
     // Si no hay ticket, crear uno nuevo para este TPV
     if (!$this->ticket) {
-        $this->cargarTpv($this->tpvActivo);
+        $this->cargarTpv($this->tpvActivo, false);
     }
     
     // Añadir a memoria

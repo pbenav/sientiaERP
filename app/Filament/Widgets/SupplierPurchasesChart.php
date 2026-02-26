@@ -18,9 +18,14 @@ class SupplierPurchasesChart extends ChartWidget
         $startDate = now()->subDays(90);
 
         $topSuppliers = DB::table('documentos')
-            ->where('tipo', 'albaran_compra')
-            ->whereNotIn('estado', ['borrador', 'anulado'])
+            ->where(function($query) {
+                $query->where('tipo', 'albaran_compra')->where('estado', 'confirmado');
+            })
+            ->orWhere(function($query) {
+                $query->where('tipo', 'factura_compra')->whereNotIn('estado', ['borrador', 'anulado']);
+            })
             ->where('fecha', '>=', $startDate)
+            ->whereNull('deleted_at')
             ->select('tercero_id', DB::raw('SUM(total) as total_spent'))
             ->groupBy('tercero_id')
             ->orderBy('total_spent', 'desc')
