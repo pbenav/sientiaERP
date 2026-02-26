@@ -31,6 +31,7 @@ class Ticket extends Model
         'amount_paid',
         'change_given',
         'completed_at',
+        'cash_session_id',
     ];
 
     protected $attributes = [
@@ -87,6 +88,11 @@ class Ticket extends Model
     public function items(): HasMany
     {
         return $this->hasMany(TicketItem::class);
+    }
+
+    public function cash_session(): BelongsTo
+    {
+        return $this->belongsTo(CashSession::class);
     }
 
     /**

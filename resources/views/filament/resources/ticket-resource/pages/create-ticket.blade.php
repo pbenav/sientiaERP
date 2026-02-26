@@ -40,7 +40,48 @@
             }
         }
     }" 
-    class="flex flex-col bg-white border border-gray-200 shadow-sm font-sans text-sm text-gray-900 min-h-screen md:h-[85vh] overflow-hidden md:rounded-lg">
+    class="flex flex-col bg-white border border-gray-200 shadow-sm font-sans text-sm text-gray-900 h-[calc(100vh-170px)] md:h-[calc(100vh-200px)] overflow-hidden md:rounded-lg">
+        
+        {{-- Barra de Navegación Profesional --}}
+        <div class="bg-gray-800 text-white px-4 py-2 flex justify-between items-center shrink-0">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <x-heroicon-s-computer-desktop class="w-5 h-5 text-primary-400"/>
+                    <span class="font-black text-lg tracking-tight">SIENTIA <span class="text-primary-400">POS</span></span>
+                </div>
+                <div class="hidden md:flex items-center gap-3 px-3 py-1 bg-gray-700/50 rounded-full border border-white/10">
+                    <div class="flex items-center gap-1.5">
+                        <x-heroicon-s-user class="w-3.5 h-3.5 text-gray-400"/>
+                        <span class="text-[10px] uppercase font-bold text-gray-300">{{ auth()->user()->name }}</span>
+                    </div>
+                    <div class="w-px h-3 bg-white/10"></div>
+                    <div class="flex items-center gap-1.5">
+                        <div class="w-2 h-2 rounded-full {{ $isSessionOpen ? 'bg-green-500 animate-pulse' : 'bg-red-500' }}"></div>
+                        <span class="text-[10px] uppercase font-bold {{ $isSessionOpen ? 'text-green-400' : 'text-red-400' }}">
+                            Sesión {{ $isSessionOpen ? 'Abierta' : 'Cerrada' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                @if($isSessionOpen)
+                    <button wire:click="openClosingModal" 
+                            type="button"
+                            class="group flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-gray-900 rounded-md font-black text-[11px] uppercase transition shadow-lg active:scale-95">
+                        <x-heroicon-s-banknotes class="w-4 h-4 group-hover:rotate-12 transition-transform"/>
+                        CIERRE / ARQUEO
+                    </button>
+                @endif
+
+                <button wire:click="salirPos" 
+                        type="button"
+                        class="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-red-600 text-white rounded-md font-black text-[11px] uppercase transition shadow-lg active:scale-95 border border-white/10">
+                    <x-heroicon-s-arrow-left-on-rectangle class="w-4 h-4"/>
+                    SALIR (TPV)
+                </button>
+            </div>
+        </div>
         
         {{-- Header Compacto --}}
         <div class="bg-white border-b border-gray-200 px-3 md:px-4 py-2 shrink-0 shadow-sm">
@@ -89,20 +130,31 @@
                 </div>
             </div>
             
-            {{-- Fila 2: TPV Buttons - SIEMPRE HORIZONTAL --}}
-            <div class="flex gap-1">
-                @foreach(range(1,4) as $tpv)
-                    <button wire:click="cambiarTpv({{ $tpv }})" 
+            {{-- Fila 2: TPV Buttons & Session Control --}}
+            <div class="flex gap-1 items-center">
+                <div class="flex gap-1 flex-1">
+                    @foreach(range(1,4) as $tpv)
+                        <button wire:click="cambiarTpv({{ $tpv }})" 
+                                type="button"
+                                class="flex-1 px-2 md:px-3 py-1.5 rounded text-xs font-bold transition-all duration-200 shadow-md active:scale-95
+                                       {{ $tpvActivo === $tpv 
+                                          ? 'bg-primary-600 text-white shadow-lg ring-2 ring-primary-300' 
+                                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:shadow-lg' }}"
+                                wire:loading.class="opacity-50 cursor-wait"
+                                wire:target="cambiarTpv">
+                            TPV {{ $tpv }}
+                        </button>
+                    @endforeach
+                </div>
+
+                @if($isSessionOpen)
+                    <button wire:click="openClosingModal" 
                             type="button"
-                            class="flex-1 px-2 md:px-3 py-1.5 rounded text-xs font-bold transition-all duration-200 shadow-md active:scale-95
-                                   {{ $tpvActivo === $tpv 
-                                      ? 'bg-primary-600 text-white shadow-lg ring-2 ring-primary-300' 
-                                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:shadow-lg' }}"
-                            wire:loading.class="opacity-50 cursor-wait"
-                            wire:target="cambiarTpv">
-                        TPV {{ $tpv }}
+                            class="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-bold shadow-md transition active:scale-95 flex items-center gap-1">
+                        <x-heroicon-o-lock-closed class="w-4 h-4"/> CIERRE DE CAJA
                     </button>
-                @endforeach
+                @endif
+                
                 <button type="button" 
                         class="hidden md:flex px-3 py-1.5 bg-gray-100 border border-gray-300 hover:bg-gray-200 rounded text-xs items-center justify-center text-gray-700 font-bold shadow-sm transition active:scale-95">
                     <x-heroicon-o-ticket class="w-3 h-3 mr-1 text-primary-500"/> VALE
@@ -382,5 +434,155 @@
             </div>
         </div>
     </div>
+
+    {{-- Overlay de Sesión Cerrada --}}
+    @if(!$isSessionOpen)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/80 backdrop-blur-sm px-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-8 border-t-8 border-primary-600">
+                <div class="text-center mb-6">
+                    <div class="bg-primary-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <x-heroicon-o-lock-open class="w-10 h-10 text-primary-600"/>
+                    </div>
+                    <h2 class="text-2xl font-black text-gray-900 uppercase">Apertura de Caja</h2>
+                    <p class="text-gray-500 text-sm mt-1">Debe iniciar una sesión de venta para operar el TPV.</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase mb-2">Fondo de Apertura (€)</label>
+                        <input type="number" 
+                               wire:model="openingFund" 
+                               step="0.01"
+                               class="w-full h-14 text-center text-3xl font-black border-2 border-gray-200 rounded-lg focus:border-primary-500 focus:ring-primary-500 bg-gray-50" />
+                    </div>
+
+                    <button wire:click="openSession" 
+                            type="button"
+                            class="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-black text-lg uppercase shadow-xl transition active:scale-95 flex items-center justify-center gap-2">
+                        <x-heroicon-o-play class="w-6 h-6"/> ABRIR DÍA / VENTA
+                    </button>
+                    
+                    <button wire:click="salirPos" 
+                            type="button"
+                            class="w-full py-2 text-gray-500 hover:text-gray-700 font-bold text-sm uppercase">
+                        Cancelar y Volver
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Modal de Cierre (Arqueo) --}}
+    @if($showClosingModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/80 backdrop-blur-sm px-4 py-8 overflow-y-auto">
+            <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full p-0 border-t-8 border-red-600 flex flex-col max-h-full">
+                {{-- Header Modal --}}
+                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-xl shrink-0">
+                    <div>
+                        <h2 class="text-xl font-black text-gray-900 uppercase">Cierre de Caja (Arqueo)</h2>
+                        <p class="text-[10px] text-gray-500 font-bold">FECHA: {{ now()->format('d/m/Y H:i') }} | USUARIO: {{ auth()->user()->name }}</p>
+                    </div>
+                    <button wire:click="$set('showClosingModal', false)" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">&times;</button>
+                </div>
+
+                <div class="p-6 overflow-y-auto grid md:grid-cols-2 gap-8">
+                    {{-- Columna Izquierda: Desglose de Monedas --}}
+                    <div>
+                        <h3 class="text-xs font-black text-gray-400 uppercase mb-4 border-b pb-1">Desglose de Efectivo</h3>
+                        <div class="grid grid-cols-2 gap-x-6 gap-y-2">
+                            @foreach($cashBreakdown as $val => $qty)
+                                <div class="flex items-center gap-2">
+                                    <span class="w-16 text-right font-bold text-gray-600 text-xs">
+                                        @if((float)$val >= 5) 
+                                            <span class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-300">{{ number_format($val, 0) }} €</span>
+                                        @else
+                                            <span class="text-amber-700">{{ number_format($val, 2) }} €</span>
+                                        @endif
+                                    </span>
+                                    <input type="number" 
+                                           wire:model.live="cashBreakdown.{{ $val }}"
+                                           class="w-full h-8 text-center text-sm font-bold border-gray-300 rounded focus:ring-primary-500 focus:border-primary-500 px-1"
+                                           placeholder="0"
+                                           min="0" />
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- Columna Derecha: Resumen y Cuadre --}}
+                    <div class="space-y-6">
+                        <div class="bg-gray-100 p-4 rounded-xl border border-gray-200">
+                            <h3 class="text-[10px] font-black text-gray-500 uppercase mb-3 text-center tracking-widest leading-none">Cálculo del Sistema</h3>
+                            <div class="space-y-2">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Fondo de Apertura:</span>
+                                    <span class="font-bold text-gray-900">{{ number_format($activeSession->fondo_apertura, 2) }} €</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Ventas en Efectivo:</span>
+                                    <span class="font-bold text-green-600">+ {{ number_format($activeSession->total_tickets_efectivo, 2) }} €</span>
+                                </div>
+                                <div class="border-t border-gray-300 pt-2 flex justify-between">
+                                    <span class="font-black text-xs uppercase text-gray-700">Total Teórico:</span>
+                                    <span class="font-black text-lg text-gray-900 underline decoration-primary-500">{{ number_format($activeSession->fondo_apertura + $activeSession->total_tickets_efectivo, 2) }} €</span>
+                                </div>
+                                <div class="flex justify-between text-sm pt-4 border-t border-dashed border-gray-300">
+                                    <span class="text-gray-600">Ventas en Tarjeta:</span>
+                                    <span class="font-bold text-blue-600">{{ number_format($activeSession->total_tickets_tarjeta, 2) }} €</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-primary-50 p-4 rounded-xl border-2 border-primary-200">
+                            <h3 class="text-[10px] font-black text-primary-600 uppercase mb-2 text-center tracking-widest leading-none">TOTAL EFECTIVO REAL</h3>
+                            <div class="text-center">
+                                <span class="text-4xl font-black text-primary-700 leading-none">{{ number_format($realFinalCash, 2) }} €</span>
+                            </div>
+                            
+                            @php 
+                                $teorico = $activeSession->fondo_apertura + $activeSession->total_tickets_efectivo;
+                                $diff = round($realFinalCash - $teorico, 2);
+                            @endphp
+
+                            <div class="mt-4 pt-3 border-t border-primary-200 flex justify-center items-center gap-2">
+                                <span class="text-xs font-bold uppercase {{ $diff == 0 ? 'text-green-600' : ($diff < 0 ? 'text-red-600' : 'text-amber-600') }}">
+                                    Desfase: {{ number_format($diff, 2) }} €
+                                </span>
+                                @if($diff == 0)
+                                    <x-heroicon-s-check-circle class="w-5 h-5 text-green-600"/>
+                                @elseif($diff < 0)
+                                    <x-heroicon-s-x-circle class="w-5 h-5 text-red-600"/>
+                                @else
+                                    <x-heroicon-s-exclamation-triangle class="w-5 h-5 text-amber-600"/>
+                                @endif
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-black text-gray-500 uppercase mb-1">Observaciones / Notas</label>
+                            <textarea wire:model="sessionNotes" 
+                                      rows="3" 
+                                      class="w-full text-sm border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                      placeholder="Escribe alguna observación sobre el arqueo si es necesario..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Footer Modal --}}
+                <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3 rounded-b-xl shrink-0">
+                    <button wire:click="$set('showClosingModal', false)" 
+                            type="button"
+                            class="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg font-bold text-sm uppercase hover:bg-gray-100 transition">
+                        Cancelar
+                    </button>
+                    <button wire:click="confirmSessionClosure" 
+                            type="button"
+                            class="px-8 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-black text-sm uppercase shadow-lg transition active:scale-95 flex items-center gap-2">
+                        <x-heroicon-o-check class="w-5 h-5"/> Confirmar Arqueo y Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
 </x-filament-panels::page>
 </div>
