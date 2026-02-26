@@ -2,43 +2,44 @@
 
 namespace App\Filament\Resources\ExpedicionResource\Widgets;
 
-use Filament\Widgets\StatsOverviewWidget as BaseWidget;
+use App\Models\Expedicion;
+use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Database\Eloquent\Model;
 
-class ExpedicionTotalesWidget extends BaseWidget
+class ExpedicionTotalesWidget extends StatsOverviewWidget
 {
-    // Recibe el record de la expedición actual desde la página de edición
-    public ?string $record = null;
+    // Filament inyecta el record de la página automáticamente
+    public ?Model $record = null;
 
     protected function getStats(): array
     {
-        if (! $this->record) {
+        if (!$this->record) {
             return [];
         }
 
-        $expedicion = \App\Models\Expedicion::with('compras')->find($this->record);
-        if (! $expedicion) {
+        /** @var Expedicion $expedicion */
+        $expedicion = $this->record instanceof Expedicion
+            ? $this->record
+            : Expedicion::find($this->record);
+
+        if (!$expedicion) {
             return [];
         }
 
-        $total    = $expedicion->totalImporte();
-        $sinRecoger = $expedicion->pendientesRecogida();
-        $sinPagar   = $expedicion->sinPagar();
+        $total      = $expedicion->compras()->sum('importe');
+        $sinPagar   = $expedicion->compras()->where('pagado', false)->count();
+        $sinRecoger = $expedicion->compras()->where('pagado', true)->where('recogido', false)->count();
 
         return [
-            Stat::make('Total expedición', number_format($total, 2, ',', '.') . ' €')
-                ->icon('heroicon-o-currency-euro')
+            Stat::make('💶 Total compras', number_format($total, 2, ',', '.') . ' €')
                 ->color('primary'),
 
-            Stat::make('Pendientes de recoger', $sinRecoger)
-                ->icon('heroicon-o-truck')
-                ->color($sinRecoger > 0 ? 'danger' : 'success')
-                ->description($sinRecoger > 0 ? 'Pagado pero sin recoger mercancía' : 'Todo recogido ✓'),
+            Stat::make('💳 Sin pagar', $sinPagar . ' compra(s)')
+                ->color($sinPagar > 0 ? 'danger' : 'success'),
 
-            Stat::make('Sin pagar', $sinPagar)
-                ->icon('heroicon-o-banknotes')
-                ->color($sinPagar > 0 ? 'warning' : 'success')
-                ->description($sinPagar > 0 ? 'Compras pendientes de pago' : 'Todo pagado ✓'),
+            Stat::make('🚚 Pagado, sin recoger', $sinRecoger . ' compra(s)')
+                ->color($sinRecoger > 0 ? 'warning' : 'success'),
         ];
     }
 }
