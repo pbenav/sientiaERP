@@ -102,8 +102,17 @@
                     <!-- Fila 2: Proveedor (más espacio) | Subtotal | Descuento | Total -->
                     <div style="display:grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 8px; align-items: end;">
                         <div>
-                            <label
-                                style="display:block; font-size:10px; font-weight:600; text-transform:uppercase; color:#6b7280; margin-bottom:2px;">Proveedor</label>
+                            <div
+                                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                                <label
+                                    style="font-size:10px; font-weight:600; text-transform:uppercase; color:#6b7280;">Proveedor</label>
+                                <button type="button" wire:click="$toggle('showCreateSupplierModal')"
+                                    title="{{ $showCreateSupplierModal ? 'Cancelar' : 'Nuevo proveedor' }}"
+                                    style="font-size:16px; line-height:1; color:#6b7280; background:none; border:none; cursor:pointer; padding:0 2px;"
+                                    onmouseover="this.style.color='#111'" onmouseout="this.style.color='#6b7280'">
+                                    {{ $showCreateSupplierModal ? '×' : '+' }}
+                                </button>
+                            </div>
                             <select wire:model="parsedData.supplier_id"
                                 class="block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white {{ $displayUppercase ? 'uppercase-display' : '' }}">
                                 <option value="">-- Seleccionar Proveedor --</option>
@@ -136,6 +145,57 @@
                         </div>
                     </div>
                 </div>
+
+                @if ($showCreateSupplierModal)
+                    <div
+                        class="rounded-lg border border-primary-200 dark:border-primary-800 bg-primary-50 dark:bg-primary-900/20 p-3 space-y-2">
+                        <h4 class="text-xs font-semibold text-primary-700 dark:text-primary-300">Nuevo Proveedor</h4>
+                        <div style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:8px;">
+                            <div>
+                                <label
+                                    style="display:block; font-size:10px; font-weight:600; color:#6b7280; margin-bottom:2px;">Nombre
+                                    Comercial *</label>
+                                <input type="text" wire:model="newSupplier.nombre_comercial"
+                                    class="block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                    placeholder="Nombre del proveedor">
+                                @error('newSupplier.nombre_comercial')
+                                    <span class="text-[10px] text-red-500">{{ $message }}</span>
+                                @enderror
+                            </div>
+                            <div>
+                                <label
+                                    style="display:block; font-size:10px; font-weight:600; color:#6b7280; margin-bottom:2px;">NIF/CIF</label>
+                                <input type="text" wire:model="newSupplier.nif_cif"
+                                    class="block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                    placeholder="B12345678">
+                            </div>
+                            <div>
+                                <label
+                                    style="display:block; font-size:10px; font-weight:600; color:#6b7280; margin-bottom:2px;">Email</label>
+                                <input type="email" wire:model="newSupplier.email"
+                                    class="block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                    placeholder="proveedor@email.com">
+                            </div>
+                            <div>
+                                <label
+                                    style="display:block; font-size:10px; font-weight:600; color:#6b7280; margin-bottom:2px;">Teléfono</label>
+                                <input type="text" wire:model="newSupplier.telefono"
+                                    class="block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                    placeholder="+34 600 000 000">
+                            </div>
+                        </div>
+                        <div class="flex justify-end gap-2 pt-1">
+                            <x-filament::button size="xs" color="gray"
+                                wire:click="$set('showCreateSupplierModal', false)">
+                                Cancelar
+                            </x-filament::button>
+                            <x-filament::button size="xs" wire:click="createSupplier" wire:loading.attr="disabled">
+                                <span wire:loading.remove>Guardar Proveedor</span>
+                                <span wire:loading>Guardando...</span>
+                            </x-filament::button>
+                        </div>
+                    </div>
+                @endif
 
                 @if (!empty($parsedData['supplier']))
                     <p class="text-[10px] text-gray-500 italic px-1">Detectado por el OCR: {{ $parsedData['supplier'] }}

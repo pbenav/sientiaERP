@@ -48,6 +48,13 @@ class OcrImport extends Page implements HasForms
     
     public $suppliers = [];
     public $displayUppercase = false;
+    public $showCreateSupplierModal = false;
+    public $newSupplier = [
+        'nombre_comercial' => '',
+        'nif_cif' => '',
+        'email' => '',
+        'telefono' => '',
+    ];
 
     public function mount(): void
     {
@@ -71,6 +78,50 @@ class OcrImport extends Page implements HasForms
         // Cargar formatos de etiquetas
         $this->labelFormats = \App\Models\LabelFormat::where('activo', true)->get();
         $this->selectedLabelFormatId = $this->labelFormats->first()?->id;
+    }
+
+    public function createSupplier(): void
+    {
+        $validated = $this->validate([
+            'newSupplier.nombre_comercial' => 'required|string|max:255',
+            'newSupplier.nif_cif'          => 'nullable|string|max:20',
+            'newSupplier.email'            => 'nullable|email|max:255',
+            'newSupplier.telefono'         => 'nullable|string|max:20',
+        ], [], [
+            'newSupplier.nombre_comercial' => 'Nombre Comercial',
+            'newSupplier.nif_cif'          => 'NIF/CIF',
+            'newSupplier.email'            => 'Email',
+            'newSupplier.telefono'         => 'Teléfono',
+        ]);
+
+        try {
+            $tercero = \App\Models\Tercero::create($this->newSupplier);
+            $tipoProveedor = \App\Models\TipoTercero::where('codigo', 'PRO')->first();
+            if ($tipoProveedor) {
+                $tercero->tipos()->attach($tipoProveedor);
+            }
+
+            // Recargar la lista y seleccionar el nuevo proveedor
+            $this->suppliers = \App\Models\Tercero::whereHas('tipos', fn($q) => $q->where('codigo', 'PRO'))
+                ->orderBy('nombre_comercial')->get();
+            $this->parsedData['supplier_id'] = $tercero->id;
+
+            // Resetear formulario y cerrar modal
+            $this->newSupplier = ['nombre_comercial' => '', 'nif_cif' => '', 'email' => '', 'telefono' => ''];
+            $this->showCreateSupplierModal = false;
+
+            \Filament\Notifications\Notification::make()
+                ->title('Proveedor creado')
+                ->success()
+                ->body("Se ha creado el proveedor «{$tercero->nombre_comercial}» y se ha seleccionado.")
+                ->send();
+        } catch (\Exception $e) {
+            \Filament\Notifications\Notification::make()
+                ->title('Error al crear proveedor')
+                ->danger()
+                ->body($e->getMessage())
+                ->send();
+        }
     }
 
     public function form(Form $form): Form
