@@ -12,6 +12,7 @@ class TopProductsChart extends ChartWidget
 {
     protected static ?string $heading = 'Top 10 Productos por Ingresos (Últimos 30 días)';
     protected static ?int $sort = 3;
+    protected static ?string $maxHeight = '275px';
 
     protected function getData(): array
     {
@@ -83,6 +84,7 @@ class TopProductsChart extends ChartWidget
                 'x' => ['display' => false],
                 'y' => ['display' => false],
             ],
+            'maintainAspectRatio' => false,
         ];
     }
 }

@@ -11,6 +11,7 @@ class SupplierPurchasesChart extends ChartWidget
 {
     protected static ?string $heading = 'Compras por Proveedor (Top 10)';
     protected static ?int $sort = 6;
+    protected static ?string $maxHeight = '275px';
 
     protected function getData(): array
     {
@@ -68,6 +69,7 @@ class SupplierPurchasesChart extends ChartWidget
                 'x' => ['display' => false],
                 'y' => ['display' => false],
             ],
+            'maintainAspectRatio' => false,
         ];
     }
 }
