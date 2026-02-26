@@ -24,8 +24,8 @@ class EditExpedicion extends EditRecord
         ];
     }
 
-    // Widget de totales — Filament inyecta el $record automáticamente
-    protected function getFooterWidgets(): array
+    // Widget de totales ARRIBA del formulario (alertas de pendientes)
+    protected function getHeaderWidgets(): array
     {
         return [
             ExpedicionTotalesWidget::class,

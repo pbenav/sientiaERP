@@ -112,7 +112,7 @@ class ExpedicionResource extends Resource
 
     // ── RelationManagers ──────────────────────────────────────────────────────
 
-    public static function getRelationManagers(): array
+    public static function getRelations(): array
     {
         return [
             ComprasRelationManager::class,
