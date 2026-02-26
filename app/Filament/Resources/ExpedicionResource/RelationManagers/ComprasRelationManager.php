@@ -122,14 +122,16 @@ class ComprasRelationManager extends RelationManager
                     ->alignRight()
                     ->sortable(),
 
-                Tables\Columns\IconColumn::make('pagado')
+                Tables\Columns\ToggleColumn::make('pagado')
                     ->label('Pagado')
-                    ->boolean()
+                    ->onColor('success')
+                    ->offColor('danger')
                     ->alignCenter(),
 
-                Tables\Columns\IconColumn::make('recogido')
+                Tables\Columns\ToggleColumn::make('recogido')
                     ->label('Recogido')
-                    ->boolean()
+                    ->onColor('success')
+                    ->offColor('warning')
                     ->alignCenter(),
 
                 Tables\Columns\IconColumn::make('documento_path')
