@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use Filament\Actions\Action;
 use Filament\Pages\Page;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -19,6 +20,21 @@ class OcrImport extends Page implements HasForms
     protected static ?string $title = 'Importar Albarán desde Imagen';
     protected static ?string $navigationLabel = 'OCR Import';
     protected static bool $shouldRegisterNavigation = false; // Hidden from menu
+
+    /** Botón "Cancelar y volver" — solo visible cuando se llega desde una expedición */
+    protected function getHeaderActions(): array
+    {
+        if ($this->backUrl) {
+            return [
+                Action::make('cancelar_volver')
+                    ->label('← Cancelar y volver a la expedición')
+                    ->url($this->backUrl)
+                    ->color('gray')
+                    ->icon('heroicon-o-arrow-left'),
+            ];
+        }
+        return [];
+    }
 
     public ?array $data = [];
     public $rawText = '';
