@@ -102,8 +102,8 @@
                 @endif
 
                 <button wire:click="salirPos" type="button"
-                    class="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-red-600 text-white rounded-md font-black text-[11px] uppercase transition shadow-lg active:scale-95 border border-white/10">
-                    <x-heroicon-s-arrow-left-on-rectangle class="w-4 h-4" />
+                    class="flex items-center gap-1.5 px-3 py-1.5 !bg-red-700 hover:bg-red-800 !text-white rounded-md font-black text-[11px] uppercase transition shadow-lg active:scale-95 border border-white/20">
+                    <x-heroicon-s-arrow-left-on-rectangle class="w-4 h-4 !text-white" />
                     SALIR (TPV)
                 </button>
             </div>
@@ -318,7 +318,7 @@
                 {{-- Panel Botones (Izquierda) - 2 Columnas Compacto --}}
                 <div class="grid grid-cols-2 gap-2 w-fit shrink-0 overflow-visible"
                     style="display: grid !important; grid-template-columns: repeat(2, 1fr) !important; width: 172px !important;">
-                    @foreach ([['Grabar', 'heroicon-o-check', 'from-green-600 to-green-700 border-green-700 text-white shadow-green-500/50'], ['Anular', 'heroicon-o-trash', 'from-red-600 to-red-700 border-red-700 text-white'], ['Imprimir', 'heroicon-o-printer', 'from-gray-700 to-gray-800 border-gray-900 text-white'], ['Nueva', 'heroicon-o-plus', 'from-amber-500 to-amber-600 border-amber-700 text-white'], ['Regalo', 'heroicon-o-gift', 'from-purple-600 to-purple-700 border-purple-800 text-white'], ['Salir', 'heroicon-o-arrow-right-on-rectangle', 'from-gray-800 to-gray-900 border-black text-white']] as $i => $btn)
+                    @foreach ([['Grabar', 'heroicon-o-check', '!bg-green-700 border-green-800 text-white shadow-green-500/50 hover:bg-green-800'], ['Anular', 'heroicon-o-trash', '!bg-red-700 border-red-800 text-white hover:bg-red-800'], ['Imprimir', 'heroicon-o-printer', '!bg-gray-700 border-gray-800 text-white hover:bg-gray-800'], ['Nueva', 'heroicon-o-plus', '!bg-amber-600 border-amber-700 text-white hover:bg-amber-700 font-black'], ['Regalo', 'heroicon-o-gift', '!bg-purple-700 border-purple-800 text-white hover:bg-purple-800'], ['Salir', 'heroicon-o-arrow-right-on-rectangle', '!bg-red-700 border-red-900 text-white hover:bg-red-800']] as $i => $btn)
                         <button
                             @if ($btn[0] === 'Grabar') wire:click="grabarTicket" 
                             wire:loading.attr="disabled"
