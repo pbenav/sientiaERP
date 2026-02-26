@@ -26,9 +26,9 @@ class ComprasRelationManager extends RelationManager
         return true;
     }
 
-    public static function canCreate(array $arguments = []): bool { return true; }
-    public static function canEdit(Model $record): bool           { return true; }
-    public static function canDelete(Model $record): bool         { return true; }
+    public function canCreate(): bool              { return true; }
+    public function canEdit(Model $record): bool   { return true; }
+    public function canDelete(Model $record): bool { return true; }
 
     // ── Formulario (modal) ────────────────────────────────────────────────────
     public function form(Form $form): Form
