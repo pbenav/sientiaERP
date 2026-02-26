@@ -148,6 +148,7 @@ class CreateTicket extends Page
             [
                 'user_id' => auth()->id(),
                 'session_id' => (string) \Illuminate\Support\Str::uuid(),
+                'cash_session_id' => $this->activeSession?->id,
                 'numero' => 'BORRADOR',
                 'created_at' => now(),
             ]
@@ -600,6 +601,11 @@ protected function procesarLineaProducto()
     {
         // Crear TicketItem
         try {
+            // Asegurar que el ticket está vinculado a la sesión activa si no lo está
+            if (!$this->ticket->cash_session_id && $this->activeSession) {
+                $this->ticket->update(['cash_session_id' => $this->activeSession->id]);
+            }
+
             $this->ticket->items()->create([
                 'product_id' => $linea['product_id'],
                 'quantity' => $linea['cantidad'],
@@ -769,6 +775,12 @@ protected function procesarLineaProducto()
         }
         
         // PASO 1: Asegurar que todas las líneas están guardadas en la base de datos
+        // Asegurar vinculación con sesión
+        if (!$this->ticket->cash_session_id && $this->activeSession) {
+            $this->ticket->cash_session_id = $this->activeSession->id;
+            $this->ticket->save();
+        }
+
         // Borrar todas las líneas existentes y recrearlas (para evitar inconsistencias)
         $this->ticket->items()->delete();
         

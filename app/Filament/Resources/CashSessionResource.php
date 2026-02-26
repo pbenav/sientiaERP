@@ -41,12 +41,14 @@ class CashSessionResource extends Resource
                         Forms\Components\DateTimePicker::make('fecha_fin')
                             ->label('Cierre')
                             ->disabled(),
-                        Forms\Components\BadgeColumn::make('estado')
+                        Forms\Components\TextInput::make('estado')
                             ->label('Estado')
-                            ->colors([
-                                'warning' => 'open',
-                                'success' => 'closed',
-                            ]),
+                            ->formatStateUsing(fn (string $state): string => match ($state) {
+                                'open' => 'Abierta',
+                                'closed' => 'Cerrada',
+                                default => $state,
+                            })
+                            ->disabled(),
                     ])->columns(2),
 
                 Forms\Components\Section::make('Totales')
