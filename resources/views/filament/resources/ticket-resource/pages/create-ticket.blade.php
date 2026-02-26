@@ -11,17 +11,35 @@
                 -moz-appearance: textfield;
             }
 
-            .pos-input:focus {
-                background-color: #FEF3C7 !important;
-                /* Amber-100 */
-                outline: 2px solid #F59E0B;
-                /* Amber-500 */
-                border-color: #F59E0B;
-                color: black !important;
+            /* Forzar visibilidad absoluta en controles del TPV */
+            .pos-label-force {
+                color: #000000 !important;
+                font-weight: 900 !important;
+                display: block !important;
             }
 
-            /* Clase para auto-seleccionar al enfocar */
-            .select-all {}
+            .pos-input-force {
+                color: #000000 !important;
+                background-color: #ffffff !important;
+            }
+
+            .pos-btn-inactive-force {
+                color: #000000 !important;
+                background-color: #f3f4f6 !important;
+                /* gray-100 */
+                border-color: #d1d5db !important;
+                /* gray-300 */
+            }
+
+            .pos-btn-inactive-force svg {
+                color: #000000 !important;
+            }
+
+            .pos-input:focus {
+                background-color: #FEF3C7 !important;
+                outline: 2px solid #F59E0B;
+                border-color: #F59E0B;
+            }
         </style>
         <script>
             document.addEventListener('focusin', (e) => {
@@ -97,21 +115,21 @@
             <div class="flex items-center gap-2 md:gap-4 mb-2">
                 {{-- Número --}}
                 <div class="w-24 md:w-32">
-                    <label class="block text-[10px] uppercase font-black !text-black mb-1 leading-none">Número</label>
+                    <label class="pos-label-force text-[10px] uppercase mb-1 leading-none">Número</label>
                     <input type="text" value="{{ $this->data['numero'] ?? 'AUTO' }}" readonly
                         class="w-full h-9 bg-gray-50 border border-gray-300 rounded px-2 text-sm font-mono font-bold text-gray-900" />
                 </div>
 
                 {{-- Fecha --}}
                 <div class="w-32 md:w-40">
-                    <label class="block text-[10px] uppercase font-black !text-black mb-1 leading-none">Fecha</label>
+                    <label class="pos-label-force text-[10px] uppercase mb-1 leading-none">Fecha</label>
                     <input type="date" wire:model="fecha" id="pos-fecha"
                         class="w-full h-9 border-gray-300 rounded px-2 text-sm font-bold text-gray-900 focus:ring-primary-500 focus:border-primary-500" />
                 </div>
 
                 {{-- Cliente --}}
                 <div class="flex-1">
-                    <label class="block text-[10px] uppercase font-black !text-black mb-1 leading-none">Cliente</label>
+                    <label class="pos-label-force text-[10px] uppercase mb-1 leading-none">Cliente</label>
                     <div class="relative">
                         <select wire:model.live="nuevoClienteNombre" id="pos-cliente"
                             class="w-full h-9 border-gray-300 rounded px-2 text-sm font-bold text-gray-900 focus:ring-primary-500 focus:border-primary-500 appearance-none">
@@ -125,9 +143,9 @@
 
                 {{-- Teléfono oculto en móvil --}}
                 <div class="hidden lg:block w-40">
-                    <label class="block text-[10px] uppercase font-black !text-black mb-1 leading-none">Teléfono</label>
+                    <label class="pos-label-force text-[10px] uppercase mb-1 leading-none">Teléfono</label>
                     <input type="text" value="{{ $this->clienteTelefono }}" readonly
-                        class="w-full h-9 bg-gray-50 border border-gray-300 rounded px-2 text-sm font-bold !text-black" />
+                        class="pos-input-force w-full h-9 border border-gray-300 rounded px-2 text-sm font-bold" />
                 </div>
             </div>
 
@@ -139,7 +157,7 @@
                             class="flex-1 px-2 md:px-3 py-1.5 rounded text-xs font-black transition-all duration-200 shadow-md active:scale-95
                                        {{ (int) $tpvActivo === (int) $tpv
                                            ? 'bg-primary-600 text-white shadow-lg ring-4 ring-primary-300'
-                                           : 'bg-white !text-black border-2 border-gray-300 hover:bg-gray-100 hover:shadow-lg' }}"
+                                           : 'pos-btn-inactive-force border-2 hover:bg-gray-100 hover:shadow-lg' }}"
                             wire:loading.class="opacity-50 cursor-wait" wire:target="cambiarTpv">
                             TPV {{ $tpv }}
                         </button>
@@ -154,8 +172,8 @@
                 @endif
 
                 <button type="button"
-                    class="hidden md:flex px-3 py-1.5 bg-white border-2 border-gray-300 hover:bg-gray-100 rounded text-xs items-center justify-center !text-black font-black shadow-sm transition active:scale-95">
-                    <x-heroicon-o-ticket class="w-3 h-3 mr-1 !text-black" /> VALE
+                    class="hidden md:flex px-3 py-1.5 pos-btn-inactive-force border-2 hover:bg-gray-100 rounded text-xs items-center justify-center font-black shadow-sm transition active:scale-95">
+                    <x-heroicon-o-ticket class="w-3 h-3 mr-1" /> VALE
                 </button>
             </div>
         </div>
@@ -169,7 +187,7 @@
                 @focus-precio.window="focusNext('pos-precio')" @focus-descuento.window="focusNext('pos-descuento')"
                 @focus-codigo.window="focusNext('pos-codigo')">
                 <div class="w-32">
-                    <label class="block text-[10px] uppercase font-black !text-black mb-1 leading-none">Código</label>
+                    <label class="pos-label-force text-[10px] uppercase mb-1 leading-none">Código</label>
                     <input type="text" wire:model.live="nuevoCodigo" wire:blur="buscarProducto(true)"
                         wire:keydown.enter.prevent="buscarProducto(true)" list="codigos-list" id="pos-codigo"
                         class="pos-input w-full h-9 border-gray-300 rounded px-2 font-mono text-sm focus:ring-primary-500 focus:border-primary-500 uppercase"
@@ -182,8 +200,7 @@
                 </div>
 
                 <div class="flex-1 min-w-[200px]">
-                    <label
-                        class="block text-[10px] uppercase font-black !text-black mb-1 leading-none">Descripción</label>
+                    <label class="pos-label-force text-[10px] uppercase mb-1 leading-none">Descripción</label>
                     <input type="text" wire:model.live="nuevoNombre" wire:blur="buscarProducto(true)"
                         wire:keydown.enter.prevent="buscarProducto(true)" list="productos-list" id="pos-descripcion"
                         class="pos-input w-full h-9 border-gray-300 rounded px-2 text-sm focus:ring-primary-500 focus:border-primary-500"
@@ -196,16 +213,14 @@
                 </div>
 
                 <div class="w-20">
-                    <label
-                        class="block text-[10px] uppercase font-black !text-black mb-1 leading-none text-right">Cant</label>
+                    <label class="pos-label-force text-[10px] uppercase mb-1 leading-none text-right">Cant</label>
                     <input type="number" wire:model.live="nuevoCantidad"
                         x-on:keydown.enter.prevent="document.getElementById('pos-precio').focus()" id="pos-cantidad"
                         class="pos-input w-full h-9 border-gray-300 rounded px-2 text-right font-bold text-gray-800 focus:ring-primary-500 focus:border-primary-500" />
                 </div>
 
                 <div class="w-24">
-                    <label
-                        class="block text-[10px] uppercase font-black !text-black mb-1 leading-none text-right">Precio</label>
+                    <label class="pos-label-force text-[10px] uppercase mb-1 leading-none text-right">Precio</label>
                     <input type="number" wire:model.live="nuevoPrecio"
                         x-on:keydown.enter.prevent="document.getElementById('pos-descuento').focus()" step="0.01"
                         id="pos-precio"
@@ -213,8 +228,7 @@
                 </div>
 
                 <div class="w-16">
-                    <label
-                        class="block text-[10px] uppercase font-black !text-black mb-1 leading-none text-right">Dto%</label>
+                    <label class="pos-label-force text-[10px] uppercase mb-1 leading-none text-right">Dto%</label>
                     <input type="number" wire:model.live="nuevoDescuento"
                         x-on:keydown.enter.prevent="document.getElementById('btn-anadir-producto').focus()"
                         step="0.01" id="pos-descuento"
@@ -224,7 +238,7 @@
                 <div class="w-32 bg-gray-50 rounded p-1 flex flex-col items-end justify-center border border-gray-200 h-10 px-6 mt-4"
                     style="margin-top: 20px;">
                     <span
-                        class="font-bold text-lg leading-none text-primary-600">{{ number_format($nuevoImporte, 2) }}</span>
+                        class="font-black text-lg leading-none !text-black">{{ number_format($nuevoImporte, 2) }}</span>
                 </div>
 
                 <button wire:click="anotarLinea" wire:keydown.enter="anotarLinea" id="btn-anadir-producto"
@@ -239,7 +253,7 @@
             <div class="flex-1 border border-gray-200 rounded-lg bg-white shadow-sm overflow-hidden flex flex-col">
                 <div class="overflow-y-auto flex-1">
                     <table class="w-full text-sm text-left">
-                        <thead class="bg-gray-200 text-gray-700 text-xs uppercase sticky top-0">
+                        <thead class="bg-gray-200 text-black text-xs uppercase sticky top-0">
                             <tr>
                                 <th class="px-2 py-2 text-right w-12">#</th>
                                 <th class="px-2 py-2 text-left w-20">Código</th>
@@ -304,7 +318,7 @@
                 {{-- Panel Botones (Izquierda) - 2 Columnas Compacto --}}
                 <div class="grid grid-cols-2 gap-2 w-fit shrink-0 overflow-visible"
                     style="display: grid !important; grid-template-columns: repeat(2, 1fr) !important; width: 172px !important;">
-                    @foreach ([['Grabar', 'heroicon-o-check', 'from-green-50 to-green-100 border-green-400 text-green-700 hover:from-green-100 hover:to-green-200 hover:border-green-500 hover:text-green-800 hover:shadow-xl active:from-green-600 active:to-green-700 active:border-green-800 active:text-white'], ['Anular', 'heroicon-o-trash', 'from-red-50 to-red-100 border-red-400 text-red-700 hover:from-red-100 hover:to-red-200'], ['Imprimir', 'heroicon-o-printer', 'from-white to-gray-100 border-gray-400 text-gray-700 hover:from-gray-50 hover:to-gray-200'], ['Nueva', 'heroicon-o-plus', 'from-amber-100 to-amber-200 border-amber-400 text-amber-900 hover:from-amber-200 hover:to-amber-300 font-black'], ['Regalo', 'heroicon-o-gift', 'from-white to-gray-100 border-gray-400 text-purple-700 hover:from-gray-50 hover:to-gray-200'], ['Salir', 'heroicon-o-arrow-right-on-rectangle', 'from-amber-100 to-amber-200 border-amber-400 text-amber-900 hover:from-amber-200 hover:to-amber-300']] as $i => $btn)
+                    @foreach ([['Grabar', 'heroicon-o-check', 'from-green-600 to-green-700 border-green-700 text-white shadow-green-500/50'], ['Anular', 'heroicon-o-trash', 'from-red-600 to-red-700 border-red-700 text-white'], ['Imprimir', 'heroicon-o-printer', 'from-gray-700 to-gray-800 border-gray-900 text-white'], ['Nueva', 'heroicon-o-plus', 'from-amber-500 to-amber-600 border-amber-700 text-white'], ['Regalo', 'heroicon-o-gift', 'from-purple-600 to-purple-700 border-purple-800 text-white'], ['Salir', 'heroicon-o-arrow-right-on-rectangle', 'from-gray-800 to-gray-900 border-black text-white']] as $i => $btn)
                         <button
                             @if ($btn[0] === 'Grabar') wire:click="grabarTicket" 
                             wire:loading.attr="disabled"
@@ -320,9 +334,9 @@
                             @if ($btn[0] === 'Grabar') onclick="this.style.background='linear-gradient(to bottom, #059669, #047857)'; this.style.color='white'; this.style.transform='scale(0.9)'; setTimeout(() => { this.style.background=''; this.style.color=''; this.style.transform=''; }, 300);" @endif
                             type="button"
                             class="flex flex-col items-center justify-center rounded border-2 shadow-md hover:shadow-lg transition-all duration-150 bg-gradient-to-b {{ $btn[2] }} w-20 h-20 shrink-0 {{ $btn[0] === 'Grabar' ? 'ring-2 ring-green-300 scale-105 z-10' : 'active:shadow-sm active:scale-95' }}">
-                            <x-dynamic-component :component="$btn[1]" class="w-6 h-6 mb-1 !text-black" />
+                            <x-dynamic-component :component="$btn[1]" class="w-6 h-6 mb-1 text-white" />
                             <span
-                                class="font-black text-[10px] leading-none text-center uppercase !text-black">{{ $btn[0] }}</span>
+                                class="font-black text-[10px] leading-none text-center uppercase text-white">{{ $btn[0] }}</span>
                             @if ($btn[0] === 'Grabar')
                                 <span wire:loading wire:target="grabarTicket"
                                     class="absolute inset-0 flex items-center justify-center bg-green-700 bg-opacity-90 rounded text-white font-bold text-[8px]">
@@ -339,12 +353,12 @@
                     <div
                         class="flex items-center gap-4 bg-white p-3 rounded-lg border border-gray-300 shadow-sm h-fit">
                         <div class="flex flex-col">
-                            <span class="text-[10px] font-black text-gray-400 uppercase">Dto Gral %</span>
+                            <span class="pos-label-force text-[10px] uppercase">Dto Gral %</span>
                             <input type="number" wire:model.blur="descuento_general_porcentaje"
                                 class="pos-input h-10 w-20 text-right border-gray-200 rounded bg-gray-50/50 font-bold text-lg focus:ring-amber-500" />
                         </div>
                         <div class="flex flex-col flex-1">
-                            <span class="text-[10px] font-black text-gray-400 uppercase">Dto Gral €</span>
+                            <span class="pos-label-force text-[10px] uppercase">Dto Gral €</span>
                             <input type="number" wire:model.blur="descuento_general_importe"
                                 class="pos-input h-10 w-full text-right border-gray-200 rounded bg-gray-50/50 font-bold text-lg focus:ring-amber-500" />
                         </div>
@@ -353,17 +367,17 @@
                     {{-- Vendedor (Abajo) --}}
                     <div class="flex-1 space-y-3">
                         <div>
-                            <span class="text-[10px] font-black text-gray-400 uppercase block mb-1">Vendedor</span>
+                            <span class="pos-label-force text-[10px] uppercase block mb-1">Vendedor</span>
                             <div
                                 class="h-10 px-3 bg-white border border-gray-200 rounded flex items-center text-sm font-bold text-gray-700 shadow-sm">
                                 {{ auth()->user()->name }}
                             </div>
                         </div>
                         <div>
-                            <span class="text-[10px] font-black text-gray-400 uppercase block mb-1">Forma de
+                            <span class="pos-label-force text-[10px] uppercase block mb-1">Forma de
                                 Pago</span>
                             <select wire:model.live="payment_method"
-                                class="w-full h-10 border-gray-300 rounded text-sm bg-white font-black shadow-sm text-primary-700 uppercase">
+                                class="w-full h-10 border-gray-300 rounded text-sm bg-white font-black shadow-sm !text-black uppercase">
                                 <option value="cash">EFECTIVO</option>
                                 <option value="card">TARJETA</option>
                                 <option value="mixed">PAGO DIVIDIDO</option>
@@ -377,8 +391,7 @@
                     {{-- Total a Pagar (Arriba) --}}
                     <div
                         class="flex flex-col items-end w-full rounded-lg bg-white p-3 border border-gray-300 shadow-sm min-h-[70px] justify-center overflow-hidden">
-                        <span
-                            class="text-[10px] font-black uppercase text-gray-400 tracking-widest leading-none mb-1">Total
+                        <span class="pos-label-force text-[10px] uppercase tracking-widest leading-none mb-1">Total
                             a Pagar</span>
                         <div class="flex items-baseline gap-1">
                             <span class="font-black tracking-tighter leading-none text-amber-500"
@@ -390,7 +403,7 @@
                     {{-- Entrega (Medio) --}}
                     <div class="flex flex-col bg-white p-3 rounded-lg border border-gray-300 shadow-sm">
                         <div class="flex justify-between items-center mb-1">
-                            <span class="text-[11px] font-black text-gray-500 uppercase">Entrega Cliente €</span>
+                            <span class="pos-label-force text-[11px] uppercase">Entrega Cliente €</span>
                             <button wire:click="dividirPago"
                                 class="text-[10px] font-bold text-primary-600 hover:text-primary-800 flex items-center gap-1">
                                 <x-heroicon-o-banknotes class="w-3 h-3" />
@@ -419,8 +432,7 @@
 
                     {{-- Cambio (Final) --}}
                     <div class="flex flex-col items-end bg-gray-100 px-4 py-2 rounded-lg border border-gray-200">
-                        <span
-                            class="text-[10px] font-black text-gray-400 uppercase text-right leading-none mb-1">Cambio
+                        <span class="pos-label-force text-[10px] uppercase text-right leading-none mb-1">Cambio
                             a devolver</span>
                         <div class="flex items-baseline gap-1">
                             <span
@@ -448,7 +460,7 @@
 
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-xs font-black !text-black uppercase mb-2">Fondo de Apertura
+                            <label class="pos-label-force text-xs uppercase mb-2">Fondo de Apertura
                                 (€)</label>
                             <input type="number" wire:model="openingFund" step="0.01"
                                 class="w-full h-14 text-center text-3xl font-black border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-primary-500 bg-white !text-black" />
@@ -460,7 +472,7 @@
                         </button>
 
                         <button wire:click="salirPos" type="button"
-                            class="w-full py-2 text-gray-500 hover:text-gray-700 font-bold text-sm uppercase">
+                            class="w-full py-2 !text-black font-black text-sm uppercase hover:underline">
                             Cancelar y Volver
                         </button>
                     </div>
@@ -479,7 +491,7 @@
                         class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-xl shrink-0">
                         <div>
                             <h2 class="text-xl font-black text-gray-900 uppercase">Cierre de Caja (Arqueo)</h2>
-                            <p class="text-[10px] text-gray-500 font-bold">FECHA: {{ now()->format('d/m/Y H:i') }}
+                            <p class="pos-label-force text-[10px]">FECHA: {{ now()->format('d/m/Y H:i') }}
                                 | USUARIO:
                                 {{ auth()->user()->name }}</p>
                         </div>
@@ -490,7 +502,7 @@
                     <div class="p-6 overflow-y-auto grid md:grid-cols-2 gap-8">
                         {{-- Columna Izquierda: Desglose de Monedas --}}
                         <div>
-                            <h3 class="text-xs font-black text-gray-400 uppercase mb-4 border-b pb-1">Desglose de
+                            <h3 class="pos-label-force text-xs uppercase mb-4 border-b pb-1">Desglose de
                                 Efectivo</h3>
                             <div class="grid grid-cols-2 gap-x-6 gap-y-2">
                                 @foreach ($cashBreakdown as $val => $qty)
@@ -516,7 +528,7 @@
                         <div class="space-y-6">
                             <div class="bg-gray-100 p-4 rounded-xl border border-gray-200">
                                 <h3
-                                    class="text-[10px] font-black text-gray-500 uppercase mb-3 text-center tracking-widest leading-none">
+                                    class="pos-label-force text-[10px] uppercase mb-3 text-center tracking-widest leading-none">
                                     Cálculo del Sistema</h3>
                                 <div class="space-y-2">
                                     <div class="flex justify-between text-sm">
@@ -579,7 +591,7 @@
                             </div>
 
                             <div>
-                                <label class="block text-[10px] font-black text-gray-500 uppercase mb-1">Observaciones
+                                <label class="pos-label-force text-[10px] uppercase mb-1">Observaciones
                                     /
                                     Notas</label>
                                 <textarea wire:model="sessionNotes" rows="3"
