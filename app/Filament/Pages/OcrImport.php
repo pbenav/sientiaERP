@@ -31,6 +31,7 @@ class OcrImport extends Page implements HasForms
     public $print_all_labels = true;
     public $startRow = 1;
     public $startColumn = 1;
+    public ?string $backUrl = null; // URL de retorno (desde expedición)
 
     public $parsedData = [
         'date' => null,
@@ -80,21 +81,41 @@ class OcrImport extends Page implements HasForms
         $this->selectedLabelFormatId = $this->labelFormats->first()?->id;
 
         // ── Integración con Expedición de Compras ─────────────────────────
-        // Si llegamos desde una expedición con ?from_expedicion=ID,
-        // precargamos el documento adjunto para que el usuario solo pulse "Procesar".
-        $expedicionId = request()->query('from_expedicion');
-        if ($expedicionId) {
-            $expedicion = \App\Models\ExpedicionCompra::find($expedicionId);
-            if ($expedicion && !empty($expedicion->documento_path)) {
-                // Precargamos el documento en el formulario
-                $this->data['documento'] = $expedicion->documento_path;
-                $this->form->fill(['documento' => $expedicion->documento_path]);
+        // ?from_compra=ID   → compra del nuevo modelo (ExpedicionCompra con tercero_id)
+        // ?back=URL         → URL de retorno tras crear el albarán
+        $this->backUrl = request()->query('back') ? urldecode(request()->query('back')) : null;
 
+        $compraId = request()->query('from_compra');
+        if ($compraId) {
+            $compra = \App\Models\ExpedicionCompra::with('tercero')->find($compraId);
+            if ($compra) {
+                // Preseleccionar proveedor del maestro
+                if ($compra->tercero_id) {
+                    $this->parsedData['supplier_id'] = $compra->tercero_id;
+                }
+                // Precargar documento adjunto
+                if (!empty($compra->documento_path)) {
+                    $this->data['documento'] = $compra->documento_path;
+                    $this->form->fill(['documento' => $compra->documento_path]);
+                }
+
+                $label = $compra->tercero?->nombre_comercial ?? 'sin proveedor';
+                $importe = number_format($compra->importe ?? 0, 2, ',', '.');
                 \Filament\Notifications\Notification::make()
-                    ->title('Documento cargado desde expedición')
-                    ->body("Proveedor: {$expedicion->proveedor} · Importe: " . number_format($expedicion->importe, 2, ',', '.') . ' €')
+                    ->title('Compra cargada desde expedición')
+                    ->body("Proveedor: {$label} · Importe: {$importe} €")
                     ->info()
                     ->send();
+            }
+        }
+
+        // Compatibilidad con parámetro legacy ?from_expedicion=ID
+        $legacyId = request()->query('from_expedicion');
+        if ($legacyId && !$compraId) {
+            $expedicion = \App\Models\ExpedicionCompra::find($legacyId);
+            if ($expedicion && !empty($expedicion->documento_path)) {
+                $this->data['documento'] = $expedicion->documento_path;
+                $this->form->fill(['documento' => $expedicion->documento_path]);
             }
         }
     }
@@ -689,7 +710,15 @@ class OcrImport extends Page implements HasForms
                 ->success()
                 ->send();
 
-            // Redirect to Edit Page of the Albarán
+            // Redirect: back to expedition processing page or to the albaran edit page
+            if ($this->backUrl) {
+                \Filament\Notifications\Notification::make()
+                    ->title('Albarán creado · Volviendo a la expedición')
+                    ->success()
+                    ->send();
+                return redirect()->to($this->backUrl);
+            }
+
             return redirect()->route('filament.admin.resources.albaran-compras.edit', ['record' => $record]);
 
         } catch (\Exception $e) {

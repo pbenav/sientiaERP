@@ -99,8 +99,14 @@ class ExpedicionResource extends Resource
                     ->color(fn ($record) => $record->pendientesRecogida() > 0 ? 'danger' : 'success'),
             ])
             ->actions([
+                Tables\Actions\Action::make('procesar_ia')
+                    ->label('Procesar IA')
+                    ->icon('heroicon-o-cpu-chip')
+                    ->color('warning')
+                    ->url(fn ($record) => Pages\ProcesarExpedicion::getUrl(['record' => $record]))
+                    ->tooltip('Importar albaranes de esta expedición con IA'),
                 Tables\Actions\EditAction::make()
-                    ->label('Abrir'),
+                    ->label('Editar'),
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
@@ -133,9 +139,10 @@ class ExpedicionResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListExpediciones::route('/'),
-            'create' => Pages\CreateExpedicion::route('/create'),
-            'edit'   => Pages\EditExpedicion::route('/{record}/edit'),
+            'index'    => Pages\ListExpediciones::route('/'),
+            'create'   => Pages\CreateExpedicion::route('/create'),
+            'edit'     => Pages\EditExpedicion::route('/{record}/edit'),
+            'procesar' => Pages\ProcesarExpedicion::route('/{record}/procesar'),
         ];
     }
 }
