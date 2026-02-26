@@ -69,42 +69,43 @@
                 <h3 class="text-sm font-semibold">Datos Detectados - Revisa y Edita</h3>
 
                 <div class="space-y-2">
-                    <!-- Fila 1: Metadatos principales -->
-                    <div class="grid grid-cols-4 gap-2 items-end">
+                    <!-- Fila 1: Fecha | Nº Documento | NIF/CIF | Unidades -->
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; align-items: end;">
                         <div>
                             <label
-                                class="block text-[11px] font-semibold text-gray-600 dark:text-gray-400 uppercase">Fecha</label>
+                                style="display:block; font-size:10px; font-weight:600; text-transform:uppercase; color:#6b7280; margin-bottom:2px;">Fecha</label>
                             <input type="date" wire:model="parsedData.date"
-                                class="mt-0.5 block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                class="block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                         </div>
                         <div>
-                            <label class="block text-[11px] font-semibold text-gray-600 dark:text-gray-400 uppercase">Nº
+                            <label
+                                style="display:block; font-size:10px; font-weight:600; text-transform:uppercase; color:#6b7280; margin-bottom:2px;">Nº
                                 Documento</label>
                             <input type="text" wire:model="parsedData.document_number"
-                                class="mt-0.5 block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                class="block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                 placeholder="Nº Albarán">
                         </div>
                         <div>
                             <label
-                                class="block text-[11px] font-semibold text-gray-600 dark:text-gray-400 uppercase">NIF/CIF</label>
+                                style="display:block; font-size:10px; font-weight:600; text-transform:uppercase; color:#6b7280; margin-bottom:2px;">NIF/CIF</label>
                             <input type="text" wire:model="parsedData.nif"
-                                class="mt-0.5 block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                class="block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                         </div>
                         <div>
                             <label
-                                class="block text-[11px] font-semibold text-gray-600 dark:text-gray-400 uppercase">Units</label>
+                                style="display:block; font-size:10px; font-weight:600; text-transform:uppercase; color:#6b7280; margin-bottom:2px;">Unidades</label>
                             <input type="number" wire:model="parsedData.total_units"
-                                class="mt-0.5 block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                class="block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                         </div>
                     </div>
 
-                    <!-- Fila 2: Proveedor y Totales -->
-                    <div class="grid grid-cols-5 gap-2 items-end">
-                        <div class="col-span-2">
+                    <!-- Fila 2: Proveedor (más espacio) | Subtotal | Descuento | Total -->
+                    <div style="display:grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 8px; align-items: end;">
+                        <div>
                             <label
-                                class="block text-[11px] font-semibold text-gray-600 dark:text-gray-400 uppercase">Proveedor</label>
+                                style="display:block; font-size:10px; font-weight:600; text-transform:uppercase; color:#6b7280; margin-bottom:2px;">Proveedor</label>
                             <select wire:model="parsedData.supplier_id"
-                                class="mt-0.5 block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white {{ $displayUppercase ? 'uppercase-display' : '' }}">
+                                class="block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white {{ $displayUppercase ? 'uppercase-display' : '' }}">
                                 <option value="">-- Seleccionar Proveedor --</option>
                                 @foreach ($suppliers as $supplier)
                                     <option value="{{ $supplier->id }}">{{ $supplier->nombre_comercial }} @if ($supplier->nif_cif)
@@ -116,21 +117,22 @@
                         </div>
                         <div>
                             <label
-                                class="block text-[11px] font-semibold text-gray-600 dark:text-gray-400 uppercase">Subtotal</label>
+                                style="display:block; font-size:10px; font-weight:600; text-transform:uppercase; color:#6b7280; margin-bottom:2px;">Subtotal</label>
                             <input type="number" step="0.01" wire:model="parsedData.subtotal"
-                                class="mt-0.5 block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                class="block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                         </div>
                         <div>
                             <label
-                                class="block text-[11px] font-semibold text-gray-600 dark:text-gray-400 uppercase">Descuento</label>
+                                style="display:block; font-size:10px; font-weight:600; text-transform:uppercase; color:#6b7280; margin-bottom:2px;">Descuento</label>
                             <input type="number" step="0.01" wire:model="parsedData.total_discount"
-                                class="mt-0.5 block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                class="block w-full rounded border-gray-300 py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                         </div>
                         <div>
                             <label
-                                class="block text-[11px] font-bold text-primary-600 dark:text-primary-400 uppercase">TOTAL</label>
+                                style="display:block; font-size:10px; font-weight:700; text-transform:uppercase; color: var(--fi-primary-600, #f59e0b); margin-bottom:2px;">TOTAL</label>
                             <input type="number" step="0.01" wire:model="parsedData.total_amount"
-                                class="mt-0.5 block w-full rounded border-primary-500 py-1 text-xs shadow-sm font-bold bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 focus:border-primary-500 focus:ring-primary-500">
+                                style="font-weight:700; border-color: var(--fi-primary-500, #f59e0b); background-color: rgba(251,191,36,0.07);"
+                                class="block w-full rounded py-1 text-xs shadow-sm focus:border-primary-500 focus:ring-primary-500">
                         </div>
                     </div>
                 </div>
