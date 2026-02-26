@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 class CustomersBySalesChart extends ChartWidget
 {
     protected static ?string $heading = 'Ventas por Cliente (Top 10)';
-    protected static ?int $sort = 5;
+    protected static ?int $sort = 6;
     protected static ?string $maxHeight = '400px';
 
     protected function getData(): array
