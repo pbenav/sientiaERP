@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 class SalesTrendChart extends ChartWidget
 {
     protected static ?string $heading = 'Ventas vs Compras (Últimos 12 meses)';
-    protected static ?int $sort = 2;
+    protected static ?int $sort = 10;
     protected int | string | array $columnSpan = 'full';
 
     protected function getData(): array

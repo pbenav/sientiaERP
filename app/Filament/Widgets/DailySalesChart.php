@@ -58,4 +58,20 @@ class DailySalesChart extends ChartWidget
     {
         return 'pie';
     }
+
+    protected function getOptions(): array
+    {
+        return [
+            'plugins' => [
+                'legend' => [
+                    'display' => true,
+                    'position' => 'bottom',
+                ],
+            ],
+            'scales' => [
+                'x' => ['display' => false],
+                'y' => ['display' => false],
+            ],
+        ];
+    }
 }
