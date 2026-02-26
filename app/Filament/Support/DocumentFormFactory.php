@@ -116,7 +116,7 @@ class DocumentFormFactory
                 ->defaultItems(0)
                 ->live()
                 ->hiddenLabel()
-                ->extraAttributes(['class' => 'document-lines-repeater'])
+                ->extraAttributes(['class' => 'document-lines-repeater gap-0'])
                 ->extraItemActions([
                     Forms\Components\Actions\Action::make('editLine')
                         ->label('Editar Línea')

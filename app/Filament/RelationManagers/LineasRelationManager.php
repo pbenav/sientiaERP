@@ -35,7 +35,9 @@ class LineasRelationManager extends RelationManager
     {
         return [
             Forms\Components\Grid::make(['default' => 12])
+                ->extraAttributes(['class' => 'gap-0'])
                 ->schema([
+
                     // CÓDIGO (Span 2) - Sufficient for the dropdown arrow
                     Forms\Components\Select::make('codigo')
                         ->hiddenLabel()
