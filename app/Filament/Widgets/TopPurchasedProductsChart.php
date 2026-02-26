@@ -65,6 +65,10 @@ class TopPurchasedProductsChart extends ChartWidget
                     'position' => 'bottom',
                 ],
             ],
+            'scales' => [
+                'x' => ['display' => false],
+                'y' => ['display' => false],
+            ],
         ];
     }
 }

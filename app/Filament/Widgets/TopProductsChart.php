@@ -79,6 +79,10 @@ class TopProductsChart extends ChartWidget
                     'position' => 'bottom',
                 ],
             ],
+            'scales' => [
+                'x' => ['display' => false],
+                'y' => ['display' => false],
+            ],
         ];
     }
 }
