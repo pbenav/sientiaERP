@@ -24,9 +24,10 @@
     align-items: center !important;
     flex-wrap: nowrap !important;
     min-width: 0 !important;
-    min-height: 34px !important;
-    /* Altura de fila muy pequeña */
+    min-height: 32px !important;
+    border-bottom: 1px solid #f0f0f0 !important;
 }
+
 
 .dark .document-lines-repeater .fi-fo-repeater-item {
     border-bottom-color: #374151 !important;
@@ -36,11 +37,11 @@
 .document-lines-repeater .fi-fo-repeater-item-header {
     order: -1 !important;
     margin: 0 !important;
-    padding: 0 8px !important;
-    background: transparent !important;
-    border: none !important;
+    padding: 0 4px !important;
+    background: #fbfbfb !important;
+    border-right: 1px solid #f0f0f0 !important;
     width: auto !important;
-    min-width: 60px !important;
+    min-width: 50px !important;
     flex-shrink: 0 !important;
     display: flex !important;
     align-items: center !important;
@@ -54,10 +55,13 @@
 }
 
 .document-lines-repeater .fi-fo-repeater-item-header ul {
+    display: flex !important;
+    visibility: visible !important;
     margin: 0 !important;
     padding: 0 !important;
     gap: 4px !important;
 }
+
 
 /* Contenido del item (los campos) */
 .document-lines-repeater .fi-fo-repeater-item-content {
@@ -69,10 +73,11 @@
 
 /* Grid interno de campos */
 .document-lines-repeater .fi-fo-grid {
-    gap: 0.4rem !important;
-    padding: 0 8px 0 0 !important;
+    gap: 0.2rem !important;
+    padding: 0 4px 0 0 !important;
     margin: 0 !important;
 }
+
 
 /* Forzar que el grid NO rompa la fila */
 .document-lines-repeater .fi-fo-grid>div {
