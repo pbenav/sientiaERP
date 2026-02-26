@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 class ProductFactory extends Factory
 {
     protected $model = Product::class;
+    
+    protected static array $generatedSkus = [];
+    protected static array $generatedBarcodes = [];
 
     public function definition(): array
     {
@@ -40,15 +43,17 @@ class ProductFactory extends Factory
 
         $productName = fake()->randomElement($products) . ' ' . fake()->randomElement($adjectives);
         
-        // Ensure unique SKU in DB
+        // Ensure unique SKU in DB and current batch
         do {
-            $sku = fake()->bothify(fake()->randomElement($prefixes) . '####');
-        } while (Product::where('sku', $sku)->exists());
+            $sku = fake()->bothify(fake()->randomElement($prefixes) . '######');
+        } while (Product::where('sku', $sku)->exists() || in_array($sku, self::$generatedSkus));
+        self::$generatedSkus[] = $sku;
 
-        // Ensure unique Barcode in DB
+        // Ensure unique Barcode in DB and current batch
         do {
             $barcode = fake()->ean13();
-        } while (Product::where('barcode', $barcode)->exists());
+        } while (Product::where('barcode', $barcode)->exists() || in_array($barcode, self::$generatedBarcodes));
+        self::$generatedBarcodes[] = $barcode;
         
         return [
             'sku' => $sku,

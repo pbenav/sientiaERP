@@ -93,24 +93,52 @@ class ImportDemoData extends Page implements HasForms
         $formData = $this->form->getState();
 
         try {
+            $results = [
+                'products' => ['success' => 0, 'error' => 0],
+                'clients' => ['success' => 0, 'error' => 0],
+                'suppliers' => ['success' => 0, 'error' => 0],
+                'documents' => ['success' => 0, 'error' => 0],
+            ];
+
             // 1. Productos
             if ($formData['products_count'] > 0) {
-                Product::factory()->count($formData['products_count'])->create();
+                for ($i = 0; $i < $formData['products_count']; $i++) {
+                    try {
+                        Product::factory()->create();
+                        $results['products']['success']++;
+                    } catch (\Exception $e) {
+                        $results['products']['error']++;
+                        \Log::error("Demo Import Error (Product): " . $e->getMessage());
+                    }
+                }
             }
 
             // 2. Clientes
             if ($formData['clients_count'] > 0) {
-                Tercero::factory()->count($formData['clients_count'])->cliente()->create();
+                for ($i = 0; $i < $formData['clients_count']; $i++) {
+                    try {
+                        Tercero::factory()->cliente()->create();
+                        $results['clients']['success']++;
+                    } catch (\Exception $e) {
+                        $results['clients']['error']++;
+                    }
+                }
             }
 
             // 3. Proveedores
             if ($formData['suppliers_count'] > 0) {
-                Tercero::factory()->count($formData['suppliers_count'])->proveedor()->create();
+                for ($i = 0; $i < $formData['suppliers_count']; $i++) {
+                    try {
+                        Tercero::factory()->proveedor()->create();
+                        $results['suppliers']['success']++;
+                    } catch (\Exception $e) {
+                        $results['suppliers']['error']++;
+                    }
+                }
             }
 
             // 4. Documentos
             if ($formData['documents_count'] > 0) {
-                // Requiere que existan productos y terceros
                 if (Product::count() === 0 || Tercero::count() === 0) {
                     Notification::make()
                         ->title('Error')
@@ -120,18 +148,30 @@ class ImportDemoData extends Page implements HasForms
                     return;
                 }
 
-                // Generar los documentos con líneas
-                Documento::factory()
-                    ->count($formData['documents_count'])
-                    ->withLines()
-                    ->confirmado() // Generar números de documento
-                    ->create();
+                for ($i = 0; $i < $formData['documents_count']; $i++) {
+                    try {
+                        Documento::factory()
+                            ->withLines()
+                            ->confirmado()
+                            ->create();
+                        $results['documents']['success']++;
+                    } catch (\Exception $e) {
+                        $results['documents']['error']++;
+                        \Log::error("Demo Import Error (Document): " . $e->getMessage());
+                    }
+                }
             }
 
+            $summary = "Importación finalizada.\n\n" .
+                "Productos: {$results['products']['success']} ok / {$results['products']['error']} error\n" .
+                "Clientes: {$results['clients']['success']} ok / {$results['clients']['error']} error\n" .
+                "Proveedores: {$results['suppliers']['success']} ok / {$results['suppliers']['error']} error\n" .
+                "Documentos: {$results['documents']['success']} ok / {$results['documents']['error']} error";
+
             Notification::make()
-                ->title('Éxito')
-                ->body('Se han generado los datos correctamente.')
-                ->success()
+                ->title('Proceso Completado')
+                ->body($summary)
+                ->status($results['products']['error'] > 0 ? 'warning' : 'success')
                 ->send();
 
             return redirect()->to(request()->header('Referer'));
