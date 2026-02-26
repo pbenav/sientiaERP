@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\CashSessionResource\Pages;
 use App\Filament\Resources\CashSessionResource\RelationManagers;
+use App\Filament\Resources\TicketResource;
 use App\Models\CashSession;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -145,6 +146,12 @@ class CashSessionResource extends Resource
                     ]),
             ])
             ->actions([
+                Tables\Actions\Action::make('abrir_tpv')
+                    ->label('Abrir TPV')
+                    ->icon('heroicon-o-computer-desktop')
+                    ->color('warning')
+                    ->url(fn () => TicketResource::getUrl('create'))
+                    ->visible(fn (CashSession $record) => $record->estado === 'open'),
                 Tables\Actions\ViewAction::make(),
                 // Tables\Actions\EditAction::make(),
             ])

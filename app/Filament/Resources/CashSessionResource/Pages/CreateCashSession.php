@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\CashSessionResource\Pages;
 
 use App\Filament\Resources\CashSessionResource;
+use App\Filament\Resources\TicketResource;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 
@@ -17,5 +18,10 @@ class CreateCashSession extends CreateRecord
         $data['estado'] = 'open';
 
         return $data;
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
     }
 }
