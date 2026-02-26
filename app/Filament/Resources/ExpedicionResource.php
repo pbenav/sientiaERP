@@ -28,6 +28,7 @@ class ExpedicionResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
+            // ── Cabecera de la expedición ─────────────────────────────────────
             Forms\Components\Section::make('Datos de la expedición')
                 ->columns(2)
                 ->schema([
@@ -54,7 +55,7 @@ class ExpedicionResource extends Resource
                         ->columnSpan(2),
                 ]),
 
-            // ── Totales — solo visible al editar ─────────────────────────────
+            // ── Totales — solo en edición ─────────────────────────────────────
             Forms\Components\Section::make('Totales de la expedición')
                 ->columns(3)
                 ->visibleOn('edit')
@@ -63,8 +64,7 @@ class ExpedicionResource extends Resource
                         ->label('💶 Total compras')
                         ->content(function ($record) {
                             if (!$record) return '—';
-                            $total = $record->compras()->sum('importe');
-                            return number_format($total, 2, ',', '.') . ' €';
+                            return number_format($record->compras()->sum('importe'), 2, ',', '.') . ' €';
                         }),
 
                     Forms\Components\Placeholder::make('pendientes_recogida')
@@ -82,6 +82,83 @@ class ExpedicionResource extends Resource
                             $n = $record->compras()->where('pagado', false)->count();
                             return $n > 0 ? "⚠️ {$n} compra(s)" : '✅ Todo pagado';
                         }),
+                ]),
+
+            // ── Compras de la expedición ─────────────────────────────────────
+            Forms\Components\Section::make('Compras en esta expedición')
+                ->visibleOn('edit')
+                ->schema([
+                    Forms\Components\Repeater::make('compras')
+                        ->relationship('compras')
+                        ->hiddenLabel()
+                        ->defaultItems(0)
+                        ->addActionLabel('➕ Añadir compra')
+                        ->columns(2)
+                        ->schema([
+                            // Proveedor del maestro
+                            Forms\Components\Select::make('tercero_id')
+                                ->label('Proveedor')
+                                ->options(fn () => \App\Models\Tercero::proveedores()->pluck('nombre_comercial', 'id'))
+                                ->searchable()
+                                ->preload()
+                                ->required()
+                                ->columnSpan(2)
+                                ->createOptionForm([
+                                    Forms\Components\TextInput::make('nombre_comercial')
+                                        ->label('Nombre Comercial')->required()->maxLength(255),
+                                    Forms\Components\TextInput::make('nif_cif')
+                                        ->label('NIF/CIF')->maxLength(20),
+                                    Forms\Components\TextInput::make('email')
+                                        ->label('Email')->email()->maxLength(255),
+                                    Forms\Components\TextInput::make('telefono')
+                                        ->label('Teléfono')->tel()->maxLength(20),
+                                ])
+                                ->createOptionUsing(function (array $data) {
+                                    $tercero = \App\Models\Tercero::create($data);
+                                    $tipo = \App\Models\TipoTercero::where('codigo', 'PRO')->first();
+                                    if ($tipo) $tercero->tipos()->attach($tipo);
+                                    return $tercero->id;
+                                }),
+
+                            Forms\Components\TextInput::make('importe')
+                                ->label('Importe (€)')
+                                ->numeric()
+                                ->step(0.01)
+                                ->required()
+                                ->suffix('€'),
+
+                            Forms\Components\DatePicker::make('fecha')
+                                ->label('Fecha')
+                                ->default(now())
+                                ->required(),
+
+                            Forms\Components\Toggle::make('pagado')
+                                ->label('Pagado')
+                                ->default(false)
+                                ->onColor('success')
+                                ->offColor('danger'),
+
+                            Forms\Components\Toggle::make('recogido')
+                                ->label('Mercancía recogida')
+                                ->default(false)
+                                ->onColor('success')
+                                ->offColor('warning'),
+
+                            Forms\Components\Textarea::make('observaciones')
+                                ->label('Observaciones')
+                                ->rows(2)
+                                ->columnSpan(2),
+
+                            Forms\Components\FileUpload::make('documento_path')
+                                ->label('Albarán')
+                                ->disk('public')
+                                ->directory('expediciones/documentos')
+                                ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
+                                ->maxSize(10240)
+                                ->downloadable()
+                                ->openable()
+                                ->columnSpan(2),
+                        ]),
                 ]),
         ]);
     }
