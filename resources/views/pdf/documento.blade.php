@@ -1,12 +1,33 @@
 @php
     $currencySymbol = App\Models\Setting::get('currency_symbol', '€');
     $currencyPosition = App\Models\Setting::get('currency_position', 'suffix');
-    
+
+    // Determinar si es un documento de compra
+    $esCompra = in_array($doc->tipo, ['factura_compra', 'albaran_compra', 'pedido_compra', 'recibo_compra']);
+
+    // Etiqueta del tercero según el tipo de documento
+    $labelTercero = $esCompra ? 'COMPRADOR (Nuestra empresa)' : 'CLIENTE';
+
+    // Nombre del tipo de documento legible
+    $labelTipo = match($doc->tipo) {
+        'factura'          => 'FACTURA',
+        'factura_compra'   => 'FACTURA DE COMPRA',
+        'albaran'          => 'ALBARÁN',
+        'albaran_compra'   => 'ALBARÁN DE COMPRA',
+        'pedido'           => 'PEDIDO',
+        'pedido_compra'    => 'PEDIDO DE COMPRA',
+        'recibo'           => 'RECIBO',
+        'recibo_compra'    => 'RECIBO DE COMPRA',
+        'presupuesto'      => 'PRESUPUESTO',
+        default            => strtoupper($doc->tipo),
+    };
+
     function formatMoney($amount, $symbol, $position) {
         $formattedAmount = number_format($amount, 2, ',', '.');
         return $position === 'suffix' ? $formattedAmount . ' ' . $symbol : $symbol . ' ' . $formattedAmount;
     }
 @endphp
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -55,26 +76,45 @@
     
     <div class="header">
         <div class="company-info">
-            @php
-                $logoType = App\Models\Setting::get('pdf_logo_type', 'text');
-                $logoText = App\Models\Setting::get('pdf_logo_text', 'sienteERP System');
-                $logoImage = App\Models\Setting::get('pdf_logo_image');
-            @endphp
-            
-            @if($logoType === 'image' && $logoImage)
-                <img src="{{ public_path('storage/' . $logoImage) }}" 
-                     alt="Logo" 
-                     style="max-width: 300px; height: auto; max-height: 80px; margin-bottom: 10px;">
+            @if($esCompra)
+                {{-- Documentos de compra: arriba a la izquierda va el PROVEEDOR --}}
+                <h1 style="font-size: 20px; margin: 0 0 8px 0;">{{ $doc->tercero->nombre_comercial }}</h1>
+                <p style="margin: 0; font-size: 11px;">
+                    @if($doc->tercero->razon_social && $doc->tercero->razon_social !== $doc->tercero->nombre_comercial)
+                        {{ $doc->tercero->razon_social }}<br>
+                    @endif
+                    NIF/CIF: {{ $doc->tercero->nif_cif }}<br>
+                    @if($doc->tercero->direccion_fiscal)
+                        {{ $doc->tercero->direccion_fiscal }}<br>
+                    @endif
+                    @if($doc->tercero->codigo_postal_fiscal || $doc->tercero->poblacion_fiscal)
+                        {{ $doc->tercero->codigo_postal_fiscal }} {{ $doc->tercero->poblacion_fiscal }}
+                        @if($doc->tercero->provincia_fiscal) ({{ $doc->tercero->provincia_fiscal }})@endif
+                    @endif
+                </p>
             @else
-                <h1>{{ $logoText }}</h1>
+                {{-- Documentos de venta: arriba a la izquierda van los datos de nuestra empresa --}}
+                @php
+                    $logoType = App\Models\Setting::get('pdf_logo_type', 'text');
+                    $logoText = App\Models\Setting::get('pdf_logo_text', 'sienteERP System');
+                    $logoImage = App\Models\Setting::get('pdf_logo_image');
+                @endphp
+
+                @if($logoType === 'image' && $logoImage)
+                    <img src="{{ public_path('storage/' . $logoImage) }}"
+                         alt="Logo"
+                         style="max-width: 300px; height: auto; max-height: 80px; margin-bottom: 10px;">
+                @else
+                    <h1>{{ $logoText }}</h1>
+                @endif
+
+                <p>
+                    {!! App\Models\Setting::get('pdf_header_html', '<strong>Sientia SL</strong><br>NIF: B12345678<br>Calle Falsa 123, 28001 Madrid') !!}
+                </p>
             @endif
-            
-            <p>
-                {!! App\Models\Setting::get('pdf_header_html', '<strong>Sientia SL</strong><br>NIF: B12345678<br>Calle Falsa 123, 28001 Madrid') !!}
-            </p>
         </div>
         <div class="doc-info">
-            <h2 style="color: #64748b; margin: 0;">{{ strtoupper($doc->tipo) }}</h2>
+            <h2 style="color: #64748b; margin: 0;">{{ $labelTipo }}</h2>
             <p style="font-size: 18px; font-weight: bold; margin: 5px 0;">{{ $doc->numero }}</p>
             @if($doc->es_rectificativa && $doc->facturaRectificada)
                 <p style="font-size: 10px; color: #64748b; margin-top: 5px;">Rectifica a: {{ $doc->facturaRectificada->numero }} ({{ $doc->facturaRectificada->fecha->format('d/m/Y') }})</p>
@@ -88,20 +128,38 @@
     </div>
 
     <div class="billing-info">
-        <div class="client-info">
-            <h3 style="margin-top: 0; font-size: 14px; border-bottom: 1px solid #eee;">CLIENTE</h3>
-            <strong>{{ $doc->tercero->nombre_comercial }}</strong><br>
-            {{ $doc->tercero->razon_social }}<br>
-            NIF/CIF: {{ $doc->tercero->nif_cif }}<br>
-            {{ $doc->tercero->direccion_fiscal }}<br>
-            {{ $doc->tercero->cp_fiscal }} {{ $doc->tercero->ciudad_fiscal }} ({{ $doc->tercero->provincia_fiscal }})
-        </div>
-        @if($doc->tercero->direccion_envio)
-        <div class="delivery-info">
-            <h3 style="margin-top: 0; font-size: 14px; border-bottom: 1px solid #eee;">DIRECCIÓN DE ENVÍO</h3>
-            {{ $doc->tercero->direccion_envio }}<br>
-            {{ $doc->tercero->cp_envio }} {{ $doc->tercero->ciudad_envio }} ({{ $doc->tercero->provincia_envio }})
-        </div>
+        @if($esCompra)
+            {{-- Documentos de compra: abajo muestra los datos de nuestra empresa como COMPRADOR --}}
+            <div class="client-info">
+                <h3 style="margin-top: 0; font-size: 14px; border-bottom: 1px solid #eee;">COMPRADOR</h3>
+                @php
+                    $logoType = App\Models\Setting::get('pdf_logo_type', 'text');
+                    $logoText = App\Models\Setting::get('pdf_logo_text', 'Nuestra Empresa');
+                @endphp
+                <strong>{{ $logoText }}</strong><br>
+                {!! App\Models\Setting::get('pdf_header_html', 'NIF: B12345678<br>Calle Falsa 123, 28001 Madrid') !!}
+            </div>
+        @else
+            {{-- Documentos de venta: abajo muestra al CLIENTE (tercero) --}}
+            <div class="client-info">
+                <h3 style="margin-top: 0; font-size: 14px; border-bottom: 1px solid #eee;">CLIENTE</h3>
+                <strong>{{ $doc->tercero->nombre_comercial }}</strong><br>
+                @if($doc->tercero->razon_social && $doc->tercero->razon_social !== $doc->tercero->nombre_comercial)
+                    {{ $doc->tercero->razon_social }}<br>
+                @endif
+                NIF/CIF: {{ $doc->tercero->nif_cif }}<br>
+                {{ $doc->tercero->direccion_fiscal }}<br>
+                {{ $doc->tercero->codigo_postal_fiscal }} {{ $doc->tercero->poblacion_fiscal }}
+                @if($doc->tercero->provincia_fiscal) ({{ $doc->tercero->provincia_fiscal }})@endif
+            </div>
+            @if($doc->tercero->direccion_envio_diferente && $doc->tercero->direccion_envio)
+            <div class="delivery-info">
+                <h3 style="margin-top: 0; font-size: 14px; border-bottom: 1px solid #eee;">DIRECCIÓN DE ENVÍO</h3>
+                {{ $doc->tercero->direccion_envio }}<br>
+                {{ $doc->tercero->codigo_postal_envio }} {{ $doc->tercero->poblacion_envio }}
+                @if($doc->tercero->provincia_envio) ({{ $doc->tercero->provincia_envio }})@endif
+            </div>
+            @endif
         @endif
         <div class="clear"></div>
     </div>
