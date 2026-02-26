@@ -12,7 +12,6 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Actions\Action;
 use Filament\Notifications\Notification;
-use Illuminate\Database\Eloquent\Builder;
 
 class ExpedicionCompraResource extends Resource
 {
@@ -97,7 +96,7 @@ class ExpedicionCompraResource extends Resource
     {
         return $table
             ->defaultSort('fecha', 'desc')
-            ->modifyQueryUsing(fn (Builder $q) => $q->where('archivado', false))
+            ->modifyQueryUsing(fn ($query) => $query->where('archivado', false))
             ->columns([
                 Tables\Columns\TextColumn::make('fecha')
                     ->label('Fecha')
