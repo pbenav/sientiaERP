@@ -335,17 +335,20 @@ class ProductResource extends Resource
                 Tables\Columns\TextColumn::make('sku')
                     ->label('SKU')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->extraCellAttributes(['class' => 'py-1']),
                 
                 Tables\Columns\TextColumn::make('barcode')
                     ->label('Código de Barras')
                     ->searchable()
-                    ->toggleable(),
+                    ->toggleable()
+                    ->extraCellAttributes(['class' => 'py-1']),
                 
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nombre')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->extraCellAttributes(['class' => 'py-1']),
                 
                 Tables\Columns\TextColumn::make('price')
                     ->label('Precio')
@@ -357,7 +360,8 @@ class ProductResource extends Resource
                         $formatted = number_format($state, $precision, ',', '.');
                         return $position === 'suffix' ? "$formatted $symbol" : "$symbol $formatted";
                     })
-                    ->sortable(),
+                    ->sortable()
+                    ->extraCellAttributes(['class' => 'py-1']),
                 
                 Tables\Columns\TextColumn::make('tax_rate')
                     ->label('IVA')
@@ -410,7 +414,8 @@ class ProductResource extends Resource
                     Tables\Actions\RestoreBulkAction::make(),
                 ]),
             ])
-            ->defaultSort('created_at', 'desc');
+            ->defaultSort('created_at', 'desc')
+            ->compact();
     }
 
     public static function getPages(): array
