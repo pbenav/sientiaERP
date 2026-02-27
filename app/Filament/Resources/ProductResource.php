@@ -414,8 +414,7 @@ class ProductResource extends Resource
                     Tables\Actions\RestoreBulkAction::make(),
                 ]),
             ])
-            ->defaultSort('created_at', 'desc')
-            ->compact();
+            ->defaultSort('created_at', 'desc');
     }
 
     public static function getPages(): array
