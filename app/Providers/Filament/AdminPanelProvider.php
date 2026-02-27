@@ -75,6 +75,18 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 'panels::head.end',
                 fn () => new HtmlString(Blade::render("@vite('resources/css/document-lines.css')"))
+            )
+            ->renderHook(
+                'panels::head.done',
+                fn () => new \Illuminate\Support\HtmlString('
+                    <style>
+                        /* Forzamos el padding compacto en las celdas de las tablas */
+                        .fi-ta-text-item {
+                            padding-top: 0.25rem !important;    /* py-1 */
+                            padding-bottom: 0.25rem !important; /* py-1 */
+                        }
+                    </style>
+                ')
             );
     }
 }

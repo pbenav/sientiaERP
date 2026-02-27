@@ -335,20 +335,17 @@ class ProductResource extends Resource
                 Tables\Columns\TextColumn::make('sku')
                     ->label('SKU')
                     ->searchable()
-                    ->sortable()
-                    ->extraCellAttributes(['class' => '!py-1']),
+                    ->sortable(),
                 
                 Tables\Columns\TextColumn::make('barcode')
                     ->label('Código de Barras')
                     ->searchable()
-                    ->toggleable()
-                    ->extraCellAttributes(['class' => '!py-1']),
+                    ->toggleable(),
                 
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nombre')
                     ->searchable()
-                    ->sortable()
-                    ->extraCellAttributes(['class' => '!py-1']),
+                    ->sortable(),
                 
                 Tables\Columns\TextColumn::make('price')
                     ->label('Precio')
@@ -360,14 +357,12 @@ class ProductResource extends Resource
                         $formatted = number_format($state, $precision, ',', '.');
                         return $position === 'suffix' ? "$formatted $symbol" : "$symbol $formatted";
                     })
-                    ->sortable()
-                    ->extraCellAttributes(['class' => '!py-1']),
+                    ->sortable(),
                 
                 Tables\Columns\TextColumn::make('tax_rate')
                     ->label('IVA')
                     ->suffix('%')
-                    ->sortable()
-                    ->extraCellAttributes(['class' => '!py-1']),
+                    ->sortable(),
                 
                 Tables\Columns\TextColumn::make('stock')
                     ->label('Stock')
@@ -377,20 +372,17 @@ class ProductResource extends Resource
                         $state === 0 => 'danger',
                         $state < 10 => 'warning',
                         default => 'success',
-                    })
-                    ->extraCellAttributes(['class' => '!py-1']),
+                    }),
                 
                 Tables\Columns\IconColumn::make('active')
                     ->label('Activo')
-                    ->boolean()
-                    ->extraCellAttributes(['class' => '!py-1']),
+                    ->boolean(),
                 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creado')
                     ->dateTime()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->extraCellAttributes(['class' => '!py-1']),
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\TernaryFilter::make('active')
@@ -418,8 +410,7 @@ class ProductResource extends Resource
                     Tables\Actions\RestoreBulkAction::make(),
                 ]),
             ])
-            ->defaultSort('created_at', 'desc')
-            ->tableAttributes(['class' => 'fi-lineas-compactas']);
+            ->defaultSort('created_at', 'desc');
     }
 
     public static function getPages(): array
