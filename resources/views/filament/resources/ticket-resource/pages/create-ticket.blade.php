@@ -594,7 +594,7 @@
                             Cancelar
                         </button>
                         <button wire:click="confirmSessionClosure" type="button"
-                            class="px-8 py-2.5 bg-red-600 hover:bg-red-700 text-gray-500 rounded-lg font-black text-sm uppercase shadow-lg transition active:scale-95 flex items-center gap-2">
+                            class="px-8 py-2.5 bg-red-600 !hover:bg-red-700 !ext-gray-700 rounded-lg font-black text-sm uppercase shadow-lg transition active:scale-95 flex items-center gap-2">
                             <x-heroicon-o-check class="w-5 h-5" /> Confirmar Arqueo y Cerrar
                         </button>
                     </div>
