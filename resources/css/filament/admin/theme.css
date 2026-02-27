@@ -1,0 +1,29 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@config 'tailwind.config.js';
+
+@layer components {
+
+    /* Reducción radical de padding en TODAS las tablas de Filament */
+    .fi-ta-text,
+    .fi-ta-col-wrp,
+    .fi-ta-cell>div,
+    .fi-ta-content,
+    .fi-ta-cell :where(.py-4, .py-3) {
+        @apply py-1 !important;
+        min-height: unset !important;
+    }
+
+    /* Eliminar gaps internos y alturas forzadas */
+    .fi-ta-text-item {
+        @apply gap-0 !important;
+    }
+
+    /* Ajuste para iconos y badges que a veces "estiran" la fila */
+    .fi-ta-icon-column div,
+    .fi-ta-badge-column div,
+    .fi-ta-record tr,
+    .fi-ta-record td {
+        min-height: unset !important;
+    }
+}

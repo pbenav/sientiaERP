@@ -68,40 +68,10 @@ class AdminPanelProvider extends PanelProvider
                 'Configuración',
                 'Administración',
             ])
+            ->viteTheme('resources/css/filament/admin/theme.css')
             ->renderHook(
                 'panels::body.end',
                 fn () => view('filament.hooks.document-navigation')
-            )
-            ->renderHook(
-                'panels::head.end',
-                fn () => new \Illuminate\Support\HtmlString('
-                    <style>
-                        /* 
-                           Ataque global al padding de las tablas de Filament.
-                           Targeteamos cualquier contenedor de celda que tenga py-4.
-                        */
-                        [class*="fi-ta-"] .py-4,
-                        .fi-ta-text,
-                        .fi-ta-col-wrp,
-                        .fi-ta-cell > div {
-                            padding-top: 0.25rem !important;    /* py-1 */
-                            padding-bottom: 0.25rem !important; /* py-1 */
-                            min-height: unset !important;
-                        }
-
-                        /* Eliminar gaps o alturas mínimas que fuerzan espacio */
-                        .fi-ta-text-item {
-                            gap: 0 !important;
-                        }
-                        
-                        /* Ajuste para iconos y badges */
-                        .fi-ta-icon-column div,
-                        .fi-ta-badge-column div {
-                            padding-top: 0 !important;
-                            padding-bottom: 0 !important;
-                        }
-                    </style>
-                ')
             )
             ->renderHook(
                 'panels::head.end',
