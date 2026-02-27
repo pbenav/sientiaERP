@@ -80,10 +80,22 @@ class AdminPanelProvider extends PanelProvider
                 'panels::head.done',
                 fn () => new \Illuminate\Support\HtmlString('
                     <style>
-                        /* Forzamos el padding compacto en las celdas de las tablas */
-                        .fi-ta-text-item {
+                        /* Forzamos el padding compacto en todos los niveles posibles de la celda */
+                        .fi-ta-col-wrp, 
+                        .fi-ta-text,
+                        .fi-ta-text-item,
+                        .fi-ta-cell > div,
+                        .fi-ta-content {
                             padding-top: 0.25rem !important;    /* py-1 */
                             padding-bottom: 0.25rem !important; /* py-1 */
+                            min-height: unset !important;
+                        }
+                        
+                        /* Ajuste específico para iconos y badges que a veces fuerzan altura */
+                        .fi-ta-icon-column div,
+                        .fi-ta-badge-column div {
+                            padding-top: 0 !important;
+                            padding-bottom: 0 !important;
                         }
                     </style>
                 ')
