@@ -139,15 +139,22 @@
 /* ── TABLA COMPACTA (RelationManager) ────────────────────────────────────── */
 
 .fi-lineas-compactas .fi-ta-cells,
-.fi-lineas-compactas tr td,
+.fi-lineas-compactas tr td {
+    padding-top: 0.15rem !important;
+    padding-bottom: 0.15rem !important;
+}
+
 .fi-lineas-compactas tr th {
     padding-top: 0.15rem !important;
     padding-bottom: 0.15rem !important;
 }
 
-.fi-lineas-compactas td .fi-ta-col-wrp {
-    padding-top: 0.1rem !important;
-    padding-bottom: 0.1rem !important;
+.fi-lineas-compactas td .fi-ta-col-wrp,
+.fi-lineas-compactas td .fi-ta-text,
+.fi-lineas-compactas td .fi-ta-text-item {
+    padding-top: 0.05rem !important;
+    padding-bottom: 0.05rem !important;
+    min-height: unset !important;
 }
 
 .fi-lineas-compactas thead th {
@@ -156,7 +163,8 @@
 }
 
 .fi-lineas-compactas td span,
-.fi-lineas-compactas td .fi-ta-cell {
-    font-size: 0.75rem !important;
-    line-height: 1.15rem !important;
+.fi-lineas-compactas td .fi-ta-cell,
+.fi-lineas-compactas td .fi-ta-text-item-label {
+    font-size: 0.82rem !important;
+    line-height: 1.1rem !important;
 }
