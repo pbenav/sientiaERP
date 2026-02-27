@@ -68,6 +68,7 @@ class AdminPanelProvider extends PanelProvider
                 'Configuración',
                 'Administración',
             ])
+            ->viteTheme('resources/css/filament/admin/theme.css')
             ->renderHook(
                 'panels::body.end',
                 fn () => view('filament.hooks.document-navigation')
