@@ -76,26 +76,29 @@ class AdminPanelProvider extends PanelProvider
                 'panels::head.end',
                 fn () => new \Illuminate\Support\HtmlString('
                     <style>
-                        /* Reducción radical de padding en tablas Filament v3 */
-                        .fi-ta-text.py-4,
-                        .fi-ta-col-wrp.py-4,
-                        .fi-ta-cell > div.py-4,
-                        .fi-ta-content.py-4 {
+                        /* 
+                           Ataque global al padding de las tablas de Filament.
+                           Targeteamos cualquier contenedor de celda que tenga py-4.
+                        */
+                        [class*="fi-ta-"] .py-4,
+                        .fi-ta-text,
+                        .fi-ta-col-wrp,
+                        .fi-ta-cell > div {
                             padding-top: 0.25rem !important;    /* py-1 */
                             padding-bottom: 0.25rem !important; /* py-1 */
+                            min-height: unset !important;
+                        }
+
+                        /* Eliminar gaps o alturas mínimas que fuerzan espacio */
+                        .fi-ta-text-item {
+                            gap: 0 !important;
                         }
                         
-                        /* Ajuste para celdas de badges/iconos */
+                        /* Ajuste para iconos y badges */
                         .fi-ta-icon-column div,
                         .fi-ta-badge-column div {
                             padding-top: 0 !important;
                             padding-bottom: 0 !important;
-                        }
-
-                        /* Ajuste para el wrapper de la columna */
-                        .fi-ta-col-wrp {
-                            padding-top: 0.1rem !important;
-                            padding-bottom: 0.1rem !important;
                         }
                     </style>
                 ')
