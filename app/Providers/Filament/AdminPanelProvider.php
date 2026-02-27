@@ -74,31 +74,35 @@ class AdminPanelProvider extends PanelProvider
             )
             ->renderHook(
                 'panels::head.end',
-                fn () => new HtmlString(Blade::render("@vite('resources/css/document-lines.css')"))
-            )
-            ->renderHook(
-                'panels::head.done',
                 fn () => new \Illuminate\Support\HtmlString('
                     <style>
-                        /* Forzamos el padding compacto en todos los niveles posibles de la celda */
-                        .fi-ta-col-wrp, 
-                        .fi-ta-text,
-                        .fi-ta-text-item,
-                        .fi-ta-cell > div,
-                        .fi-ta-content {
+                        /* Reducción radical de padding en tablas Filament v3 */
+                        .fi-ta-text.py-4,
+                        .fi-ta-col-wrp.py-4,
+                        .fi-ta-cell > div.py-4,
+                        .fi-ta-content.py-4 {
                             padding-top: 0.25rem !important;    /* py-1 */
                             padding-bottom: 0.25rem !important; /* py-1 */
-                            min-height: unset !important;
                         }
                         
-                        /* Ajuste específico para iconos y badges que a veces fuerzan altura */
+                        /* Ajuste para celdas de badges/iconos */
                         .fi-ta-icon-column div,
                         .fi-ta-badge-column div {
                             padding-top: 0 !important;
                             padding-bottom: 0 !important;
                         }
+
+                        /* Ajuste para el wrapper de la columna */
+                        .fi-ta-col-wrp {
+                            padding-top: 0.1rem !important;
+                            padding-bottom: 0.1rem !important;
+                        }
                     </style>
                 ')
+            )
+            ->renderHook(
+                'panels::head.end',
+                fn () => new HtmlString(Blade::render("@vite('resources/css/document-lines.css')"))
             );
     }
 }
