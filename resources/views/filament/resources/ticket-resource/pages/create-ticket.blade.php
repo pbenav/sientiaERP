@@ -39,28 +39,28 @@
             }
         }
     }"
-        class="flex flex-col text-gray-500 bg-white border border-gray-200 shadow-sm font-sans text-sm h-[calc(100vh-170px)] md:h-[calc(100vh-200px)] overflow-hidden md:rounded-lg">
+        class="flex flex-col text-gray-500 bg-white border border-gray-200 shadow-sm font-sans text-sm w-full md:rounded-lg">
         {{-- Barra de Navegación Profesional --}}
-        <div class="bg-gray-800 text-red-300 px-4 py-2 flex justify-between items-center shrink-0">
+        <div class="bg-primary-600 text-white px-4 py-2 flex justify-between items-center shrink-0">
             <div class="flex items-center gap-4">
                 <div class="flex items-center gap-2">
-                    <x-heroicon-s-computer-desktop class="w-5 h-5 text-primary-400" />
+                    <x-heroicon-s-computer-desktop class="w-5 h-5 text-white" />
                     <span class="font-black text-lg tracking-tight">SIENTIA <span
-                            class="text-primary-400">POS</span></span>
+                            class="text-primary-200">POS</span></span>
                 </div>
                 <div
-                    class="hidden md:flex items-center gap-3 px-3 py-1 bg-gray-700/50 rounded-full border border-white/10">
+                    class="hidden md:flex items-center gap-3 px-3 py-1 bg-primary-700/50 rounded-full border border-white/20">
                     <div class="flex items-center gap-1.5">
-                        <x-heroicon-s-user class="w-3.5 h-3.5 text-gray-400" />
-                        <span class="text-[10px] uppercase font-bold text-gray-300">{{ auth()->user()->name }}</span>
+                        <x-heroicon-s-user class="w-3.5 h-3.5 text-primary-100" />
+                        <span class="text-[10px] uppercase font-bold text-white">{{ auth()->user()->name }}</span>
                     </div>
-                    <div class="w-px h-3 bg-white/10"></div>
+                    <div class="w-px h-3 bg-white/20"></div>
                     <div class="flex items-center gap-1.5">
                         <div
-                            class="w-2 h-2 rounded-full {{ $isSessionOpen ? 'bg-green-500 animate-pulse' : 'bg-red-500' }}">
+                            class="w-2 h-2 rounded-full {{ $isSessionOpen ? 'bg-green-400 animate-pulse' : 'bg-red-400' }}">
                         </div>
                         <span
-                            class="text-[10px] uppercase font-bold {{ $isSessionOpen ? 'text-green-400' : 'text-red-400' }}">
+                            class="text-[10px] uppercase font-bold {{ $isSessionOpen ? 'text-green-300' : 'text-red-300' }}">
                             Sesión {{ $isSessionOpen ? 'Abierta' : 'Cerrada' }}
                         </span>
                     </div>
@@ -70,14 +70,14 @@
             <div class="flex items-center gap-2">
                 @if ($isSessionOpen)
                     <button wire:click="openClosingModal" type="button"
-                        class="group flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600  rounded-md font-black text-[11px] uppercase transition shadow-lg active:scale-95">
+                        class="group flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600  rounded-md font-black text-[11px] uppercase transition shadow-lg active:scale-95 text-black">
                         <x-heroicon-s-banknotes class="w-4 h-4 group-hover:rotate-12 transition-transform" />
                         CIERRE / ARQUEO
                     </button>
                 @endif
 
                 <button wire:click="salirPos" type="button"
-                    class="flex items-center gap-1.5 px-3 py-1.5 bg-gray-700 hover:bg-red-600 rounded-md font-black text-[11px] uppercase transition shadow-lg active:scale-95 border border-white/10">
+                    class="flex items-center gap-1.5 px-3 py-1.5 bg-primary-700 hover:bg-red-600 rounded-md font-black text-[11px] uppercase transition shadow-lg active:scale-95 border border-white/20 text-white">
                     <x-heroicon-s-arrow-left-on-rectangle class="w-4 h-4" />
                     SALIR (TPV)
                 </button>
@@ -155,7 +155,7 @@
         </div>
 
         {{-- Área de Trabajo --}}
-        <div class="flex-1 flex flex-col p-4 space-y-4 overflow-hidden bg-gray-50/50">
+        <div class="w-full flex flex-col p-2 md:p-4 gap-2 md:gap-4 bg-gray-50/50">
 
             {{-- Fila Única de Entrada --}}
             <div class="flex items-center space-x-2 bg-white p-3 rounded-lg border border-gray-200 shadow-sm shrink-0"
@@ -232,9 +232,9 @@
             </div>
 
             {{-- Grid --}}
-            <div class="border border-gray-200 rounded-lg bg-white shadow-sm overflow-hidden flex flex-col shrink-0"
-                style="height: 380px !important;">
-                <div class="overflow-y-auto" style="height: 100% !important;">
+            <div
+                class="border border-gray-200 rounded-lg bg-white shadow-sm flex flex-col h-[380px] overflow-hidden shrink-0">
+                <div class="overflow-y-auto w-full h-full">
                     <table class="w-full text-sm text-left">
                         <thead class="bg-gray-200 text-gray-700 text-xs uppercase sticky top-0">
                             <tr>
@@ -296,11 +296,10 @@
 
             {{-- Footer Principal --}}
             <div
-                class="flex flex-col md:flex-row gap-4 shrink-0 bg-gray-100 p-3 rounded-lg border border-gray-300 shadow-inner">
+                class="flex flex-col md:flex-row gap-4 shrink-0 bg-gray-100 p-3 rounded-lg border border-gray-300 shadow-inner overflow-hidden">
 
-                {{-- Panel Botones (Izquierda) - 2 Columnas Compacto --}}
-                <div class="grid grid-cols-2 gap-2 w-fit shrink-0 overflow-visible"
-                    style="display: grid !important; grid-template-columns: repeat(2, 1fr) !important; width: 172px !important;">
+                {{-- Panel Botones (Izquierda) - Responsive --}}
+                <div class="grid grid-cols-3 lg:grid-cols-2 gap-2 shrink-0 min-w-[180px]">
                     @foreach ([['Grabar', 'heroicon-o-check', 'from-green-50 to-green-100 border-green-400 text-green-700 hover:from-green-100 hover:to-green-200 hover:border-green-500 hover:text-green-800 hover:shadow-xl active:from-green-600 active:to-green-700 active:border-green-800 active:text-white'], ['Anular', 'heroicon-o-trash', 'from-red-50 to-red-100 border-red-400 text-red-700 hover:from-red-100 hover:to-red-200'], ['Imprimir', 'heroicon-o-printer', 'from-white to-gray-100 border-gray-400 text-gray-700 hover:from-gray-50 hover:to-gray-200'], ['Nueva', 'heroicon-o-plus', 'from-amber-100 to-amber-200 border-amber-400 text-amber-900 hover:from-amber-200 hover:to-amber-300 font-black'], ['Regalo', 'heroicon-o-gift', 'from-white to-gray-100 border-gray-400 text-purple-700 hover:from-gray-50 hover:to-gray-200'], ['Salir', 'heroicon-o-arrow-right-on-rectangle', 'from-amber-100 to-amber-200 border-amber-400 text-amber-900 hover:from-amber-200 hover:to-amber-300']] as $i => $btn)
                         <button
                             @if ($btn[0] === 'Grabar') wire:click="grabarTicket" 
@@ -316,11 +315,11 @@
                             wire:click="salirPos" @endif
                             @if ($btn[0] === 'Grabar') onclick="this.style.background='linear-gradient(to bottom, #059669, #047857)'; this.style.color='white'; this.style.transform='scale(0.9)'; setTimeout(() => { this.style.background=''; this.style.color=''; this.style.transform=''; }, 300);" @endif
                             type="button"
-                            class="flex flex-col items-center justify-center rounded border-2 shadow-md hover:shadow-lg transition-all duration-150 bg-gradient-to-b {{ $btn[2] }} w-20 h-20 shrink-0 {{ $btn[0] === 'Grabar' ? 'ring-2 ring-green-300 scale-105 z-10' : 'active:shadow-sm active:scale-95' }}">
+                            class="flex flex-col items-center justify-center rounded border-2 shadow-md hover:shadow-lg transition-all duration-150 bg-gradient-to-b {{ $btn[2] }} w-full aspect-square sm:h-20 sm:w-20 lg:h-20 shrink-0 {{ $btn[0] === 'Grabar' ? 'ring-2 ring-green-300 scale-105 z-10' : 'active:shadow-sm active:scale-95' }}">
                             <x-dynamic-component :component="$btn[1]"
-                                class="w-6 h-6 mb-1 {{ $btn[0] === 'Grabar' ? 'transition-transform hover:scale-110' : '' }}" />
+                                class="w-5 sm:w-6 h-5 sm:h-6 mb-1 {{ $btn[0] === 'Grabar' ? 'transition-transform hover:scale-110' : '' }}" />
                             <span
-                                class="font-bold text-[9px] leading-none text-center uppercase text-black">{{ $btn[0] }}</span>
+                                class="font-bold text-[9px] sm:text-[10px] leading-none text-center uppercase text-black">{{ $btn[0] }}</span>
                             @if ($btn[0] === 'Grabar')
                                 <span wire:loading wire:target="grabarTicket"
                                     class="absolute inset-0 flex items-center justify-center bg-green-700 bg-opacity-90 rounded text-white font-bold text-[8px]">
@@ -370,17 +369,17 @@
                 </div>
 
                 {{-- Panel Totales y Cobro (Derecha) --}}
-                <div class="w-72 md:w-96 flex flex-col gap-2">
+                <div class="w-full md:w-80 lg:w-96 flex flex-col gap-2 shrink-0">
                     {{-- Total a Pagar (Arriba) --}}
                     <div
                         class="flex flex-col items-end w-full rounded-lg bg-white p-3 border border-gray-300 shadow-sm min-h-[70px] justify-center overflow-hidden">
                         <span
                             class="text-[10px] uppercase font-bold text-gray-500 tracking-widest leading-none mb-1">Total
                             a Pagar</span>
-                        <div class="flex items-baseline gap-1">
-                            <span class="font-black tracking-tighter leading-none text-amber-500"
-                                style="font-size: 30px !important; font-weight: 950 !important; line-height: 1 !important;">{{ number_format($total, 2) }}</span>
-                            <span class="font-black text-amber-500" style="font-size: 18px !important;">€</span>
+                        <div class="flex items-baseline gap-1 text-amber-500">
+                            <span
+                                class="font-black tracking-tighter leading-none text-3xl sm:text-4xl">{{ number_format($total, 2) }}</span>
+                            <span class="font-black text-xl">€</span>
                         </div>
                     </div>
 
@@ -498,7 +497,8 @@
                                                     class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-300">{{ number_format($cents / 100, 0) }}
                                                     €</span>
                                             @else
-                                                <span class="text-amber-700">{{ number_format($cents / 100, 2) }} €</span>
+                                                <span class="text-amber-700">{{ number_format($cents / 100, 2) }}
+                                                    €</span>
                                             @endif
                                         </span>
                                         <input type="number" wire:model.live="cashBreakdown.{{ $cents }}"
