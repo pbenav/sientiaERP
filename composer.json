@@ -21,6 +21,7 @@
         "openai-php/laravel": "^0.18.0",
         "picqer/php-barcode-generator": "^3.2",
         "predis/predis": "^3.3",
+        "simplesoftwareio/simple-qrcode": "^4.2",
         "thiagoalessio/tesseract_ocr": "^2.13"
     },
     "require-dev": {

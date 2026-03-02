@@ -83,20 +83,34 @@ class LabelGeneratorService
     }
 
     /**
-     * Generate barcode SVG.
+     * Generate barcode SVG or QR Code PNG.
      */
     protected function generateBarcode($text, $type)
     {
         if (empty($text)) return null;
 
+        $type = strtolower($type);
+
+        if ($type === 'qr') {
+            try {
+                $qrCode = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('png')
+                    ->size(150)
+                    ->margin(0)
+                    ->generate($text);
+                return '<img src="data:image/png;base64,' . base64_encode($qrCode) . '" alt="qr-code" class="qr-code-img">';
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('QR generation error: ' . $e->getMessage());
+                return null;
+            }
+        }
+
         $typeMap = [
             'code128' => \Picqer\Barcode\BarcodeGeneratorPNG::TYPE_CODE_128,
             'code39' => \Picqer\Barcode\BarcodeGeneratorPNG::TYPE_CODE_39,
             'ean13' => \Picqer\Barcode\BarcodeGeneratorPNG::TYPE_EAN_13,
-            // QR Not supported by this library, requires another one if needed
         ];
 
-        $barcodeType = $typeMap[strtolower($type)] ?? \Picqer\Barcode\BarcodeGeneratorPNG::TYPE_CODE_128;
+        $barcodeType = $typeMap[$type] ?? \Picqer\Barcode\BarcodeGeneratorPNG::TYPE_CODE_128;
 
         try {
             $barcodeData = $this->generator->getBarcode($text, $barcodeType);
