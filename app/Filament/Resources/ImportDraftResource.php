@@ -252,7 +252,10 @@ class ImportDraftResource extends Resource
 
                 Tables\Columns\TextColumn::make('items')
                     ->label('Líneas')
-                    ->formatStateUsing(fn ($state): string => count($state ?? []) . ' líneas'),
+                    ->formatStateUsing(function ($state): string {
+                        $arr = is_array($state) ? $state : (json_decode($state ?? '[]', true) ?? []);
+                        return count($arr) . ' líneas';
+                    }),
 
                 Tables\Columns\TextColumn::make('expedicionCompra.expedicion.nombre')
                     ->label('Expedición')
