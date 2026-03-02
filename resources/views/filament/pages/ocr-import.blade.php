@@ -56,7 +56,8 @@
 
             {{-- ── Banner: documento precargado desde la expedición ─────────────── --}}
             @if ($preloadedDocumentPath)
-                <div class="mt-3 rounded-lg border border-blue-300 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-700 p-3 flex items-start gap-3">
+                <div
+                    class="mt-3 rounded-lg border border-blue-300 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-700 p-3 flex items-start gap-3">
                     <div class="flex-shrink-0 text-blue-500 mt-0.5 text-2xl">📄</div>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-bold text-blue-800 dark:text-blue-200">
@@ -70,8 +71,8 @@
                             No es necesario subir ningún archivo adicional.
                         </p>
                         <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($preloadedDocumentPath) }}"
-                           target="_blank"
-                           class="inline-flex items-center mt-1.5 text-xs font-medium text-blue-700 dark:text-blue-300 hover:underline">
+                            target="_blank"
+                            class="inline-flex items-center mt-1.5 text-xs font-medium text-blue-700 dark:text-blue-300 hover:underline">
                             👁 Ver documento
                         </a>
                     </div>
@@ -222,7 +223,8 @@
                 @endif
 
                 @if (!empty($parsedData['supplier']))
-                    <p class="text-[10px] text-gray-500 italic px-1">Detectado por el OCR: {{ $parsedData['supplier'] }}
+                    <p class="text-[10px] text-gray-500 italic px-1">Detectado por el OCR:
+                        {{ $parsedData['supplier'] }}
                     </p>
                 @endif
 
@@ -482,9 +484,10 @@
                     <x-filament::button color="gray" size="xs" wire:click="$set('showDataForm', false)">
                         Nueva Imagen
                     </x-filament::button>
-                    <x-filament::button size="xs" wire:click="createDocument" wire:loading.attr="disabled">
-                        <span wire:loading.remove>Crear Albarán</span>
-                        <span wire:loading>Creando...</span>
+                    <x-filament::button size="xs" color="success" icon="heroicon-o-inbox-arrow-down"
+                        wire:click="saveDraft" wire:loading.attr="disabled">
+                        <span wire:loading.remove>💾 Guardar borrador para revisión</span>
+                        <span wire:loading>Guardando borrador...</span>
                     </x-filament::button>
                 </div>
             </div>
