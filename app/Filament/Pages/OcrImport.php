@@ -9,6 +9,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Form;
 use Filament\Forms\Components\FileUpload;
 use Livewire\WithFileUploads;
+use App\Models\ImportDraft;
 
 class OcrImport extends Page implements HasForms
 {
@@ -480,293 +481,77 @@ class OcrImport extends Page implements HasForms
         return true;
     }
 
-    public function createDocument()
+    public function saveDraft()
     {
-        \Illuminate\Support\Facades\Log::info('OCR: createDocument called from OcrImport page.');
+        \Illuminate\Support\Facades\Log::info('OCR: saveDraft called from OcrImport page.');
 
         if (!$this->validateCurrentData()) {
             return;
         }
 
-        // Identify final path
+        // 1. Mover el archivo si hay uno subido
         $finalPath = null;
         try {
             $state = $this->data['documento'] ?? null;
             $currentPath = is_array($state) ? (array_values($state)[0] ?? null) : $state;
 
-            if ($currentPath) {
-                if (\Illuminate\Support\Facades\Storage::disk('public')->exists($currentPath)) {
-                    $extension = pathinfo($currentPath, PATHINFO_EXTENSION);
-                    $newFilename = 'albaran_' . time() . '_' . uniqid() . '.' . $extension;
-                    $targetDir = 'documentos/images';
-                    $targetPath = $targetDir . '/' . $newFilename;
-
-                    // Copy file (optimization can be added later)
-                    \Illuminate\Support\Facades\Storage::disk('public')->copy($currentPath, $targetPath);
-                    
-                    $finalPath = $targetPath;
-                    \Illuminate\Support\Facades\Log::info('File stored', ['path' => $finalPath]);
-                }
+            if ($currentPath && \Illuminate\Support\Facades\Storage::disk('public')->exists($currentPath)) {
+                $extension   = pathinfo($currentPath, PATHINFO_EXTENSION);
+                $newFilename = 'albaran_' . time() . '_' . uniqid() . '.' . $extension;
+                $targetPath  = 'documentos/images/' . $newFilename;
+                \Illuminate\Support\Facades\Storage::disk('public')->copy($currentPath, $targetPath);
+                $finalPath = $targetPath;
             }
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Error moving file: ' . $e->getMessage());
         }
+        // Fallback al documento precargado de la compra
+        if (!$finalPath && $this->preloadedDocumentPath) {
+            $finalPath = $this->preloadedDocumentPath;
+        }
 
         $supplierId = $this->parsedData['supplier_id'] ?? null;
-        if ($supplierId === "") $supplierId = null;
-
-        $data = [
-            'tipo' => 'albaran_compra',
-            'estado' => 'borrador',
-            'user_id' => auth()->id(),
-            'fecha' => $this->parsedData['date'] ?? now(),
-            'serie' => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A',
-            'tercero_id' => $supplierId ?? $this->parsedData['matched_provider_id'] ?? null,
-            'referencia_proveedor' => (string) ($this->parsedData['document_number'] ?? 'REF-' . strtoupper(uniqid())),
-            'subtotal' => (float) ($this->parsedData['subtotal'] ?? 0),
-            'descuento' => (float) ($this->parsedData['total_discount'] ?? 0),
-            'total' => (float) ($this->parsedData['total_amount'] ?? 0),
-            'archivo' => $finalPath,
-        ];
-
-        // LOGICA PROVEEDOR FICTICIO / FALLBACK
-        $observaciones = [];
-        if (empty($data['tercero_id'])) {
-            $dummyProvider = \App\Models\Tercero::firstOrCreate(
-                ['nif_cif' => '00000000T'],
-                [
-                    'nombre_comercial' => 'PROVEEDOR PENDIENTE DE ASIGNAR',
-                    'razon_social' => 'PROVEEDOR GENERADO AUTOMATICAMENTE',
-                    'activo' => true
-                ]
-            );
-
-            if (!$dummyProvider->esProveedor()) {
-                $tipoProv = \App\Models\TipoTercero::where('codigo', 'PRO')->first();
-                if ($tipoProv) $dummyProvider->tipos()->syncWithoutDetaching([$tipoProv->id]);
-            }
-
-            $data['tercero_id'] = $dummyProvider->id;
-            $observaciones[] = "AVISO: Proveedor no detectado. Asignado a 'PROVEEDOR PENDIENTE'.";
-        }
-
-        if (!empty($this->parsedData['supplier']) && empty($this->parsedData['matched_provider_id'])) {
-            $observaciones[] = "Proveedor detectado por IA (no macheado): " . $this->parsedData['supplier'];
-        }
-        if (!empty($this->parsedData['total_units'])) {
-            $observaciones[] = "Unidades totales extraídas: " . $this->parsedData['total_units'];
-        }
-        if (!empty($this->rawText)) {
-            $observaciones[] = "--- OCR RAW TEXT ---\n" . $this->rawText;
-        }
-        $data['observaciones'] = implode("\n\n", $observaciones);
+        if ($supplierId === '') $supplierId = null;
 
         try {
-            // 1. Validate / Create Products
-            // 1. Process Products (Update existing or Create new)
-            if (!empty($this->parsedData['items']) && is_array($this->parsedData['items'])) {
-                foreach ($this->parsedData['items'] as $index => &$item) {
-                    // Try to find product if not matched yet
-                    if (empty($item['matched_product_id'])) {
-                        $productRef = $item['reference'] ?? $item['product_code'] ?? null;
-                        if (!empty($productRef)) {
-                            $existingProduct = \App\Models\Product::findByCode($productRef);
-                            if ($existingProduct) {
-                                $item['matched_product_id'] = $existingProduct->id;
-                            }
-                        }
-                    }
-
-                    if (!empty($item['matched_product_id'])) {
-                        // UPDATE EXISTING PRODUCT
-                        $product = \App\Models\Product::find($item['matched_product_id']);
-                        if ($product) {
-                            $purchasePriceGross = (float)($item['unit_price'] ?? 0);
-                            $discount = (float)($item['discount'] ?? 0);
-                            $purchasePriceNet = $purchasePriceGross * (1 - ($discount / 100));
-                            $margin = (float)($item['margin'] ?? 60);
-                            $retailPrice = (float)($item['sale_price'] ?? 0);
-                            
-                            $product->name = !empty($item['description']) ? $item['description'] : $product->name;
-                            $product->price = $retailPrice;
-                            $product->purchase_price = $purchasePriceNet; // Set purchase price
-                            $product->tax_rate = (float)($item['vat_rate'] ?? $product->tax_rate);
-                            $product->addPurchaseHistory(
-                                $purchasePriceGross,
-                                $discount,
-                                $purchasePriceNet,
-                                $margin,
-                                $this->parsedData['document_number'] ?? null
-                            );
-                            $product->save();
-                        }
-                    } else {
-                        // CREATE NEW PRODUCT
-                        try {
-                            $productRef = $item['reference'] ?? $item['product_code'] ?? 'AUTO-' . strtoupper(uniqid());
-                            $desc = !empty($item['description']) ? $item['description'] : 'Producto sin descripción';
-                            
-                            $purchasePriceGross = (float)($item['unit_price'] ?? 0);
-                            $discount = (float)($item['discount'] ?? 0);
-                            $purchasePriceNet = $purchasePriceGross * (1 - ($discount / 100));
-                            $margin = (float)($item['margin'] ?? 60);
-                            $retailPrice = (float)($item['sale_price'] ?? 0);
-
-                            $newProduct = \App\Models\Product::create([
-                                'name' => $desc,
-                                'description' => $desc,
-                                'price' => $retailPrice,
-                                'purchase_price' => $purchasePriceNet, // Set purchase price
-                                'tax_rate' => (float)($item['vat_rate'] ?? 21.00),
-                                'active' => true,
-                                'stock' => 0,
-                                'sku' => $productRef,
-                                'barcode' => $productRef,
-                            ]);
-
-                            $newProduct->addPurchaseHistory(
-                                $purchasePriceGross,
-                                $discount,
-                                $purchasePriceNet,
-                                $margin,
-                                $this->parsedData['document_number'] ?? null
-                            );
-                            $newProduct->save();
-                            $item['matched_product_id'] = $newProduct->id;
-                        } catch (\Exception $e) {
-                            \Illuminate\Support\Facades\Log::error('Error creating product in OCR: ' . $e->getMessage());
-                        }
-                    }
-                }
-                unset($item);
-            }
-
-            // DIRECT CREATION
-            $record = \App\Models\Documento::create($data);
-
-            // Create Lines
-            foreach ($this->parsedData['items'] as $item) {
-                $qty = (float)($item['quantity'] ?? 1);
-                $price = (float)($item['unit_price'] ?? 0);
-                $discount = (float)($item['discount'] ?? 0);
-                $desc = !empty($item['description']) ? $item['description'] : 'Línea importada';
-                $taxRate = (float)($item['vat_rate'] ?? 21);
-                
-                $prodId = $item['matched_product_id'] ?? null;
-                $ref = !empty($item['reference']) ? $item['reference'] : 'REF-TEMP';
-
-                $subtotal = $qty * $price;
-                if ($discount > 0) {
-                    $subtotal = $subtotal * (1 - ($discount / 100));
-                }
-
-                $record->lineas()->create([
-                    'product_id' => $prodId,
-                    'codigo' => $ref,
-                    'descripcion' => $desc,
-                    'cantidad' => $qty,
-                    'unidad' => 'Ud',
-                    'precio_unitario' => $price,
-                    'descuento' => $discount,
-                    'subtotal' => $subtotal,
-                    'iva' => $taxRate,
-                    'importe_iva' => $subtotal * ($taxRate / 100),
-                    'irpf' => 0,
-                    'importe_irpf' => 0,
-                    'total' => $subtotal * (1 + ($taxRate / 100)),
-                ]);
-            }
-
-            if (method_exists($record, 'recalcularTotales')) {
-                $record->recalcularTotales();
-                $record->save();
-            }
-
-            // CONFIRM DOCUMENT TO UPDATE STOCK
-            try {
-                if (method_exists($record, 'confirmar')) {
-                    $record->confirmar();
-                }
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('Error confirming document from OCR: ' . $e->getMessage());
-            }
-
-            // REDIRECT OR ADDITIONAL ACTIONS
-            if ($this->generateLabels && $this->selectedLabelFormatId) {
-                $selectedItems = array_filter($this->parsedData['items'], fn($item) => $item['print_label'] ?? false);
-                
-                if (count($selectedItems) > 0) {
-                    $labelDoc = \App\Models\Documento::create([
-                        'tipo' => 'etiqueta',
-                        'estado' => 'borrador',
-                        'user_id' => auth()->id(),
-                        'fecha' => now(),
-                        'label_format_id' => $this->selectedLabelFormatId,
-                        'fila_inicio' => $this->startRow,
-                        'columna_inicio' => $this->startColumn,
-                        'documento_origen_id' => $record->id,
-                        'observaciones' => "Generado desde importación OCR del Albarán: " . ($record->numero ?? $record->referencia_proveedor),
-                    ]);
-
-                    foreach ($selectedItems as $item) {
-                        $qty = (float)($item['quantity'] ?? 1);
-                        $desc = $item['description'] ?? 'Línea importada';
-                        $prod = !empty($item['matched_product_id']) ? \App\Models\Product::find($item['matched_product_id']) : null;
-                    
-                        $labelDoc->lineas()->create([
-                            'product_id' => $item['matched_product_id'] ?? null,
-                            'codigo' => !empty($item['reference']) ? $item['reference'] : ($prod?->sku ?? $prod?->code ?? $prod?->barcode ?? null),
-                            'descripcion' => $desc,
-                            'cantidad' => $qty,
-                            'unidad' => 'Ud',
-                            'precio_unitario' => $item['unit_price'] ?? 0,
-                        ]);
-                    }
-
-                    \Filament\Notifications\Notification::make()
-                        ->title('Documento de Etiquetas Creado')
-                        ->body('Se ha generado un documento de etiquetas asociado.')
-                        ->success()
-                        ->send();
-                }
-            }
+            $draft = ImportDraft::create([
+                'expedicion_compra_id' => $this->fromCompraId,
+                'user_id'              => auth()->id(),
+                'status'               => 'pending',
+                'provider_name'        => $this->parsedData['supplier'] ?? null,
+                'provider_nif'         => $this->parsedData['nif'] ?? null,
+                'document_number'      => $this->parsedData['document_number'] ?? null,
+                'document_date'        => $this->parsedData['date'] ?? null,
+                'matched_provider_id'  => $supplierId ?? $this->parsedData['matched_provider_id'] ?? null,
+                'subtotal'             => (float) ($this->parsedData['subtotal'] ?? 0),
+                'total_discount'       => (float) ($this->parsedData['total_discount'] ?? 0),
+                'total_amount'         => (float) ($this->parsedData['total_amount'] ?? 0),
+                'items'                => $this->parsedData['items'] ?? [],
+                'documento_path'       => $finalPath,
+                'raw_text'             => $this->rawText ?: null,
+            ]);
 
             \Filament\Notifications\Notification::make()
-                ->title('Albarán Creado Correctamente')
-                ->body('Redirigiendo a la edición...')
+                ->title('Borrador guardado correctamente')
+                ->body('Revisa y edita los datos antes de integrar el albarán en la aplicación.')
                 ->success()
                 ->send();
 
-            // ── Vincular con Expedición de Compra ────────────────────────────
-            if ($this->fromCompraId) {
-                $compra = \App\Models\ExpedicionCompra::find($this->fromCompraId);
-                if ($compra) {
-                    $compra->update([
-                        'documento_id' => $record->id,
-                        'recogido'     => true, // Marcamos como recogido al importar
-                    ]);
-                }
-            }
-
-            if ($this->backUrl) {
-                \Filament\Notifications\Notification::make()
-                    ->title('Albarán creado · Volviendo a la expedición')
-                    ->success()
-                    ->send();
-                return redirect()->to($this->backUrl);
-            }
-
-            return redirect()->route('filament.admin.resources.albaran-compras.edit', ['record' => $record]);
+            return redirect()->route(
+                'filament.admin.resources.import-drafts.edit',
+                ['record' => $draft->id]
+            );
 
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('OCR Creation Error: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('OCR saveDraft Error: ' . $e->getMessage());
 
             \Filament\Notifications\Notification::make()
-                ->title('Error Crítico')
-                ->body('No se pudo crear el documento: ' . $e->getMessage())
+                ->title('Error al guardar el borrador')
+                ->body($e->getMessage())
                 ->danger()
                 ->persistent()
                 ->send();
         }
     }
 }
+
