@@ -45,37 +45,41 @@ class ReciboResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Section::make('Datos del Recibo')
+                    ->columns(['default' => 1, 'md' => 3])
                     ->schema([
-                        Forms\Components\TextInput::make('numero')
-                            ->label('Número')
-                            ->disabled()
-                            ->dehydrated(false)
-                            ->placeholder('Se generará automáticamente'),
-                        
-                        Forms\Components\Select::make('serie')
-                            ->label('Serie')
-                            ->options(['A' => 'Serie A', 'B' => 'Serie B'])
-                            ->default('A')
-                            ->required(),
-                        
+                        Forms\Components\Group::make([
+                            Forms\Components\TextInput::make('numero')
+                                ->label('Número')
+                                ->disabled()
+                                ->dehydrated(false)
+                                ->placeholder('Autogenerado'),
+                            
+                            Forms\Components\Select::make('serie')
+                                ->label('Serie')
+                                ->options(['A' => 'Serie A', 'B' => 'Serie B'])
+                                ->default('A')
+                                ->required(),
+                        ])->columns(2),
+
                         Forms\Components\DatePicker::make('fecha')
                             ->label('Fecha de Cobro')
                             ->default(now())
-                            ->required(),
+                            ->required()
+                            ->native(false),
                         
                         Forms\Components\Select::make('tercero_id')
                             ->label('Cliente')
                             ->options(fn() => \App\Models\Tercero::clientes()->pluck('nombre_comercial', 'id'))
                             ->searchable()
                             ->preload()
-                            ->live()
                             ->required(),
                         
                         Forms\Components\TextInput::make('total')
                             ->label('Importe Recibo')
                             ->numeric()
                             ->prefix('€')
-                            ->required(),
+                            ->required()
+                            ->step(0.01),
                         
                         Forms\Components\Select::make('estado')
                             ->label('Estado')
@@ -85,10 +89,13 @@ class ReciboResource extends Resource
                                 'anulado' => 'Anulado',
                             ])
                             ->default('borrador')
-                            ->required(),
-                    ])->columns(3),
+                            ->required()
+                            ->native(false),
+                    ]),
 
                 Forms\Components\Section::make('Observaciones')
+                    ->collapsible()
+                    ->collapsed()
                     ->schema([
                         Forms\Components\Textarea::make('observaciones')
                             ->label('Observaciones / Concepto')

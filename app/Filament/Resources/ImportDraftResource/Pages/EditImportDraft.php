@@ -190,17 +190,21 @@ class EditImportDraft extends Page
         $product = Product::find($productId);
         if (!$product) return;
 
+        $body = "**SKU:** `{$product->sku}`\n\n";
+        
+        $pcActual = number_format((float) $product->purchase_price, 2, ',', '.') . ' €';
+        $pcImport = number_format((float) ($item['unit_price'] ?? 0), 2, ',', '.') . ' €';
+        $body .= "• **PC actual:** {$pcActual} ➔ **Importado:** {$pcImport}\n";
+
+        $pvpActual = number_format((float) $product->price, 2, ',', '.') . ' €';
+        $pvpImport = number_format((float) ($item['sale_price'] ?? 0), 2, ',', '.') . ' €';
+        $body .= "• **PVP actual:** {$pvpActual} ➔ **Importado:** {$pvpImport}\n\n";
+        
+        $body .= "**Stock actual:** `{$product->stock} uds`";
+
         Notification::make()
-            ->title('⚠️ Producto ya existe: ' . ($item['description'] ?? ''))
-            ->body(
-                "**SKU actual:** {$product->sku}\n" .
-                "**Nombre actual:** {$product->name}\n" .
-                "**PC actual:** " . number_format((float) $product->purchase_price, 2, ',', '.') .
-                " € → **Importado:** " . number_format((float) ($item['unit_price'] ?? 0), 2, ',', '.') . " €\n" .
-                "**PVP actual:** " . number_format((float) $product->price, 2, ',', '.') .
-                " € → **Importado:** " . number_format((float) ($item['sale_price'] ?? 0), 2, ',', '.') . " €\n" .
-                "**Stock actual:** {$product->stock} uds"
-            )
+            ->title('🔍 Comparando: ' . ($product->name))
+            ->body($body)
             ->warning()
             ->persistent()
             ->send();

@@ -73,4 +73,20 @@ class ExpedicionCompra extends Model
     {
         return $this->pagado && !$this->recogido;
     }
+
+    /**
+     * Verifica si el documento asociado existe.
+     * Si no existe pero hay un ID asignado, resetea el estado para permitir importar de nuevo.
+     */
+    public function verificarDocumento(): bool
+    {
+        if ($this->documento_id && !$this->documento()->exists()) {
+            $this->update([
+                'recogido' => false,
+                'documento_id' => null
+            ]);
+            return false;
+        }
+        return true;
+    }
 }
