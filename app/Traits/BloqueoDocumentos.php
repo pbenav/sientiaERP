@@ -43,6 +43,12 @@ trait BloqueoDocumentos
         if (in_array($this->tipo, ['factura', 'factura_compra']) && !empty($this->numero)) {
             return false;
         }
+
+        // 5. Regla de Cortesía: Tras X días (ej: 15), el documento es inmutable
+        $diasCortesia = 15;
+        if ($this->fecha && $this->fecha->diffInDays(now()) > $diasCortesia) {
+            return false;
+        }
         
         // 5. Excepciones para Pedidos procedentes de Presupuestos
         if ($this->tipo === 'pedido' && $this->documentoOrigen?->tipo === 'presupuesto') {
@@ -204,7 +210,11 @@ trait BloqueoDocumentos
         $bloqueantes = $this->getDocumentosBloqueantes();
         
         if ($bloqueantes->isEmpty()) {
-            return null;
+            // Si está bloqueado pero no hay documentos derivados, es por la fecha o el estado
+            if ($this->fecha && $this->fecha->diffInDays(now()) > 15) {
+                return "Este documento no puede editarse porque han pasado más de 15 días desde su fecha de emisión.";
+            }
+            return "Este documento no puede editarse en su estado actual ({$this->estado}).";
         }
         
         if ($bloqueantes->count() === 1) {
