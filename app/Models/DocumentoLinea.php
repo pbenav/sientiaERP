@@ -80,12 +80,49 @@ class DocumentoLinea extends Model
         });
 
 
+        static::updated(function ($linea) {
+            // DIFERENCIAL DE STOCK: Solo si el documento ya había movido stock
+            $documento = $linea->documento;
+            if ($documento && $documento->stock_actualizado && str_contains($documento->tipo, '_compra')) {
+                $nuevaCant = (float) $linea->cantidad;
+                $viejaCant = (float) $linea->getOriginal('cantidad');
+                
+                $nuevoProdId = $linea->product_id;
+                $viejoProdId = $linea->getOriginal('product_id');
+
+                if ($nuevoProdId === $viejoProdId) {
+                    // Mismo producto, solo cambia cantidad
+                    $diff = $nuevaCant - $viejaCant;
+                    if ($diff != 0 && $linea->product) {
+                        $linea->product->increment('stock', $diff);
+                    }
+                } else {
+                    // Cambio de producto: Restar vieja del viejo, sumar nueva al nuevo
+                    if ($viejoProdId) {
+                        $viejoProd = Product::find($viejoProdId);
+                        if ($viejoProd) $viejoProd->decrement('stock', $viejaCant);
+                    }
+                    if ($nuevoProdId && $linea->product) {
+                        $linea->product->increment('stock', $nuevaCant);
+                    }
+                }
+            }
+        });
+
         static::saved(function ($linea) {
             // Recalcular totales del documento padre
             $linea->documento->recalcularTotales();
         });
 
         static::deleted(function ($linea) {
+            // REVERTIR STOCK al eliminar línea si el documento ya estaba confirmado
+            $documento = $linea->documento;
+            if ($documento && $documento->stock_actualizado && str_contains($documento->tipo, '_compra')) {
+                if ($linea->product_id && $linea->product) {
+                    $linea->product->decrement('stock', $linea->cantidad);
+                }
+            }
+
             // Recalcular totales del documento padre
             $linea->documento->recalcularTotales();
         });
