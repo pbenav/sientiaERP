@@ -26,6 +26,11 @@ class ProcesarExpedicion extends Page
         } else {
             $this->record = Expedicion::with(['compras.tercero'])->findOrFail($record);
         }
+
+        // Seguridad: Verificar que los albaranes asignados existen
+        foreach ($this->record->compras as $compra) {
+            $compra->verificarDocumento();
+        }
     }
 
     public function getTitle(): string

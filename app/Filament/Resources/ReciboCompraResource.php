@@ -44,36 +44,40 @@ class ReciboCompraResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Datos del Recibo')
+                Forms\Components\Section::make('Datos del Recibo de Compra')
+                    ->columns(['default' => 1, 'md' => 3])
                     ->schema([
-                        Forms\Components\TextInput::make('numero')
-                            ->label('Número')
-                            ->disabled()
-                            ->dehydrated(false)
-                            ->placeholder('Se generará automáticamente'),
-                        
-                        Forms\Components\Select::make('serie')
-                            ->label('Serie')
-                            ->options(['A' => 'Serie A', 'B' => 'Serie B'])
-                            ->default('A')
-                            ->required(),
+                        Forms\Components\Group::make([
+                            Forms\Components\TextInput::make('numero')
+                                ->label('Número')
+                                ->disabled()
+                                ->dehydrated(false)
+                                ->placeholder('Autogenerado'),
+                            
+                            Forms\Components\Select::make('serie')
+                                ->label('Serie')
+                                ->options(['A' => 'Serie A', 'B' => 'Serie B'])
+                                ->default('A')
+                                ->required(),
+                        ])->columns(2),
                         
                         Forms\Components\DatePicker::make('fecha')
                             ->label('Fecha Emisión')
                             ->default(now())
-                            ->required(),
+                            ->required()
+                            ->native(false),
                         
                         Forms\Components\DatePicker::make('vencimiento')
                             ->label('Vencimiento')
                             ->default(now()->addDays(30))
-                            ->required(),
+                            ->required()
+                            ->native(false),
                         
                         Forms\Components\Select::make('tercero_id')
                             ->label('Proveedor')
                             ->options(fn() => \App\Models\Tercero::proveedores()->pluck('nombre_comercial', 'id'))
                             ->searchable()
                             ->preload()
-                            ->live()
                             ->required(),
                         
                         Forms\Components\Select::make('estado')
@@ -85,19 +89,26 @@ class ReciboCompraResource extends Resource
                                 'anulado' => 'Anulado',
                             ])
                             ->default('pendiente')
-                            ->required(),
+                            ->required()
+                            ->native(false),
                         
                         Forms\Components\TextInput::make('total')
                             ->label('Importe Total')
                             ->numeric()
                             ->prefix('€')
-                            ->required(),
+                            ->required()
+                            ->step(0.01),
                             
-                        Forms\Components\Textarea::make('observaciones')
-                            ->label('Observaciones')
-                            ->rows(3)
-                            ->columnSpanFull(),
-                    ])->columns(3),
+                        Forms\Components\Section::make('Observaciones')
+                            ->collapsible()
+                            ->collapsed()
+                            ->schema([
+                                Forms\Components\Textarea::make('observaciones')
+                                    ->label('Observaciones')
+                                    ->rows(3)
+                                    ->columnSpanFull(),
+                            ]),
+                    ]),
             ]);
     }
 
