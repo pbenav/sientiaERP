@@ -176,37 +176,40 @@
                             @endphp
                             <tr class="{{ $isExisting ? 'bg-amber-50 dark:bg-amber-900/20' : '' }}"
                                 x-data="{
+                                    benefit: {{ (float) ($item['benefit'] ?? $benefit) }},
                                     updateFromMargin() {
-                                            const g = parseFloat(this.$refs.gross.value) || 0;
-                                            const d = parseFloat(this.$refs.dto.value) || 0;
-                                            const m = parseFloat(this.$refs.margin.value) || 0;
-                                            const vat = parseFloat(this.$refs.vat.value) || 21;
-                                            if (m >= 100) { this.$refs.margin.value = 99.99; return; }
-                                            const net = g * (1 - d / 100);
-                                            const noVat = net > 0 ? net / (1 - m / 100) : 0;
+                                        const g = parseFloat(this.$refs.gross.value) || 0;
+                                        const d = parseFloat(this.$refs.dto.value) || 0;
+                                        const m = parseFloat(this.$refs.margin.value) || 0;
+                                        const vat = parseFloat(this.$refs.vat.value) || 21;
+                                        if (m >= 100) { this.$refs.margin.value = 99.99; return; }
+                                        const net = g * (1 - d / 100);
+                                        const noVat = net > 0 ? net / (1 - m / 100) : 0;
+                                        const ben = noVat - net;
+                                        const pvp = noVat * (1 + vat / 100);
+                                        this.benefit = ben.toFixed(2);
+                                        this.$refs.pvp.value = pvp.toFixed(2);
+                                        $wire.set('items.{{ $index }}.sale_price', parseFloat(pvp.toFixed(2)));
+                                        $wire.set('items.{{ $index }}.benefit', parseFloat(ben.toFixed(2)));
+                                        $wire.set('items.{{ $index }}.vat_amount', parseFloat((noVat * vat / 100).toFixed(2)));
+                                    },
+                                    updateFromPvp() {
+                                        const g = parseFloat(this.$refs.gross.value) || 0;
+                                        const d = parseFloat(this.$refs.dto.value) || 0;
+                                        const vat = parseFloat(this.$refs.vat.value) || 21;
+                                        const pvp = parseFloat(this.$refs.pvp.value) || 0;
+                                        const net = g * (1 - d / 100);
+                                        if (pvp > 0) {
+                                            const noVat = pvp / (1 + vat / 100);
+                                            const mrg = net > 0 ? (1 - net / noVat) * 100 : 100;
                                             const ben = noVat - net;
-                                            const pvp = noVat * (1 + vat / 100);
-                                            this.$refs.pvp.value = pvp.toFixed(2);
-                                            $wire.set('items.{{ $index }}.sale_price', parseFloat(pvp.toFixed(2)));
+                                            this.benefit = ben.toFixed(2);
+                                            this.$refs.margin.value = mrg.toFixed(2);
+                                            $wire.set('items.{{ $index }}.margin', parseFloat(mrg.toFixed(2)));
                                             $wire.set('items.{{ $index }}.benefit', parseFloat(ben.toFixed(2)));
                                             $wire.set('items.{{ $index }}.vat_amount', parseFloat((noVat * vat / 100).toFixed(2)));
-                                        },
-                                        updateFromPvp() {
-                                            const g = parseFloat(this.$refs.gross.value) || 0;
-                                            const d = parseFloat(this.$refs.dto.value) || 0;
-                                            const vat = parseFloat(this.$refs.vat.value) || 21;
-                                            const pvp = parseFloat(this.$refs.pvp.value) || 0;
-                                            const net = g * (1 - d / 100);
-                                            if (pvp > 0) {
-                                                const noVat = pvp / (1 + vat / 100);
-                                                const mrg = net > 0 ? (1 - net / noVat) * 100 : 100;
-                                                const ben = noVat - net;
-                                                this.$refs.margin.value = mrg.toFixed(2);
-                                                $wire.set('items.{{ $index }}.margin', parseFloat(mrg.toFixed(2)));
-                                                $wire.set('items.{{ $index }}.benefit', parseFloat(ben.toFixed(2)));
-                                                $wire.set('items.{{ $index }}.vat_amount', parseFloat((noVat * vat / 100).toFixed(2)));
-                                            }
                                         }
+                                    }
                                 }">
                                 {{-- Referencia --}}
                                 <td class="px-1 py-0.5">
@@ -255,7 +258,7 @@
                                 </td>
                                 {{-- Beneficio (calculado) --}}
                                 <td class="px-1 py-0.5 text-right font-medium text-gray-700 dark:text-gray-300">
-                                    {{ number_format((float) ($item['benefit'] ?? $benefit), 2) }} €
+                                    <span x-text="parseFloat(benefit).toFixed(2)"></span> €
                                 </td>
                                 {{-- IVA% --}}
                                 <td class="px-1 py-0.5">

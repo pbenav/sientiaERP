@@ -70,6 +70,24 @@ class Documento extends Model
                 \App\Models\Ticket::where('documento_id', $documento->id)
                     ->update(['documento_id' => null]);
             }
+
+            // Si es un albarán de compra, resetear borradores e importaciones
+            if ($documento->tipo === 'albaran_compra') {
+                // 1. Resetear ImportDraft (IA)
+                \App\Models\ImportDraft::where('documento_id', $documento->id)
+                    ->update([
+                        'status' => 'pending',
+                        'documento_id' => null,
+                        'confirmed_at' => null
+                    ]);
+
+                // 2. Resetear ExpedicionCompra
+                \App\Models\ExpedicionCompra::where('documento_id', $documento->id)
+                    ->update([
+                        'documento_id' => null,
+                        'recogido' => false
+                    ]);
+            }
         });
     }
 

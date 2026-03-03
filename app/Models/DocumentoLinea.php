@@ -73,9 +73,11 @@ class DocumentoLinea extends Model
                         $purchasePrice = (float) ($linea->precio_unitario ?? 0);
                         $defaultMargin = (float) \App\Models\Setting::get('default_profit_percentage', 60);
                         $method = \App\Models\Setting::get('profit_calculation_method', 'from_purchase');
+                        $taxRate = (float) ($linea->iva ?? 21);
                         
-                        // Calculate retail price using the specific helper in Product
-                        $retailPrice = \App\Models\Product::calculateSalePriceFromMargin($purchasePrice, $defaultMargin, $method);
+                        // Calculate base retail price and then add tax
+                        $baseRetailPrice = \App\Models\Product::calculateSalePriceFromMargin($purchasePrice, $defaultMargin, $method);
+                        $retailPriceWithTax = round($baseRetailPrice * (1 + ($taxRate / 100)), 2);
 
                         $nuevoProd = Product::create([
                             'sku'            => $linea->codigo,
@@ -83,8 +85,8 @@ class DocumentoLinea extends Model
                             'name'           => $linea->descripcion,
                             'description'    => $linea->descripcion,
                             'purchase_price' => $purchasePrice,
-                            'price'          => $retailPrice,
-                            'tax_rate'       => (float) ($linea->iva ?? 21),
+                            'price'          => $retailPriceWithTax,
+                            'tax_rate'       => $taxRate,
                             'stock'          => 0,
                             'active'         => true,
                         ]);
