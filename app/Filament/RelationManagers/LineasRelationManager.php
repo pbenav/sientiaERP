@@ -78,6 +78,9 @@ class LineasRelationManager extends RelationManager
                         ])
                         ->createOptionUsing(function (array $data) {
                             $data['active'] = true;
+                            $data['purchase_price'] = $data['purchase_price'] ?? 0;
+                            $data['stock'] = 0;
+                            $data['barcode'] = $data['barcode'] ?? $data['sku'];
                             $product = \App\Models\Product::create($data);
                             return $product->sku;
                         })
@@ -184,6 +187,9 @@ class LineasRelationManager extends RelationManager
                         ])
                         ->createOptionUsing(function (array $data) {
                             $data['active'] = true;
+                            $data['purchase_price'] = $data['purchase_price'] ?? 0;
+                            $data['stock'] = 0;
+                            $data['barcode'] = $data['barcode'] ?? $data['sku'];
                             $product = \App\Models\Product::create($data);
                             return $product->name;
                         })

@@ -269,8 +269,21 @@ class EditImportDraft extends Page
                     if (empty($item['matched_product_id'])) {
                         $ref = $item['reference'] ?? $item['product_code'] ?? null;
                         if (!empty($ref)) {
-                            $ex = Product::where('sku', $ref)->orWhere('barcode', $ref)->first();
-                            if ($ex) $item['matched_product_id'] = $ex->id;
+                            // Include inactive products: in purchase context we want to reactivate them
+                            $ex = Product::withoutGlobalScopes()
+                                ->where('sku', $ref)
+                                ->orWhere('barcode', $ref)
+                                ->first();
+                            if ($ex) {
+                                $item['matched_product_id'] = $ex->id;
+                                // Reactivate if it was soft-deleted or inactive
+                                if ($ex->deleted_at) {
+                                    $ex->restore();
+                                }
+                                if (!$ex->active) {
+                                    $ex->update(['active' => true]);
+                                }
+                            }
                         }
                     }
                     $gross  = (float) ($item['unit_price'] ?? 0);
@@ -283,7 +296,8 @@ class EditImportDraft extends Page
                     $ref    = $item['reference'] ?? $item['product_code'] ?? null;
 
                     if (!empty($item['matched_product_id'])) {
-                        $product = Product::find($item['matched_product_id']);
+                        // Update existing product with new purchase data
+                        $product = Product::withTrashed()->find($item['matched_product_id']);
                         if ($product) {
                             $product->name           = !empty($item['description']) ? $item['description'] : $product->name;
                             $product->price          = $retail;
@@ -293,18 +307,29 @@ class EditImportDraft extends Page
                             $product->save();
                         }
                     } else {
+                        // Create new product, using firstOrCreate to avoid duplicate SKU errors
                         $sku = $ref ?: ('AUTO-' . strtoupper(uniqid()));
-                        $newProduct = Product::create([
-                            'name'           => $desc,
-                            'description'    => $desc,
-                            'price'          => $retail,
-                            'purchase_price' => $net,
-                            'tax_rate'       => $vat,
-                            'active'         => true,
-                            'stock'          => 0,
-                            'sku'            => $sku,
-                            'barcode'        => $sku,
-                        ]);
+                        $newProduct = Product::firstOrCreate(
+                            ['sku' => $sku],
+                            [
+                                'name'           => $desc,
+                                'description'    => $desc,
+                                'price'          => $retail,
+                                'purchase_price' => $net,
+                                'tax_rate'       => $vat,
+                                'active'         => true,
+                                'stock'          => 0,
+                                'barcode'        => $sku,
+                            ]
+                        );
+                        // If found existing (not created), update purchase prices
+                        if (!$newProduct->wasRecentlyCreated) {
+                            $newProduct->price          = $retail ?: $newProduct->price;
+                            $newProduct->purchase_price = $net;
+                            $newProduct->save();
+                        }
+                        // Remove redundant save() — addPurchaseHistory only modifies $this->metadata,
+                        // the actual save is done above or below
                         $newProduct->addPurchaseHistory($gross, $dto, $net, $margin, $this->document_number);
                         $newProduct->save();
                         $item['matched_product_id'] = $newProduct->id;

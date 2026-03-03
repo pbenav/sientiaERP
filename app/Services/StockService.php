@@ -45,9 +45,23 @@ class StockService
 
         DB::transaction(function () use ($documento, $reverse) {
             foreach ($documento->lineas as $linea) {
-                if (!$linea->product_id) continue;
+                // Primary lookup: by product_id (the reliable FK)
+                $producto = null;
+                if ($linea->product_id) {
+                    $producto = Product::find($linea->product_id);
+                }
 
-                $producto = Product::find($linea->product_id);
+                // Fallback: by codigo/SKU — covers manual-entry lines where product_id was not set
+                if (!$producto && !empty($linea->codigo)) {
+                    $producto = Product::where('sku', $linea->codigo)
+                        ->orWhere('barcode', $linea->codigo)
+                        ->first();
+                    // Backfill product_id on the line so future operations work correctly
+                    if ($producto) {
+                        $linea->updateQuietly(['product_id' => $producto->id]);
+                    }
+                }
+
                 if (!$producto) continue;
 
                 $cantidad = $linea->cantidad;
