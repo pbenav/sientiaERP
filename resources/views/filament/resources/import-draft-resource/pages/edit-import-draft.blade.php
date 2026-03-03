@@ -343,7 +343,7 @@
     </div>
 
     {{-- ── Modal de Comparación ────────────────────────────────────────── --}}
-    <x-filament::modal id="comparison-modal" wire:model="showComparisonModal" width="2xl">
+    <x-filament::modal id="comparison-modal" width="2xl">
         <x-slot name="heading">
             <div class="flex items-center gap-2">
                 <span class="text-amber-500">🔍</span>
