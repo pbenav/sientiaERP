@@ -57,6 +57,36 @@ class ImportDraft extends Model
         return $this->belongsTo(Documento::class);
     }
 
+    /**
+     * Verifica si el documento asociado existe.
+     * Si no existe pero hay un ID asignado, resetea el borrador.
+     */
+    public function verifyDocumentExistence(): bool
+    {
+        if ($this->documento_id && !$this->documento()->exists()) {
+            \Illuminate\Support\Facades\DB::transaction(function() {
+                // Resetear expedición asociada
+                if ($this->expedicion_compra_id) {
+                    $this->expedicionCompra()->update([
+                        'recogido' => false,
+                        'documento_id' => null
+                    ]);
+                }
+
+                // Resetear este borrador
+                $this->update([
+                    'status' => 'pending',
+                    'documento_id' => null,
+                    'confirmed_at' => null
+                ]);
+            });
+
+            return false;
+        }
+
+        return true;
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────────────
 
     public function isPending(): bool

@@ -40,6 +40,19 @@ class EditImportDraft extends Page
     {
         $this->draft = ImportDraft::with(['expedicionCompra.expedicion', 'tercero'])->findOrFail($record);
 
+        // Seguridad: Si el documento asociado ha sido eliminado, resetear el borrador automáticamente
+        if (!$this->draft->verifyDocumentExistence()) {
+            Notification::make()
+                ->title('Aviso de Seguridad')
+                ->body('El albarán asociado ya no existe. El borrador ha sido reseteado a pendiente para permitir su reprocesamiento.')
+                ->warning()
+                ->persistent()
+                ->send();
+            
+            $this->redirect(ImportDraftResource::getUrl('edit', ['record' => $this->draft->id]));
+            return;
+        }
+
         $this->status              = $this->draft->status;
         $this->matched_provider_id = $this->draft->matched_provider_id;
         $this->provider_name       = $this->draft->provider_name;

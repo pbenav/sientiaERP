@@ -610,13 +610,16 @@ protected function procesarLineaProducto()
                 $this->ticket->update(['cash_session_id' => $this->activeSession->id]);
             }
 
+            $taxRate = (float) ($linea['tax_rate'] ?? ($this->nuevoProducto?->tax_rate ?? 21));
+            $divisor = 1 + ($taxRate / 100);
+
             $this->ticket->items()->create([
                 'product_id' => $linea['product_id'],
                 'quantity' => $linea['cantidad'],
                 'unit_price' => $linea['precio'],
-                'tax_rate' => 21, // TODO: Obtener del producto dinámicamente
-                'subtotal' => $linea['importe'] / 1.21, // Base imponible aproximada
-                'tax_amount' => $linea['importe'] - ($linea['importe'] / 1.21),
+                'tax_rate' => $taxRate,
+                'subtotal' => round($linea['importe'] / $divisor, 4),
+                'tax_amount' => round($linea['importe'] - ($linea['importe'] / $divisor), 4),
                 'total' => $linea['importe'],
             ]);
             $this->ticket->recalculateTotals();
@@ -789,13 +792,17 @@ protected function procesarLineaProducto()
         $this->ticket->items()->delete();
         
         foreach ($this->lineas as $linea) {
+            $product = Product::find($linea['product_id']);
+            $taxRate = (float) ($product?->tax_rate ?? 21);
+            $divisor = 1 + ($taxRate / 100);
+
             $this->ticket->items()->create([
                 'product_id' => $linea['product_id'],
                 'quantity' => $linea['cantidad'],
                 'unit_price' => $linea['precio'],
-                'tax_rate' => 21, // TODO: Obtener del producto
-                'subtotal' => $linea['importe'] / 1.21,
-                'tax_amount' => $linea['importe'] - ($linea['importe'] / 1.21),
+                'tax_rate' => $taxRate,
+                'subtotal' => round($linea['importe'] / $divisor, 4),
+                'tax_amount' => round($linea['importe'] - ($linea['importe'] / $divisor), 4),
                 'total' => $linea['importe'],
             ]);
         }

@@ -93,10 +93,13 @@ class LabelGeneratorService
 
         if ($type === 'qr') {
             try {
+                // Generar QR en formato PNG con mayor densidad para impresión
                 $qrCode = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('png')
-                    ->size(150)
-                    ->margin(0)
+                    ->size(200)
+                    ->margin(1)
+                    ->errorCorrection('H')
                     ->generate($text);
+                
                 return '<img src="data:image/png;base64,' . base64_encode($qrCode) . '" alt="qr-code" class="qr-code-img">';
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error('QR generation error: ' . $e->getMessage());
