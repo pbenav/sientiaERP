@@ -183,16 +183,20 @@ class DocumentFormFactory
                             $cost = (float)($itemData['precio_unitario'] ?? 0);
                             $defaultMargin = (float) \App\Models\Setting::get('default_profit_percentage', 60);
                             $method = \App\Models\Setting::get('profit_calculation_method', 'from_purchase');
-                            $retailPrice = \App\Models\Product::calculateSalePriceFromMargin($cost, $defaultMargin, $method);
+                            $taxRate = (float)($data['iva'] ?? 21);
+                            
+                            // Calculate base retail price and then add tax for POS
+                            $baseRetailPrice = \App\Models\Product::calculateSalePriceFromMargin($cost, $defaultMargin, $method);
+                            $retailPriceWithTax = round($baseRetailPrice * (1 + ($taxRate / 100)), 2);
 
                             // 2. UPDATE OR CREATE the product with this SKU
                             $product = Product::updateOrCreate(
                                 ['sku' => $data['sku']],
                                 [
                                     'name' => $data['name'],
-                                    'tax_rate' => $data['iva'],
+                                    'tax_rate' => $taxRate,
                                     'purchase_price' => $cost,
-                                    'price' => $retailPrice,
+                                    'price' => $retailPriceWithTax,
                                     'active' => true,
                                 ]
                             );

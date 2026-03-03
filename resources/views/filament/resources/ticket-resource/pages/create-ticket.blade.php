@@ -491,7 +491,7 @@
                             <div class="grid grid-cols-2 gap-x-6 gap-y-2">
                                 @foreach ($cashBreakdown as $cents => $qty)
                                     <div class="flex items-center gap-2">
-                                        <span class="w-16 text-right font-bold text-gray-600 text-xs">
+                                        <span class="shrink-0 font-bold text-gray-600 text-xs text-right min-w-[3rem]">
                                             @if ((int) $cents >= 500)
                                                 <span
                                                     class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-300 whitespace-nowrap w-auto inline-block">{{ number_format($cents / 100, 0) }}€</span>
