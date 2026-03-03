@@ -149,7 +149,7 @@
                                 IVA%</th>
                             <th
                                 class="px-1 py-1 text-right text-gray-500 dark:text-gray-400 uppercase font-medium w-24">
-                                PVP Psic.</th>
+                                PVP Final</th>
                             <th
                                 class="px-1 py-1 text-right text-gray-500 dark:text-gray-400 uppercase font-medium w-24">
                                 Total Línea</th>
