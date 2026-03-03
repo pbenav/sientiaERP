@@ -39,14 +39,24 @@ class DocumentoLinea extends Model
 
         static::saving(function ($linea) {
             // Auto-link or auto-create product for purchase documents
-            // This runs for all save paths: manual edit, AI import, POS, etc.
-            if (empty($linea->product_id)) {
-                $documento = $linea->documento
-                    ?? \App\Models\Documento::find($linea->documento_id);
+            $documento = $linea->documento
+                ?? \App\Models\Documento::find($linea->documento_id);
 
-                $esCompra = $documento && str_contains($documento->tipo, '_compra');
+            $esCompra = $documento && str_contains($documento->tipo, '_compra');
 
-                if ($esCompra && !empty($linea->codigo)) {
+            if ($esCompra && !empty($linea->codigo)) {
+                $needsLink = empty($linea->product_id);
+                
+                // If already linked, verify it's the CORRECT product
+                if (!$needsLink) {
+                    $currentProduct = $linea->product ?? Product::find($linea->product_id);
+                    if (!$currentProduct || ($currentProduct->sku !== $linea->codigo && $currentProduct->barcode !== $linea->codigo)) {
+                        $needsLink = true;
+                        $linea->product_id = null; // Reset to force search
+                    }
+                }
+
+                if ($needsLink) {
                     // Try to find existing product (including inactive/soft-deleted)
                     $producto = Product::withTrashed()
                         ->where('sku', $linea->codigo)

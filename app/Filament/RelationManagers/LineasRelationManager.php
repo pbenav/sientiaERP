@@ -138,6 +138,9 @@ class LineasRelationManager extends RelationManager
                                         }
 
                                         self::calcularLinea($set, $get);
+                                    } else {
+                                        // Reset product ID if no match found manually
+                                        $set('product_id', null);
                                     }
                                 } catch (\Exception $e) {
                                     \Illuminate\Support\Facades\Log::error('Error in coding afterStateUpdated: ' . $e->getMessage());
