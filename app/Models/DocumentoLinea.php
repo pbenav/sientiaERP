@@ -86,6 +86,8 @@ class DocumentoLinea extends Model
                             'description'    => $linea->descripcion,
                             'purchase_price' => $purchasePrice,
                             'price'          => $retailPriceWithTax,
+                            'profit'         => round($baseRetailPrice - $purchasePrice, 2),
+                            'profit_margin'  => $defaultMargin,
                             'tax_rate'       => $taxRate,
                             'stock'          => 0,
                             'active'         => true,

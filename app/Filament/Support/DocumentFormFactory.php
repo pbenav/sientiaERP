@@ -197,9 +197,15 @@ class DocumentFormFactory
                                     'tax_rate' => $taxRate,
                                     'purchase_price' => $cost,
                                     'price' => $retailPriceWithTax,
+                                    'profit' => round($baseRetailPrice - $cost, 2),
+                                    'profit_margin' => $defaultMargin,
                                     'active' => true,
                                 ]
                             );
+
+                            // 3. Update metadata for commercial history
+                            $product->setMargin($defaultMargin);
+                            $product->save();
 
                             // 2. SYNC the line with this specific product
                             $itemData['product_id'] = $product->id;
