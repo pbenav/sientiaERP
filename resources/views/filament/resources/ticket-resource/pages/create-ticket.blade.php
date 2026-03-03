@@ -494,11 +494,10 @@
                                         <span class="w-16 text-right font-bold text-gray-600 text-xs">
                                             @if ((int) $cents >= 500)
                                                 <span
-                                                    class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-300">{{ number_format($cents / 100, 0) }}
-                                                    €</span>
+                                                    class="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-300 whitespace-nowrap w-auto inline-block">{{ number_format($cents / 100, 0) }}€</span>
                                             @else
-                                                <span class="text-amber-700">{{ number_format($cents / 100, 2) }}
-                                                    €</span>
+                                                <span
+                                                    class="text-amber-700 whitespace-nowrap w-auto inline-block font-black">{{ number_format($cents / 100, 2) }}€</span>
                                             @endif
                                         </span>
                                         <input type="number" wire:model.live="cashBreakdown.{{ $cents }}"

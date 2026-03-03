@@ -70,13 +70,20 @@ class DocumentoLinea extends Model
                         $linea->product_id = $producto->id;
                     } elseif (!empty($linea->descripcion)) {
                         // Product doesn't exist — create it from line data
+                        $purchasePrice = (float) ($linea->precio_unitario ?? 0);
+                        $defaultMargin = (float) \App\Models\Setting::get('default_profit_percentage', 60);
+                        $method = \App\Models\Setting::get('profit_calculation_method', 'from_purchase');
+                        
+                        // Calculate retail price using the specific helper in Product
+                        $retailPrice = \App\Models\Product::calculateSalePriceFromMargin($purchasePrice, $defaultMargin, $method);
+
                         $nuevoProd = Product::create([
                             'sku'            => $linea->codigo,
                             'barcode'        => $linea->codigo,
                             'name'           => $linea->descripcion,
                             'description'    => $linea->descripcion,
-                            'purchase_price' => (float) ($linea->precio_unitario ?? 0),
-                            'price'          => (float) ($linea->precio_unitario ?? 0),
+                            'purchase_price' => $purchasePrice,
+                            'price'          => $retailPrice,
                             'tax_rate'       => (float) ($linea->iva ?? 21),
                             'stock'          => 0,
                             'active'         => true,
