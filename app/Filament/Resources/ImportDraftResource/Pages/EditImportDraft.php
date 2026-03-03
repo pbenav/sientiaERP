@@ -209,12 +209,14 @@ class EditImportDraft extends Page
         ];
 
         $this->showComparisonModal = true;
+        $this->dispatch('open-modal', id: 'comparison-modal');
     }
 
     public function closeComparisonModal(): void
     {
         $this->showComparisonModal = false;
         $this->comparisonData = [];
+        $this->dispatch('close-modal', id: 'comparison-modal');
     }
 
     // ── Guardar ──────────────────────────────────────────────────────────────
