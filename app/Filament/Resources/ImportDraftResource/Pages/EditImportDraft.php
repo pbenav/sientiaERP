@@ -35,6 +35,10 @@ class EditImportDraft extends Page
     public array   $items             = [];
     public array   $suppliers         = [];
 
+    // ── Estado del modal de comparación ──────────────────────────────────────
+    public bool    $showComparisonModal = false;
+    public array   $comparisonData      = [];
+
     // ── Mount ────────────────────────────────────────────────────────────────
     public function mount(int|string $record): void
     {
@@ -179,7 +183,7 @@ class EditImportDraft extends Page
     }
 
     /**
-     * Mostrar toast de comparación para productos existentes.
+     * Muestra el modal de comparación para productos existentes.
      */
     public function showProductComparison(int $index): void
     {
@@ -190,24 +194,27 @@ class EditImportDraft extends Page
         $product = Product::find($productId);
         if (!$product) return;
 
-        $body = "**SKU:** `{$product->sku}`\n\n";
-        
-        $pcActual = number_format((float) $product->purchase_price, 2, ',', '.') . ' €';
-        $pcImport = number_format((float) ($item['unit_price'] ?? 0), 2, ',', '.') . ' €';
-        $body .= "• **PC actual:** {$pcActual} ➔ **Importado:** {$pcImport}\n";
+        $this->comparisonData = [
+            'name' => $product->name,
+            'sku' => $product->sku,
+            'current' => [
+                'purchase_price' => (float) $product->purchase_price,
+                'price' => (float) $product->price,
+                'stock' => $product->stock,
+            ],
+            'imported' => [
+                'purchase_price' => (float) ($item['unit_price'] ?? 0) * (1 - ($item['discount'] ?? 0) / 100),
+                'price' => (float) ($item['sale_price'] ?? 0),
+            ],
+        ];
 
-        $pvpActual = number_format((float) $product->price, 2, ',', '.') . ' €';
-        $pvpImport = number_format((float) ($item['sale_price'] ?? 0), 2, ',', '.') . ' €';
-        $body .= "• **PVP actual:** {$pvpActual} ➔ **Importado:** {$pvpImport}\n\n";
-        
-        $body .= "**Stock actual:** `{$product->stock} uds`";
+        $this->showComparisonModal = true;
+    }
 
-        Notification::make()
-            ->title('🔍 Comparando: ' . ($product->name))
-            ->body($body)
-            ->warning()
-            ->persistent()
-            ->send();
+    public function closeComparisonModal(): void
+    {
+        $this->showComparisonModal = false;
+        $this->comparisonData = [];
     }
 
     // ── Guardar ──────────────────────────────────────────────────────────────

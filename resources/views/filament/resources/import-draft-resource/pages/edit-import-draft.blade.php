@@ -341,4 +341,81 @@
             </div>
         @endif
     </div>
+
+    {{-- ── Modal de Comparación ────────────────────────────────────────── --}}
+    <x-filament::modal id="comparison-modal" wire:model="showComparisonModal" width="2xl">
+        <x-slot name="heading">
+            <div class="flex items-center gap-2">
+                <span class="text-amber-500">🔍</span>
+                <span>Comparación de Producto</span>
+            </div>
+        </x-slot>
+
+        @if ($comparisonData)
+            <div class="space-y-4">
+                <div class="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-100 dark:border-gray-800">
+                    <p class="text-sm font-bold text-gray-900 dark:text-white">{{ $comparisonData['name'] }}</p>
+                    <p class="text-xs text-gray-500">SKU: {{ $comparisonData['sku'] }}</p>
+                </div>
+
+                <div class="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-800">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Campo
+                                </th>
+                                <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Actual
+                                </th>
+                                <th class="px-4 py-2 text-center text-xs font-semibold text-gray-500 uppercase"></th>
+                                <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase">
+                                    Importado</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-900">
+                            {{-- Precio Compra --}}
+                            <tr>
+                                <td class="px-4 py-3 text-xs font-medium text-gray-700 dark:text-gray-300">P. Compra
+                                    (Neto)</td>
+                                <td class="px-4 py-3 text-right text-xs font-mono">
+                                    {{ number_format($comparisonData['current']['purchase_price'], 2, ',', '.') }} €
+                                </td>
+                                <td class="px-4 py-3 text-center text-gray-400">➔</td>
+                                <td
+                                    class="px-4 py-3 text-right text-xs font-mono @if ($comparisonData['imported']['purchase_price'] != $comparisonData['current']['purchase_price']) font-bold text-amber-600 @endif">
+                                    {{ number_format($comparisonData['imported']['purchase_price'], 2, ',', '.') }} €
+                                </td>
+                            </tr>
+                            {{-- PVP --}}
+                            <tr>
+                                <td class="px-4 py-3 text-xs font-medium text-gray-700 dark:text-gray-300">PVP Final
+                                </td>
+                                <td class="px-4 py-3 text-right text-xs font-mono">
+                                    {{ number_format($comparisonData['current']['price'], 2, ',', '.') }} €</td>
+                                <td class="px-4 py-3 text-center text-gray-400">➔</td>
+                                <td
+                                    class="px-4 py-3 text-right text-xs font-mono @if ($comparisonData['imported']['price'] != $comparisonData['current']['price']) font-bold text-primary-600 @endif">
+                                    {{ number_format($comparisonData['imported']['price'], 2, ',', '.') }} €
+                                </td>
+                            </tr>
+                            {{-- Stock --}}
+                            <tr class="bg-gray-50/50 dark:bg-gray-800/30">
+                                <td class="px-4 py-3 text-xs font-medium text-gray-700 dark:text-gray-300">Stock actual
+                                </td>
+                                <td colspan="3"
+                                    class="px-4 py-3 text-right text-xs font-bold text-gray-900 dark:text-white">
+                                    {{ $comparisonData['current']['stock'] }} unidades
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="flex justify-end pt-2">
+                    <x-filament::button color="gray" wire:click="closeComparisonModal">
+                        Entendido
+                    </x-filament::button>
+                </div>
+            </div>
+        @endif
+    </x-filament::modal>
 </x-filament-panels::page>
