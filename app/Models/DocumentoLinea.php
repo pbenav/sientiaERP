@@ -37,13 +37,48 @@ class DocumentoLinea extends Model
     {
         parent::boot();
 
-        static::creating(function ($linea) {
+        static::saving(function ($linea) {
+            // Auto-link or auto-create product for purchase documents
+            // This runs for all save paths: manual edit, AI import, POS, etc.
+            if (empty($linea->product_id)) {
+                $documento = $linea->documento
+                    ?? \App\Models\Documento::find($linea->documento_id);
+
+                $esCompra = $documento && str_contains($documento->tipo, '_compra');
+
+                if ($esCompra && !empty($linea->codigo)) {
+                    // Try to find existing product (including inactive/soft-deleted)
+                    $producto = Product::withTrashed()
+                        ->where('sku', $linea->codigo)
+                        ->orWhere('barcode', $linea->codigo)
+                        ->first();
+
+                    if ($producto) {
+                        // Reactivate if needed
+                        if ($producto->trashed()) $producto->restore();
+                        if (!$producto->active) $producto->update(['active' => true]);
+                        $linea->product_id = $producto->id;
+                    } elseif (!empty($linea->descripcion)) {
+                        // Product doesn't exist — create it from line data
+                        $nuevoProd = Product::create([
+                            'sku'            => $linea->codigo,
+                            'barcode'        => $linea->codigo,
+                            'name'           => $linea->descripcion,
+                            'description'    => $linea->descripcion,
+                            'purchase_price' => (float) ($linea->precio_unitario ?? 0),
+                            'price'          => (float) ($linea->precio_unitario ?? 0),
+                            'tax_rate'       => (float) ($linea->iva ?? 21),
+                            'stock'          => 0,
+                            'active'         => true,
+                        ]);
+                        $linea->product_id = $nuevoProd->id;
+                    }
+                }
+            }
+
             $linea->calcularImportes();
         });
 
-        static::updating(function ($linea) {
-            $linea->calcularImportes();
-        });
 
         static::saved(function ($linea) {
             // Recalcular totales del documento padre
