@@ -179,12 +179,20 @@ class DocumentFormFactory
                         ->action(function (array $data, array $arguments, Forms\Components\Repeater $component) {
                             $itemData = $component->getItemState($arguments['item']);
                             
-                            // 1. UPDATE OR CREATE the product with this SKU
+                            // 1. PREPARE DATA - We need the cost to calculate retail price if creating
+                            $cost = (float)($itemData['precio_unitario'] ?? 0);
+                            $defaultMargin = (float) \App\Models\Setting::get('default_profit_percentage', 60);
+                            $method = \App\Models\Setting::get('profit_calculation_method', 'from_purchase');
+                            $retailPrice = \App\Models\Product::calculateSalePriceFromMargin($cost, $defaultMargin, $method);
+
+                            // 2. UPDATE OR CREATE the product with this SKU
                             $product = Product::updateOrCreate(
                                 ['sku' => $data['sku']],
                                 [
                                     'name' => $data['name'],
                                     'tax_rate' => $data['iva'],
+                                    'purchase_price' => $cost,
+                                    'price' => $retailPrice,
                                     'active' => true,
                                 ]
                             );
