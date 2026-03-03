@@ -148,42 +148,51 @@ class DocumentFormFactory
                             $itemData = $component->getItemState($arguments['item']);
                             $productId = $itemData['product_id'] ?? null;
                             
-                            $sku = $itemData['codigo'] ?? null;
-                            $name = $itemData['descripcion'] ?? null;
-                            $iva = $itemData['iva'] ?? null;
+                            $lineCode = $itemData['codigo'] ?? null;
+                            $lineDesc = $itemData['descripcion'] ?? null;
+                            $lineIva = $itemData['iva'] ?? null;
 
+                            // DISCREPANCY CHECK: If we have a product link, we might use its data,
+                            // BUT if the line's code differs from the product SKU, the line code MANDATES the truth.
                             if ($productId) {
                                 $product = Product::find($productId);
                                 if ($product) {
-                                    $sku = $product->sku;
-                                    $name = $product->name;
-                                    $iva = (string)$product->tax_rate;
+                                    // Only trust product SKU if it matches the line code or line code is empty
+                                    $sku = $lineCode ?: $product->sku;
+                                    $name = $product->sku === $lineCode ? $product->name : $lineDesc;
+                                    $iva = (string)($product->sku === $lineCode ? $product->tax_rate : $lineIva);
+
+                                    return [
+                                        'sku' => $sku,
+                                        'name' => $name,
+                                        'iva' => $iva,
+                                    ];
                                 }
                             }
 
                             return [
-                                'sku' => $sku,
-                                'name' => $name,
-                                'iva' => $iva,
+                                'sku' => $lineCode,
+                                'name' => $lineDesc,
+                                'iva' => $lineIva,
                             ];
                         })
                         ->action(function (array $data, array $arguments, Forms\Components\Repeater $component) {
                             $itemData = $component->getItemState($arguments['item']);
-                            $productId = $itemData['product_id'] ?? null;
+                            
+                            // 1. UPDATE OR CREATE the product with this SKU
+                            $product = Product::updateOrCreate(
+                                ['sku' => $data['sku']],
+                                [
+                                    'name' => $data['name'],
+                                    'tax_rate' => $data['iva'],
+                                    'active' => true,
+                                ]
+                            );
 
-                            if ($productId) {
-                                $product = Product::find($productId);
-                                if ($product) {
-                                    $product->update([
-                                        'sku' => $data['sku'],
-                                        'name' => $data['name'],
-                                        'tax_rate' => $data['iva'],
-                                    ]);
-                                }
-                            }
-
-                            $itemData['codigo'] = $data['sku'];
-                            $itemData['descripcion'] = $data['name'];
+                            // 2. SYNC the line with this specific product
+                            $itemData['product_id'] = $product->id;
+                            $itemData['codigo'] = $product->sku;
+                            $itemData['descripcion'] = $product->name;
                             $itemData['iva'] = $data['iva'];
 
                             $state = $component->getState();
