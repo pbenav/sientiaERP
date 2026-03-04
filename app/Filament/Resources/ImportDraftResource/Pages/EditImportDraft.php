@@ -329,6 +329,7 @@ class EditImportDraft extends Page
                             $product->price          = $retail;
                             $product->purchase_price = $net;
                             $product->tax_rate       = $vat;
+                            $product->recalculateProfitMargin();
                             $product->addPurchaseHistory($gross, $dto, $net, $margin, $this->document_number);
                             $product->save();
                         }
@@ -356,6 +357,7 @@ class EditImportDraft extends Page
                         }
                         // Remove redundant save() — addPurchaseHistory only modifies $this->metadata,
                         // the actual save is done above or below
+                        $newProduct->recalculateProfitMargin();
                         $newProduct->addPurchaseHistory($gross, $dto, $net, $margin, $this->document_number);
                         $newProduct->save();
                         $item['matched_product_id'] = $newProduct->id;

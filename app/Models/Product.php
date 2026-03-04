@@ -124,7 +124,9 @@ class Product extends Model
      */
     public static function calculateMarginFromPrices(float $purchasePrice, float $salePrice, string $method): float
     {
-        if ($purchasePrice <= 0) return 0;
+        if ($purchasePrice <= 0) {
+            return $salePrice > 0 ? 100 : 0;
+        }
 
         if ($method === 'from_sale') {
             if ($salePrice <= 0) return 0;

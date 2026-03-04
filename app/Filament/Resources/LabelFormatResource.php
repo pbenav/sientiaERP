@@ -100,6 +100,7 @@ class LabelFormatResource extends Resource
                     ->maxLength(255)
                     ->default(null),
                 Forms\Components\Toggle::make('activo')
+                    ->label('Activo')
                     ->required(),
             ]);
     }
@@ -109,63 +110,84 @@ class LabelFormatResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('nombre')
+                    ->label('Nombre')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('tipo'),
+                Tables\Columns\TextColumn::make('tipo')
+                    ->label('Tipo'),
                 Tables\Columns\TextColumn::make('document_width')
+                    ->label('Ancho Doc.')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('document_height')
+                    ->label('Alto Doc.')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('label_width')
+                    ->label('Ancho Etiqueta')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('label_height')
+                    ->label('Alto Etiqueta')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('labels_per_row')
+                    ->label('Etiquetas/Fila')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('labels_per_column')
+                    ->label('Etiquetas/Col')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('labels_per_sheet')
+                    ->label('Etiquetas/Hoja')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('margin_top')
+                    ->label('Margen Sup.')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('margin_bottom')
+                    ->label('Margen Inf.')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('margin_left')
+                    ->label('Margen Izq.')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('margin_right')
+                    ->label('Margen Der.')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('horizontal_spacing')
+                    ->label('Espaciado Horiz.')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('vertical_spacing')
+                    ->label('Espaciado Vert.')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('manufacturer')
+                    ->label('Fabricante')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('model_number')
+                    ->label('Nº Modelo')
                     ->searchable(),
                 Tables\Columns\IconColumn::make('activo')
+                    ->label('Activo')
                     ->boolean(),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
+                    ->label('Creado')
+                    ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
+                    ->label('Actualizado')
+                    ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('deleted_at')
-                    ->dateTime()
+                    ->label('Eliminado')
+                    ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -173,7 +195,7 @@ class LabelFormatResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()->tooltip('Editar')->label(''),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
