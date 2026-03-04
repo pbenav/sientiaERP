@@ -127,7 +127,12 @@ class EtiquetaResource extends Resource
                     ->limit(50),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creado')
-                    ->dateTime()
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Actualizado')
+                    ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -141,7 +146,7 @@ class EtiquetaResource extends Resource
                     ->color('success')
                     ->url(fn (Documento $record): string => route('etiquetas.pdf', ['record' => $record->id]))
                     ->openUrlInNewTab(),
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make()->tooltip('Editar')->label(''),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

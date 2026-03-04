@@ -66,6 +66,7 @@ class ImpuestoResource extends Resource
                             ->required()
                             ->default(false),
                         Forms\Components\Toggle::make('activo')
+                            ->label('Activo')
                             ->required()
                             ->default(true),
                     ])->columns(5)->compact(),
@@ -79,25 +80,31 @@ class ImpuestoResource extends Resource
                 Tables\Columns\TextColumn::make('nombre')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('tipo')
+                    ->label('Tipo')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('valor')
+                    ->label('Valor')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\IconColumn::make('es_predeterminado')
                     ->label('Predeterminado')
                     ->boolean(),
                 Tables\Columns\IconColumn::make('activo')
+                    ->label('Activo')
                     ->boolean(),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
+                    ->label('Creado')
+                    ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
+                    ->label('Actualizado')
+                    ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('deleted_at')
-                    ->dateTime()
+                    ->label('Eliminado')
+                    ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])

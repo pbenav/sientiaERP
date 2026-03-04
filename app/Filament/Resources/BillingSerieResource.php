@@ -115,6 +115,7 @@ class BillingSerieResource extends Resource
                     ->label('IRPF Defecto')
                     ->state(fn ($record) => $record->sujeta_irpf ? $record->irpfDefecto?->nombre : ''),
                 Tables\Columns\IconColumn::make('activo')
+                    ->label('Activo')
                     ->boolean(),
             ])
             ->filters([

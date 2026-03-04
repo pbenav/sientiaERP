@@ -98,6 +98,16 @@ class ExpedicionResource extends Resource
                     ->alignCenter()
                     ->badge()
                     ->color(fn ($record) => $record->pendientesRecogida() > 0 ? 'danger' : 'success'),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Creado')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Actualizado')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->actions([
                 Tables\Actions\Action::make('procesar_ia')
@@ -107,8 +117,9 @@ class ExpedicionResource extends Resource
                     ->url(fn ($record) => static::getUrl('procesar', ['record' => $record]))
                     ->tooltip('Importar albaranes de esta expedición con IA'),
                 Tables\Actions\EditAction::make()
-                    ->label('Editar'),
-                Tables\Actions\DeleteAction::make(),
+                    ->tooltip('Editar')
+                    ->label(''),
+                Tables\Actions\DeleteAction::make()->tooltip('Eliminar')->label(''),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

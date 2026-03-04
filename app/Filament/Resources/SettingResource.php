@@ -173,6 +173,11 @@ class SettingResource extends Resource
                     ->label('Grupo')
                     ->badge()
                     ->color('info'),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Actualizado')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->groups([
                 'group',

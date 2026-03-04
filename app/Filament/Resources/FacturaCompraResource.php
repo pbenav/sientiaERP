@@ -94,8 +94,21 @@ class FacturaCompraResource extends Resource
             Tables\Columns\BadgeColumn::make('estado')->label('Estado')->colors([
                 'secondary' => 'borrador', 'success' => 'confirmado', 'primary' => 'pagado', 'danger' => 'anulado',
             ]),
-            Tables\Columns\TextColumn::make('recibos_count')->label('Recibos')
-                ->counts('documentosDerivados', fn($query) => $query->where('tipo', 'recibo'))->badge()->color('gray'),
+            Tables\Columns\TextColumn::make('recibos_count')
+                ->label('Recibos')
+                ->counts('documentosDerivados', fn($query) => $query->where('tipo', 'recibo'))
+                ->badge()
+                ->color('gray'),
+            Tables\Columns\TextColumn::make('created_at')
+                ->label('Creado')
+                ->dateTime('d/m/Y H:i')
+                ->sortable()
+                ->toggleable(isToggledHiddenByDefault: true),
+            Tables\Columns\TextColumn::make('updated_at')
+                ->label('Actualizado')
+                ->dateTime('d/m/Y H:i')
+                ->sortable()
+                ->toggleable(isToggledHiddenByDefault: true),
         ])->filters([
             Tables\Filters\SelectFilter::make('estado'),
             Tables\Filters\Filter::make('sin_recibos')->label('Sin recibos')

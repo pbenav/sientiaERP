@@ -108,11 +108,11 @@ class CashSessionResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('fecha_inicio')
                     ->label('Inicio')
-                    ->dateTime()
+                    ->dateTime('d/m/Y H:i')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('fecha_fin')
                     ->label('Cierre')
-                    ->dateTime()
+                    ->dateTime('d/m/Y H:i')
                     ->sortable(),
                 Tables\Columns\BadgeColumn::make('estado')
                     ->label('Estado')
@@ -147,12 +147,13 @@ class CashSessionResource extends Resource
             ])
             ->actions([
                 Tables\Actions\Action::make('abrir_tpv')
-                    ->label('Abrir TPV')
+                    ->label('')
+                    ->tooltip('Abrir TPV')
                     ->icon('heroicon-o-computer-desktop')
                     ->color('warning')
                     ->url(fn () => TicketResource::getUrl('create'))
                     ->visible(fn (CashSession $record) => $record->estado === 'open'),
-                Tables\Actions\ViewAction::make(),
+                Tables\Actions\ViewAction::make()->label('')->tooltip('Ver'),
                 // Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([

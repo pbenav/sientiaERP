@@ -265,6 +265,11 @@ class ImportDraftResource extends Resource
                     ->label('Creado')
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Actualizado')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
@@ -277,7 +282,7 @@ class ImportDraftResource extends Resource
                     ]),
             ])
             ->actions([
-                Tables\Actions\EditAction::make()->label('Revisar'),
+                Tables\Actions\EditAction::make()->label('Revisar')->tooltip('Revisar e Importar'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
