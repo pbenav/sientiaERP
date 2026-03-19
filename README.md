@@ -236,5 +236,13 @@ tmux kill-session -t sienteerp-tui
 
 ## 📄 Licencia
 
-MIT License
+sienteERP es **software libre y gratuito** distribuido bajo la [Licencia GNU AGPL v3](LICENSE).
+
+Esto garantiza que el software seguirá siendo libre para todos sus usuarios. Bajo esta licencia puedes:
+- ✅ **Usar**, copiar y distribuir el software de forma gratuita.
+- ✅ **Modificar** el código fuente para adaptarlo a tus necesidades.
+- ✅ **SaaS**: Si permites que otros interactúen con el software a través de una red, debes poner a disposición de los usuarios el código fuente completo bajo esta misma licencia.
+
+**Autor**: pbenav (2022-2026)  
+**Licencia completa**: Ver archivo [LICENSE](LICENSE)
 
