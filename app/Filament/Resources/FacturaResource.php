@@ -139,9 +139,8 @@ class FacturaResource extends Resource
                                             ->label('Forma de Pago')
                                             ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
                                             ->searchable()
-                                            ->searchable()
                                             ->preload()
-                                            ->default(fn() => \App\Models\FormaPago::activas()->first()?->id ?? 1)
+                                            ->default(1)
                                             ->required()
                                             ->columnSpan(1),
                                     ]),
@@ -149,44 +148,9 @@ class FacturaResource extends Resource
                             ->disabled(fn ($record) => $record && $record->estado !== 'borrador'),
                     ]),
 
-                 // SECCIÓN 3: PRODUCTOS
-                Forms\Components\View::make('filament.components.document-lines-header')
-                    ->columnSpanFull(),
-
-                Forms\Components\Repeater::make('lineas')
-                    ->relationship()
-                    ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
-                    ->columns(1)
-                    ->defaultItems(0)
-                    ->live()
-                    ->hiddenLabel()
-                    ->extraAttributes(['class' => 'document-lines-repeater'])
-                    ->columnSpanFull(),
-
-                Forms\Components\Section::make('Totales')
-                    ->schema([
-                        Forms\Components\Placeholder::make('totales_calculados')
-                            ->hiddenLabel()
-                            ->content(function (Forms\Get $get) {
-                                $lineas = $get('lineas') ?? [];
-                                $terceroId = $get('tercero_id');
-                                $tieneRecargo = false;
-                                if ($terceroId) {
-                                    $tercero = \App\Models\Tercero::find($terceroId);
-                                    $tieneRecargo = $tercero?->recargo_equivalencia ?? false;
-                                }
-                                
-                                $breakdown = \App\Services\DocumentCalculator::calculate($lineas, $tieneRecargo);
-                                
-                                return view('filament.components.tax-breakdown-live', [
-                                    'breakdown' => $breakdown, 
-                                    'tieneRecargo' => $tieneRecargo
-                                ]);
-                            })
-                            ->columnSpanFull(),
-                    ])
-                    ->visibleOn('edit')
-                    ->collapsible(),
+                // SECCIÓN 3: PRODUCTOS - Manejadas por LineasRelationManager (tab abajo)
+                // Forms\Components\View::make('filament.components.document-lines')
+                //     ->columnSpanFull(),
 
                 Forms\Components\Section::make('Observaciones')
                     ->schema([
@@ -195,6 +159,29 @@ class FacturaResource extends Resource
                             ->rows(3)
                             ->columnSpanFull(),
                     ]),
+
+                Forms\Components\Section::make('Totales')
+                    ->schema([
+                        Forms\Components\Placeholder::make('subtotal_display')
+                            ->label('Subtotal')
+                            ->content(fn($record) => $record ? number_format($record->subtotal, 2, ',', '.') . ' €' : '0,00 €'),
+                        
+                        Forms\Components\Placeholder::make('iva_display')
+                            ->label('IVA')
+                            ->content(fn($record) => $record ? number_format($record->iva, 2, ',', '.') . ' €' : '0,00 €'),
+
+                        Forms\Components\Placeholder::make('irpf_display')
+                            ->label(fn($record) => 'IRPF (' . ($record->porcentaje_irpf ?? 0) . '%)')
+                            ->content(fn($record) => $record ? number_format($record->irpf, 2, ',', '.') . ' €' : '0,00 €')
+                            ->visible(fn($record) => $record && $record->porcentaje_irpf > 0),
+                        
+                        Forms\Components\Placeholder::make('total_display')
+                            ->label('TOTAL')
+                            ->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €')
+                            ->extraAttributes(['class' => 'text-xl font-bold text-primary-600']),
+                    ])->columns(4)
+                    ->visibleOn('edit')
+                    ->collapsible(),
             ]);
     }
 
@@ -271,18 +258,29 @@ class FacturaResource extends Resource
                     ->url(fn($record) => route('documentos.pdf', $record))
                     ->openUrlInNewTab(),
                 
-                 Tables\Actions\Action::make('ver_recibos')
-                     ->label('')
-                     ->tooltip('Ver Recibos')
-                     ->icon('heroicon-o-eye')
-                     ->color('info')
-                     ->visible(function ($record) {
-                         return Documento::where('documento_origen_id', $record->id)
-                             ->where('tipo', 'recibo')->exists();
-                     })
-                     ->url(fn($record) => route('filament.admin.resources.recibos.index', [
-                         'tableFilters[factura_id][value]' => $record->id
-                     ])),
+                
+                // TODO: Descomentar cuando se cree ReciboResource
+                // Tables\Actions\Action::make('ver_recibos')
+                //     ->label('Ver Recibos')
+                //     ->icon('heroicon-o-eye')
+                //     ->color('info')
+                //     ->visible(function ($record) {
+                //         return Documento::where('documento_origen_id', $record->id)
+                //             ->where('tipo', 'recibo')->exists();
+                //     })
+                //     ->url(function ($record) {
+                         Tables\Actions\Action::make('ver_recibos')
+                             ->label('')
+                             ->tooltip('Ver Recibos')
+                             ->icon('heroicon-o-eye')
+                             ->color('info')
+                             ->visible(function ($record) {
+                                 return Documento::where('documento_origen_id', $record->id)
+                                     ->where('tipo', 'recibo')->exists();
+                             })
+                             ->url(fn($record) => route('filament.admin.resources.recibos.index', [
+                                 'tableFilters[factura_id][value]' => $record->id
+                             ])),
 
                 Tables\Actions\Action::make('anular')
                     ->label('')
@@ -307,7 +305,7 @@ class FacturaResource extends Resource
     public static function getRelations(): array
     {
         return [
-            // LineasRelationManager::class,
+            LineasRelationManager::class,
         ];
     }
 

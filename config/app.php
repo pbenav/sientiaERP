@@ -13,9 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'sientiaERP'),
-
-    'version' => env('APP_VER', '1.0.1'),
+    'name' => env('APP_NAME', 'nexERP'),
 
     /*
     |--------------------------------------------------------------------------
@@ -80,7 +78,7 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'es'),
+    'locale' => env('APP_LOCALE', 'en'),
 
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 

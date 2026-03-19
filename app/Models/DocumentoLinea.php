@@ -2,14 +2,13 @@
 
 namespace App\Models;
 
-use App\Traits\HasUppercaseDisplay;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DocumentoLinea extends Model
 {
-    use HasFactory, HasUppercaseDisplay;
+    use HasFactory;
 
     protected $fillable = [
         'documento_id', 'product_id',

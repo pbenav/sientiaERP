@@ -56,11 +56,6 @@ class PedidoCompraResource extends Resource
                         return $tercero->id;
                     }),
                 
-                Forms\Components\Select::make('forma_pago_id')->label('Forma de Pago')
-                    ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
-                    ->searchable()->preload()->default(fn() => \App\Models\FormaPago::activas()->first()?->id ?? 1)->required()
-                    ->columnSpan(2),
-
                 Forms\Components\Select::make('estado')->label('Estado')->options([
                     'borrador' => 'Borrador', 'confirmado' => 'Confirmado', 'parcial' => 'Parcial',
                     'completado' => 'Completado', 'anulado' => 'Anulado',
@@ -68,45 +63,8 @@ class PedidoCompraResource extends Resource
             ])->columns(3)->compact(),
 
             // SECCIÓN 3: PRODUCTOS
-            Forms\Components\View::make('filament.components.document-lines-header')
+            Forms\Components\View::make('filament.components.document-lines')
                 ->columnSpanFull(),
-
-            Forms\Components\Repeater::make('lineas')
-                ->relationship()
-                ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
-                ->columns(1)
-                ->defaultItems(0)
-                ->live()
-                ->hiddenLabel()
-                ->extraAttributes(['class' => 'document-lines-repeater'])
-                ->columnSpanFull(),
-
-
-            // SECCIÓN 5: TOTALES (solo en edición)
-            Forms\Components\Section::make('Totales')
-                ->schema([
-                    Forms\Components\Placeholder::make('totales_calculados')
-                        ->hiddenLabel()
-                        ->content(function (Forms\Get $get) {
-                            $lineas = $get('lineas') ?? [];
-                            $terceroId = $get('tercero_id');
-                            $tieneRecargo = false;
-                            if ($terceroId) {
-                                $tercero = \App\Models\Tercero::find($terceroId);
-                                $tieneRecargo = $tercero?->recargo_equivalencia ?? false;
-                            }
-                            
-                            $breakdown = \App\Services\DocumentCalculator::calculate($lineas, $tieneRecargo);
-                            
-                            return view('filament.components.tax-breakdown-live', [
-                                'breakdown' => $breakdown, 
-                                'tieneRecargo' => $tieneRecargo
-                            ]);
-                        })
-                        ->columnSpanFull(),
-                ])->columns(3)
-                ->visibleOn('edit')
-                ->collapsible(),
 
             // SECCIÓN 4: OBSERVACIONES
             Forms\Components\Section::make('Observaciones')->schema([
@@ -115,6 +73,24 @@ class PedidoCompraResource extends Resource
                     ->rows(2)
                     ->columnSpanFull(),
             ])->collapsible(),
+
+            // SECCIÓN 5: TOTALES (solo en edición)
+            Forms\Components\Section::make('Totales')
+                ->schema([
+                    Forms\Components\Placeholder::make('subtotal_display')
+                        ->label('Subtotal')
+                        ->content(fn($record) => $record ? number_format($record->subtotal, 2, ',', '.') . ' €' : '0,00 €'),
+                    
+                    Forms\Components\Placeholder::make('iva_display')
+                        ->label('IVA')
+                        ->content(fn($record) => $record ? number_format($record->iva, 2, ',', '.') . ' €' : '0,00 €'),
+                    
+                    Forms\Components\Placeholder::make('total_display')
+                        ->label('TOTAL')
+                        ->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €'),
+                ])->columns(3)
+                ->visibleOn('edit')
+                ->collapsible(),
         ]);
     }
 
@@ -125,7 +101,7 @@ class PedidoCompraResource extends Resource
             Tables\Columns\TextColumn::make('numero')->label('Número')->searchable()->sortable(),
             Tables\Columns\TextColumn::make('fecha')->label('Fecha')->date('d/m/Y')->sortable(),
             Tables\Columns\TextColumn::make('tercero.nombre_comercial')->label('Proveedor')->searchable()->sortable()->limit(30),
-            Tables\Columns\TextColumn::make('total')->label('Total')->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatCurrency($state))->sortable(),
+            Tables\Columns\TextColumn::make('total')->label('Total')->money('EUR')->sortable(),
             Tables\Columns\BadgeColumn::make('estado')->label('Estado')->colors([
                 'secondary' => 'borrador', 'success' => 'confirmado', 'primary' => 'completado', 'warning' => 'parcial', 'danger' => 'anulado',
             ]),
@@ -134,18 +110,8 @@ class PedidoCompraResource extends Resource
             Tables\Filters\Filter::make('bloqueados')->label('Solo bloqueados')->query(fn ($query) => $query->whereHas('documentosDerivados'))->toggle(),
         ])->actions([
             Tables\Actions\EditAction::make()->tooltip('Editar')->label('')->visible(fn($record) => $record->puedeEditarse()),
-            Tables\Actions\Action::make('pdf')
-                ->label('')
-                ->tooltip('Descargar PDF')
-                ->icon('heroicon-o-document-arrow-down')
-                ->color('info')
-                ->url(fn($record) => route('documentos.pdf', $record))
-                ->openUrlInNewTab(),
-            Tables\Actions\Action::make('convertir_albaran')
-                ->label('')
-                ->tooltip('Convertir a Albarán')
-                ->icon('heroicon-o-truck')
-                ->color('success')
+            Tables\Actions\Action::make('pdf')->label('PDF')->icon('heroicon-o-document-arrow-down')->color('info')->url(fn($record) => route('documentos.pdf', $record))->openUrlInNewTab(),
+            Tables\Actions\Action::make('convertir_albaran')->label('Convertir a Albarán')->icon('heroicon-o-truck')->color('success')
                 ->visible(fn($record) => in_array($record->estado, ['confirmado', 'parcial']))
                 ->requiresConfirmation()
                 ->action(function ($record) {
@@ -175,7 +141,7 @@ class PedidoCompraResource extends Resource
     public static function getRelations(): array
     {
         return [
-            // LineasRelationManager::class,
+            //
         ];
     }
 

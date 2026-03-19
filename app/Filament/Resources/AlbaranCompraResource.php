@@ -58,51 +58,29 @@ class AlbaranCompraResource extends Resource
                 ])->default('borrador')->required()->columnSpan(1),
             ])->columns(4)->compact(),
             
-            Forms\Components\View::make('filament.components.document-lines-header')
+            // SECCIÓN 3: PRODUCTOS
+            Forms\Components\View::make('filament.components.document-lines')
                 ->columnSpanFull(),
 
-            Forms\Components\Repeater::make('lineas')
-                ->relationship()
-                ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
-                ->columns(1)
-                ->defaultItems(0)
-                ->live()
-                ->hiddenLabel()
-                ->extraAttributes(['class' => 'document-lines-repeater'])
-                ->columnSpanFull(),
+            Forms\Components\Textarea::make('observaciones')->label('Observaciones')->rows(2)->columnSpanFull(),
 
-
+            // SECCIÓN 5: TOTALES (solo en edición)
             Forms\Components\Section::make('Totales')
                 ->schema([
-                    Forms\Components\Placeholder::make('totales_calculados')
-                        ->hiddenLabel()
-                        ->content(function (Forms\Get $get) {
-                            $lineas = $get('lineas') ?? [];
-                            $terceroId = $get('tercero_id');
-                            $tieneRecargo = false;
-                            if ($terceroId) {
-                                $tercero = \App\Models\Tercero::find($terceroId);
-                                $tieneRecargo = $tercero?->recargo_equivalencia ?? false;
-                            }
-                            
-                            $breakdown = \App\Services\DocumentCalculator::calculate($lineas, $tieneRecargo);
-                            
-                            return view('filament.components.tax-breakdown-live', [
-                                'breakdown' => $breakdown, 
-                                'tieneRecargo' => $tieneRecargo
-                            ]);
-                        })
-                        ->columnSpanFull(),
+                    Forms\Components\Placeholder::make('subtotal_display')
+                        ->label('Subtotal')
+                        ->content(fn($record) => $record ? number_format($record->subtotal, 2, ',', '.') . ' €' : '0,00 €'),
+                    
+                    Forms\Components\Placeholder::make('iva_display')
+                        ->label('IVA')
+                        ->content(fn($record) => $record ? number_format($record->iva, 2, ',', '.') . ' €' : '0,00 €'),
+                    
+                    Forms\Components\Placeholder::make('total_display')
+                        ->label('TOTAL')
+                        ->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €'),
                 ])->columns(3)
+                ->visibleOn('edit')
                 ->collapsible(),
-
-            Forms\Components\Section::make('Observaciones')
-                ->schema([
-                    Forms\Components\Textarea::make('observaciones')
-                        ->label('Observaciones (visibles en el documento)')
-                        ->rows(2)
-                        ->columnSpanFull(),
-                ])->collapsible(),
         ]);
     }
 
@@ -113,7 +91,7 @@ class AlbaranCompraResource extends Resource
             Tables\Columns\TextColumn::make('numero')->label('Número')->searchable()->sortable(),
             Tables\Columns\TextColumn::make('fecha')->label('Fecha')->date('d/m/Y')->sortable(),
             Tables\Columns\TextColumn::make('tercero.nombre_comercial')->label('Proveedor')->searchable()->sortable()->limit(30),
-            Tables\Columns\TextColumn::make('total')->label('Total')->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatCurrency($state))->sortable(),
+            Tables\Columns\TextColumn::make('total')->label('Total')->money('EUR')->sortable(),
             Tables\Columns\BadgeColumn::make('estado')->label('Estado')->colors([
                 'secondary' => 'borrador', 'success' => 'confirmado', 'danger' => 'anulado',
             ]),
@@ -122,77 +100,8 @@ class AlbaranCompraResource extends Resource
             Tables\Filters\Filter::make('bloqueados')->label('Solo bloqueados')->query(fn ($query) => $query->whereHas('documentosDerivados'))->toggle(),
         ])->actions([
             Tables\Actions\EditAction::make()->tooltip('Editar')->label('')->visible(fn($record) => $record->puedeEditarse()),
-            Tables\Actions\Action::make('generate_labels')
-                ->label('')
-                ->tooltip('Generar Etiquetas')
-                ->icon('heroicon-o-document-plus')
-                ->color('primary')
-                ->form([
-                    \Filament\Forms\Components\Select::make('label_format_id')
-                        ->label('Formato de Etiqueta')
-                        ->options(\App\Models\LabelFormat::where('activo', true)->pluck('nombre', 'id'))
-                        ->required()
-                        ->default(\App\Models\LabelFormat::where('activo', true)->first()?->id),
-                ])
-                ->action(function (Documento $record, array $data) {
-                    $labelDoc = Documento::create([
-                        'tipo' => 'etiqueta',
-                        'estado' => 'borrador',
-                        'user_id' => auth()->id(),
-                        'fecha' => now(),
-                        'label_format_id' => $data['label_format_id'],
-                        'documento_origen_id' => $record->id,
-                        'observaciones' => "Generado desde Albarán: " . ($record->numero ?? $record->referencia_proveedor),
-                    ]);
-
-                    foreach ($record->lineas as $linea) {
-                        $labelDoc->lineas()->create([
-                            'product_id' => $linea->product_id,
-                            'codigo' => $linea->codigo ?: ($linea->product?->sku ?? $linea->product?->code ?? $linea->product?->barcode ?? null),
-                            'descripcion' => $linea->descripcion,
-                            'cantidad' => $linea->cantidad,
-                            'unidad' => $linea->unidad,
-                            'precio_unitario' => $linea->precio_unitario,
-                        ]);
-                    }
-
-                    Notification::make()
-                        ->title('Documento de etiquetas generado')
-                        ->success()
-                        ->send();
-                })
-                ->visible(fn (Documento $record) => !Documento::where('tipo', 'etiqueta')
-                    ->where('documento_origen_id', $record->id)
-                    ->exists()),
-            Tables\Actions\Action::make('pdf')
-                ->label('')
-                ->tooltip('Descargar PDF')
-                ->icon('heroicon-o-document-arrow-down')
-                ->color('info')
-                ->url(fn($record) => route('documentos.pdf', ['record' => $record->id]))
-                ->openUrlInNewTab(),
-            Tables\Actions\Action::make('print_labels')
-                ->label('')
-                ->tooltip('Imprimir Etiquetas')
-                ->icon('heroicon-o-tag')
-                ->color('success')
-                ->url(function (Documento $record) {
-                    $etiqueta = Documento::where('tipo', 'etiqueta')
-                        ->where('documento_origen_id', $record->id)
-                        ->first();
-                    return $etiqueta ? route('etiquetas.pdf', ['record' => $etiqueta->id]) : '#';
-                })
-                ->visible(function (Documento $record) {
-                    return Documento::where('tipo', 'etiqueta')
-                        ->where('documento_origen_id', $record->id)
-                        ->exists();
-                })
-                ->openUrlInNewTab(),
-            Tables\Actions\Action::make('convertir_factura')
-                ->label('')
-                ->tooltip('Generar Factura')
-                ->icon('heroicon-o-document-currency-euro')
-                ->color('success')
+            Tables\Actions\Action::make('pdf')->label('PDF')->icon('heroicon-o-document-arrow-down')->color('info')->url(fn($record) => route('documentos.pdf', $record))->openUrlInNewTab(),
+            Tables\Actions\Action::make('convertir_factura')->label('Facturar')->icon('heroicon-o-document-currency-euro')->color('success')
                 ->visible(fn($record) => $record->estado === 'confirmado')
                 ->requiresConfirmation()
                 ->action(function ($record) {
@@ -222,7 +131,7 @@ class AlbaranCompraResource extends Resource
     public static function getRelations(): array
     {
         return [
-            // LineasRelationManager::class,
+            //
         ];
     }
 

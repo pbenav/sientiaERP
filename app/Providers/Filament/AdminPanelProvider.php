@@ -32,7 +32,6 @@ class AdminPanelProvider extends PanelProvider
             ->login()
             ->colors([
                 'primary' => Color::Amber,
-                'primary' => Color::Amber,
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
@@ -57,25 +56,6 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ])
-            ->navigationGroups([
-                'Ventas',
-                'Compras',
-                'Almacén',
-                'Gestión',
-                'Configuración',
-            ])
-            ->renderHook(
-                'panels::footer',
-                fn () => view('filament.hooks.footer')
-            )
-            ->renderHook(
-                'panels::body.end',
-                fn () => view('filament.hooks.document-navigation')
-            )
-            ->renderHook(
-                'panels::head.end',
-                fn () => new HtmlString(Blade::render("@vite('resources/css/document-lines.css')"))
-            );
+            ]);
     }
 }

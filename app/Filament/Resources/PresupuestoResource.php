@@ -60,10 +60,7 @@ class PresupuestoResource extends Resource
                         
                         Forms\Components\DatePicker::make('fecha_validez')
                             ->label('Válido hasta')
-                            ->default(function() {
-                                $diasValidez = (int)\App\Models\Setting::get('presupuesto_validez_dias', 5);
-                                return now()->addDays($diasValidez);
-                            })
+                            ->default(now()->addDays(30))
                             ->required(),
                         
                         Forms\Components\Select::make('tercero_id')
@@ -80,15 +77,6 @@ class PresupuestoResource extends Resource
                                     ->required(),
                             ]),
                         
-                        Forms\Components\Select::make('forma_pago_id')
-                            ->label('Forma de Pago')
-                            ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
-                            ->searchable()
-                            ->searchable()
-                            ->preload()
-                            ->default(fn() => \App\Models\FormaPago::activas()->first()?->id ?? 1)
-                            ->required(),
-                        
                         Forms\Components\Select::make('estado')
                             ->label('Estado')
                             ->options([
@@ -100,45 +88,24 @@ class PresupuestoResource extends Resource
                             ->required(),
                     ])->columns(3),
 
-                Forms\Components\View::make('filament.components.document-lines-header')
+                // SECCIÓN 2: PRODUCTOS
+                Forms\Components\View::make('filament.components.document-lines')
                     ->columnSpanFull(),
-
-                Forms\Components\Repeater::make('lineas')
-                    ->relationship()
-                    ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
-                    ->columns(1)
-                    ->defaultItems(0)
-                    ->live()
-                    ->hiddenLabel()
-                    ->extraAttributes(['class' => 'document-lines-repeater'])
-                    ->columnSpanFull(),
-
 
                 Forms\Components\Section::make('Totales')
                     ->schema([
-                        Forms\Components\Placeholder::make('totales_calculados')
-                            ->hiddenLabel()
-                            ->content(function (Forms\Get $get) {
-                                $lineas = $get('lineas') ?? [];
-                                // Determine if Recargo applies (logic usually depends on Tercero, here simplified or fetched)
-                                $terceroId = $get('tercero_id');
-                                $tieneRecargo = false;
-                                if ($terceroId) {
-                                    $tercero = \App\Models\Tercero::find($terceroId);
-                                    $tieneRecargo = $tercero?->recargo_equivalencia ?? false;
-                                }
-                                
-                                $breakdown = \App\Services\DocumentCalculator::calculate($lineas, $tieneRecargo);
-                                
-                                return view('filament.components.tax-breakdown-live', [
-                                    'breakdown' => $breakdown, 
-                                    'tieneRecargo' => $tieneRecargo
-                                ]);
-                            })
-                            ->columnSpanFull(),
-                    ])
-                    ->visibleOn('edit')
-                    ->collapsible(),
+                        Forms\Components\Placeholder::make('subtotal_display')
+                            ->label('Subtotal')
+                            ->content(fn($record) => $record ? number_format($record->subtotal, 2, ',', '.') . ' €' : '0,00 €'),
+                        
+                        Forms\Components\Placeholder::make('iva_display')
+                            ->label('IVA')
+                            ->content(fn($record) => $record ? number_format($record->iva, 2, ',', '.') . ' €' : '0,00 €'),
+                        
+                        Forms\Components\Placeholder::make('total_display')
+                            ->label('TOTAL')
+                            ->content(fn($record) => $record ? number_format($record->total, 2, ',', '.') . ' €' : '0,00 €'),
+                    ])->columns(3),
 
                 Forms\Components\Section::make('Observaciones')
                     ->schema([
@@ -155,7 +122,26 @@ class PresupuestoResource extends Resource
             ]);
     }
 
+    protected static function calcularLinea(Forms\Set $set, Forms\Get $get): void
+    {
+        $cantidad = floatval($get('cantidad') ?? 0);
+        $precio = floatval($get('precio_unitario') ?? 0);
+        $descuento = floatval($get('descuento') ?? 0);
+        $iva = floatval($get('iva') ?? 0);
 
+        $subtotal = $cantidad * $precio;
+        
+        if ($descuento > 0) {
+            $subtotal = $subtotal * (1 - ($descuento / 100));
+        }
+
+        $importeIva = $subtotal * ($iva / 100);
+        $total = $subtotal + $importeIva;
+
+        $set('subtotal', round($subtotal, 2));
+        $set('importe_iva', round($importeIva, 2));
+        $set('total', round($total, 2));
+    }
 
     public static function table(Table $table): Table
     {
@@ -178,7 +164,7 @@ class PresupuestoResource extends Resource
                 
                 Tables\Columns\TextColumn::make('total')
                     ->label('Total')
-                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatCurrency($state))
+                    ->money('EUR')
                     ->sortable(),
                 
                 Tables\Columns\BadgeColumn::make('estado')
@@ -220,15 +206,13 @@ class PresupuestoResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make()->tooltip('Editar')->label(''),
                 Tables\Actions\Action::make('pdf')
-                    ->label('')
-                    ->tooltip('Descargar PDF')
+                    ->label('PDF')
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('info')
                     ->url(fn($record) => route('documentos.pdf', $record))
                     ->openUrlInNewTab(),
                 Tables\Actions\Action::make('convertir_pedido')
-                    ->label('')
-                    ->tooltip('Convertir a Pedido')
+                    ->label('Convertir a Pedido')
                     ->icon('heroicon-o-arrow-right')
                     ->color('success')
                     ->visible(fn($record) => $record->estado === 'confirmado')
@@ -249,7 +233,7 @@ class PresupuestoResource extends Resource
     public static function getRelations(): array
     {
         return [
-            // LineasRelationManager::class,
+            //
         ];
     }
 

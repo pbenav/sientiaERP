@@ -19,29 +19,11 @@ class SettingResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
     
-    protected static ?string $navigationLabel = 'Ajustes Avanzados';
+    protected static ?string $navigationLabel = 'Preferencias';
     
-    protected static ?string $modelLabel = 'Ajuste';
+    protected static ?string $modelLabel = 'Preferencia';
     
-    protected static ?string $pluralModelLabel = 'Ajustes Avanzados';
-    
-    protected static ?string $navigationGroup = 'Configuración';
-    
-    protected static ?int $navigationSort = 100;
-    
-    protected static bool $shouldRegisterNavigation = false;
-
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
-    {
-        return parent::getEloquentQuery()
-            ->whereNotIn('key', [
-                'pdf_logo_type',
-                'pdf_logo_text',
-                'pdf_logo_image',
-                'pdf_header_html',
-                'pdf_footer_text',
-            ]);
-    }
+    protected static ?string $pluralModelLabel = 'Preferencias';
 
     public static function form(Form $form): Form
     {
@@ -60,15 +42,7 @@ class SettingResource extends Resource
                         Forms\Components\Textarea::make('value')
                             ->label('Valor')
                             ->required()
-                            ->visible(fn ($get) => !in_array($get('key'), [
-                                'currency_position', 
-                                'ai_provider', 
-                                'ai_backup_provider',
-                                'ai_gemini_api_key', 
-                                'ai_openai_api_key',
-                                'google_location',
-                                'google_application_credentials'
-                            ]))
+                            ->visible(fn ($get) => !in_array($get('key'), ['currency_position']))
                             ->columnSpanFull(),
                         
                         Forms\Components\Select::make('value')
@@ -79,68 +53,6 @@ class SettingResource extends Resource
                             ])
                             ->required()
                             ->visible(fn ($get) => $get('key') === 'currency_position')
-                            ->columnSpanFull(),
-
-                        Forms\Components\Select::make('value')
-                            ->label('Proveedor IA Principal')
-                            ->options([
-                                'google_doc_ai' => 'Google Cloud Document AI (Invoice Processor)',
-                                'gemini' => 'Google Gemini (GenAI)',
-                                'openai' => 'OpenAI (ChatGPT)',
-                            ])
-                            ->required()
-                            ->visible(fn ($get) => $get('key') === 'ai_provider')
-                            ->columnSpanFull(),
-
-                        Forms\Components\Select::make('value')
-                            ->label('Proveedor Backup (Fallo Principal)')
-                            ->options([
-                                'none' => 'Ninguno',
-                                'tesseract' => 'Tesseract OCR (Local)',
-                            ])
-                            ->required()
-                            ->visible(fn ($get) => $get('key') === 'ai_backup_provider')
-                            ->columnSpanFull(),
-
-                        Forms\Components\Select::make('value')
-                            ->label('Ubicación (Google Cloud)')
-                            ->options([
-                                'us' => 'US (Estados Unidos)',
-                                'eu' => 'EU (Unión Europea)',
-                            ])
-                            ->required()
-                            ->visible(fn ($get) => $get('key') === 'google_location')
-                            ->columnSpanFull(),
-
-                        Forms\Components\Textarea::make('value')
-                            ->label('Contenido JSON (Service Account Key)')
-                            ->rows(5)
-                            ->required()
-                            ->visible(fn ($get) => $get('key') === 'google_application_credentials')
-                            ->columnSpanFull(),
-
-                        Forms\Components\Select::make('value')
-                            ->label('Mostrar Todo en Mayúsculas')
-                            ->options([
-                                'true' => 'Sí',
-                                'false' => 'No',
-                            ])
-                            ->required()
-                            ->visible(fn ($get) => $get('key') === 'display_uppercase')
-                            ->columnSpanFull(),
-
-                        Forms\Components\TextInput::make('value')
-                            ->label('Configuración / API Key')
-                            ->password()
-                            ->revealable()
-                            ->required()
-                            ->visible(fn ($get) => in_array($get('key'), [
-                                'ai_gemini_api_key', 
-                                'ai_openai_api_key',
-                                'google_project_id',
-                                'google_processor_id',
-                                'tesseract_path'
-                            ]))
                             ->columnSpanFull(),
                     ])->columns(2)->compact(),
             ]);

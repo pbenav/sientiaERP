@@ -35,8 +35,4 @@ return [
         ],
     ],
 
-    'google' => [
-        'ai_api_key' => env('GOOGLE_AI_API_KEY'),
-    ],
-
 ];

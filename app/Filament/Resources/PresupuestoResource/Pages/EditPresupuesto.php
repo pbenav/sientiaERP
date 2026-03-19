@@ -19,10 +19,7 @@ class EditPresupuesto extends EditRecord
                 ->color('success')
                 ->visible(fn() => $this->record->estado === 'borrador')
                 ->requiresConfirmation()
-                ->action(function () {
-                     $this->record->confirmar();
-                     return redirect()->to($this->getResource()::getUrl('edit', ['record' => $this->record]));
-                }),
+                ->action(fn() => $this->record->confirmar()),
             
             Actions\Action::make('convertir_pedido')
                 ->label('Convertir a Pedido')
@@ -43,20 +40,11 @@ class EditPresupuesto extends EditRecord
     protected function afterSave(): void
     {
         // Recalcular totales después de guardar
-        $this->record->refresh();
         $this->record->recalcularTotales();
-    }
-
-    public function save(bool $shouldRedirect = true, bool $shouldSendSavedNotification = true): void
-    {
-        parent::save($shouldRedirect, $shouldSendSavedNotification);
-        $this->redirect($this->getResource()::getUrl('index'));
     }
 
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
     }
-
-
 }

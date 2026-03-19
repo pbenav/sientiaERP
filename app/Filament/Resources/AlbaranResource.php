@@ -96,44 +96,9 @@ class AlbaranResource extends Resource
                         
                     ])->columns(3)->compact(),
 
-                Forms\Components\View::make('filament.components.document-lines-header')
+                // SECCIÓN 3: PRODUCTOS
+                Forms\Components\View::make('filament.components.document-lines')
                     ->columnSpanFull(),
-
-                Forms\Components\Repeater::make('lineas')
-                    ->relationship()
-                    ->schema(\App\Filament\RelationManagers\LineasRelationManager::getLineFormSchema())
-                    ->columns(1)
-                    ->defaultItems(0)
-                    ->live()
-                    ->hiddenLabel()
-                    ->extraAttributes(['class' => 'document-lines-repeater'])
-                    ->columnSpanFull(),
-
-
-                Forms\Components\Section::make('Totales')
-                    ->schema([
-                        Forms\Components\Placeholder::make('totales_calculados')
-                            ->hiddenLabel()
-                            ->content(function (Forms\Get $get) {
-                                $lineas = $get('lineas') ?? [];
-                                $terceroId = $get('tercero_id');
-                                $tieneRecargo = false;
-                                if ($terceroId) {
-                                    $tercero = \App\Models\Tercero::find($terceroId);
-                                    $tieneRecargo = $tercero?->recargo_equivalencia ?? false;
-                                }
-                                
-                                $breakdown = \App\Services\DocumentCalculator::calculate($lineas, $tieneRecargo);
-                                
-                                return view('filament.components.tax-breakdown-live', [
-                                    'breakdown' => $breakdown, 
-                                    'tieneRecargo' => $tieneRecargo
-                                ]);
-                            })
-                            ->columnSpanFull(),
-                    ])->columns(3) // Keep columns to match layout if needed, though columnSpanFull overrides it inside
-                    ->visibleOn('edit')
-                    ->collapsible(),
 
                 // SECCIÓN 4: OBSERVACIONES
                 Forms\Components\Section::make('Observaciones')
@@ -174,7 +139,7 @@ class AlbaranResource extends Resource
                 
                 Tables\Columns\TextColumn::make('total')
                     ->label('Total')
-                    ->formatStateUsing(fn ($state) => \App\Helpers\NumberFormatHelper::formatCurrency($state))
+                    ->money('EUR')
                     ->sortable(),
                 
                 Tables\Columns\BadgeColumn::make('estado')
@@ -198,8 +163,7 @@ class AlbaranResource extends Resource
                     ->tooltip(fn($record) => !$record->puedeEditarse() ? $record->getMensajeBloqueo() : null),
                 
                 Tables\Actions\Action::make('ver_bloqueante')
-                    ->label('')
-                    ->tooltip('Ver bloqueante')
+                    ->label('Ver bloqueante')
                     ->icon('heroicon-o-lock-closed')
                     ->color('warning')
                     ->visible(fn($record) => !$record->puedeEditarse() && $record->getDocumentosBloqueantes()->isNotEmpty())
@@ -212,16 +176,14 @@ class AlbaranResource extends Resource
                     ->openUrlInNewTab(),
                 
                 Tables\Actions\Action::make('pdf')
-                    ->label('')
-                    ->tooltip('Descargar PDF')
+                    ->label('PDF')
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('info')
                     ->url(fn($record) => route('documentos.pdf', $record))
                     ->openUrlInNewTab(),
                 
                 Tables\Actions\Action::make('convertir_factura')
-                    ->label('')
-                    ->tooltip('Generar Factura')
+                    ->label('Facturar')
                     ->icon('heroicon-o-document-currency-euro')
                     ->color('success')
                     ->visible(fn($record) => $record->estado === 'confirmado')
@@ -276,7 +238,7 @@ class AlbaranResource extends Resource
     public static function getRelations(): array
     {
         return [
-            // LineasRelationManager::class,
+            //
         ];
     }
 

@@ -11,13 +11,8 @@ class NumberFormatHelper
      */
     public static function getDecimalSeparator(): string
     {
-        $format = Setting::get('decimal_separator', ',');
-        
-        // Handle both the character and the name
-        if ($format === 'dot' || $format === '.') return '.';
-        if ($format === 'comma' || $format === ',') return ',';
-        
-        return ','; // Default
+        $format = Setting::get('decimal_separator', 'comma');
+        return $format === 'comma' ? ',' : '.';
     }
 
     /**
@@ -25,13 +20,13 @@ class NumberFormatHelper
      */
     public static function getThousandsSeparator(): string
     {
-        $format = Setting::get('thousands_separator', '.');
+        $format = Setting::get('thousands_separator', 'dot');
         
         return match($format) {
-            'comma', ',' => ',',
-            'dot', '.' => '.',
-            'space', ' ' => ' ',
-            'none', '' => '',
+            'comma' => ',',
+            'dot' => '.',
+            'space' => ' ',
+            'none' => '',
             default => '.',
         };
     }
@@ -66,42 +61,23 @@ class NumberFormatHelper
      * @param string $value
      * @return float
      */
-    public static function parseNumber($value): float
+    public static function parseNumber(string $value): float
     {
-        if (is_numeric($value)) {
-            return (float) $value;
-        }
-
         if (empty($value)) {
             return 0.0;
         }
 
-        $value = (string) $value;
-        $decimalSep = self::getDecimalSeparator();
+        // Remover separadores de miles
         $thousandsSep = self::getThousandsSeparator();
-
-        // 1. Clean up spaces
-        $value = trim($value);
-
-        // 2. Identify if the input uses a "standard" dot as decimal regardless of settings
-        // (common when users paste or browser autofills)
-        if ($decimalSep === ',' && str_contains($value, '.') && !str_contains($value, ',')) {
-            // It has a dot but no comma, likely a standard float representation
-            return (float) $value;
-        }
-
-        // 3. Remove thousands separator
         if ($thousandsSep !== '') {
             $value = str_replace($thousandsSep, '', $value);
         }
 
-        // 4. Convert decimal separator to standard dot
+        // Convertir separador decimal al punto
+        $decimalSep = self::getDecimalSeparator();
         if ($decimalSep !== '.') {
             $value = str_replace($decimalSep, '.', $value);
         }
-
-        // 5. Final cleanup of any non-numeric remains (except dot and minus)
-        $value = preg_replace('/[^0-9.-]/', '', $value);
 
         return (float) $value;
     }

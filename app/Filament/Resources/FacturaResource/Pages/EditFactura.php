@@ -11,8 +11,6 @@ class EditFactura extends EditRecord
 {
     protected static string $resource = FacturaResource::class;
 
-
-
     protected function getHeaderActions(): array
     {
         return [
@@ -102,20 +100,11 @@ class EditFactura extends EditRecord
 
     protected function afterSave(): void
     {
-        $this->record->refresh();
         $this->record->recalcularTotales();
-    }
-
-    public function save(bool $shouldRedirect = true, bool $shouldSendSavedNotification = true): void
-    {
-        parent::save($shouldRedirect, $shouldSendSavedNotification);
-        $this->redirect($this->getResource()::getUrl('index'));
     }
 
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
     }
-
-
 }

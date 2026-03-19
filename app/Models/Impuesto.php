@@ -2,13 +2,12 @@
 
 namespace App\Models;
 
-use App\Traits\HasUppercaseDisplay;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Impuesto extends Model
 {
-    use \Illuminate\Database\Eloquent\Factories\HasFactory, SoftDeletes, HasUppercaseDisplay;
+    use \Illuminate\Database\Eloquent\Factories\HasFactory, SoftDeletes;
 
     protected $fillable = [
         'nombre',

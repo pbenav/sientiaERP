@@ -16,17 +16,4 @@ class EditRecibo extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
-
-    public function save(bool $shouldRedirect = true, bool $shouldSendSavedNotification = true): void
-    {
-        parent::save($shouldRedirect, $shouldSendSavedNotification);
-        $this->redirect($this->getResource()::getUrl('index'));
-    }
-
-    protected function getRedirectUrl(): string
-    {
-        return $this->getResource()::getUrl('index');
-    }
-
-
 }

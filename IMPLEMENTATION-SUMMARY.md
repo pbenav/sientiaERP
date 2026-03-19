@@ -1,4 +1,4 @@
-# sienteERP - Resumen de Implementación
+# nexERP - Resumen de Implementación
 
 ## ✅ Sistema Completado
 
@@ -176,47 +176,3 @@ El sistema está completamente funcional y puede ser desplegado en producción s
 
 **Desarrollado con:** Laravel 11 + Filament 3.3 + PHP 8.2
 **Fecha:** Enero 2026
-
-## 🆕 Últimas Actualizaciones (27 Enero 2026)
-
-### Mejoras en Gestión de Productos
-
-#### 1. Refactorización de Selección de Productos
-- ✅ Código/SKU como campo principal de búsqueda (similar a POS)
-- ✅ Columna de código movida a primera posición en tablas
-- ✅ Auto-completado inteligente por código o descripción
-- ✅ Búsqueda dual: por SKU o por nombre de producto
-
-**Archivo:** `app/Filament/RelationManagers/LineasRelationManager.php`
-
-#### 2. Sistema de Margen Comercial en OCR Import
-- ✅ Campo `metadata` (JSON) añadido a tabla products
-- ✅ Métodos helper en modelo Product para gestión de márgenes
-- ✅ Columna de margen comercial en vista OCR Import
-- ✅ Cálculo automático de PVP = Precio Compra × (1 + Margen%)
-- ✅ Almacenamiento de precio de compra y margen en metadata
-
-**Archivos modificados:**
-- `database/migrations/2026_01_27_120000_add_metadata_to_products_table.php`
-- `app/Models/Product.php`
-- `app/Filament/Pages/OcrImport.php`
-- `resources/views/filament/pages/ocr-import.blade.php`
-
-#### 3. Configuración de Margen por Defecto
-- ✅ Nueva sección "Importación OCR" en ajustes generales
-- ✅ Campo configurable: Margen Comercial por Defecto (%)
-- ✅ Rango: 0-1000%, valor por defecto: 30%
-- ✅ Se aplica automáticamente a productos importados vía OCR
-
-**Archivo:** `app/Filament/Pages/SettingsPage.php`
-
-### Commits Recientes
-- `90e6dd0` - feat: Añadir margen comercial a importación OCR y mejorar selección de productos
-- `67d568e` - feat: Hacer margen comercial configurable desde ajustes
-
-### Estado del Cliente TUI
-- ✅ Cliente TUI verificado y funcionando correctamente
-- ✅ Compatible con cambios en modelo Product
-- ✅ Usa correctamente campo `sku` para productos
-- ✅ Sin problemas detectados
-

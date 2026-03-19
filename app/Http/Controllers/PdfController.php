@@ -10,22 +10,13 @@ class PdfController extends Controller
 {
     public function downloadDocumento(Documento $record)
     {
-        $record->load(['tercero', 'lineas', 'documentoOrigen', 'formaPago']);
+        $record->load(['tercero', 'lineas']);
         
-        if (in_array($record->tipo, ['recibo', 'recibo_compra'])) {
-            $importeLetras = \App\Services\NumeroALetras::convertir($record->total);
-            
-            $pdf = Pdf::loadView('pdf.recibo', [
-                'doc' => $record,
-                'importeLetras' => $importeLetras,
-            ]);
-        } else {
-            $pdf = Pdf::loadView('pdf.documento', [
-                'doc' => $record,
-            ]);
-        }
+        $pdf = Pdf::loadView('pdf.documento', [
+            'doc' => $record,
+        ]);
 
-        $filename = strtoupper($record->tipo) . '_' . str_replace('/', '_', $record->numero ?? 'BORRADOR') . '.pdf';
+        $filename = strtoupper($record->tipo) . '_' . str_replace('/', '_', $record->numero) . '.pdf';
 
         return $pdf->download($filename);
     }

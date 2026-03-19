@@ -13,6 +13,13 @@ class EditAlbaran extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('confirmar')
+                ->label('Confirmar')
+                ->icon('heroicon-o-check-circle')
+                ->color('success')
+                ->visible(fn() => $this->record->estado === 'borrador')
+                ->action(fn() => $this->record->confirmar()),
+            
             Actions\DeleteAction::make(),
         ];
     }
@@ -21,20 +28,11 @@ class EditAlbaran extends EditRecord
 
     protected function afterSave(): void
     {
-        $this->record->refresh();
         $this->record->recalcularTotales();
-    }
-
-    public function save(bool $shouldRedirect = true, bool $shouldSendSavedNotification = true): void
-    {
-        parent::save($shouldRedirect, $shouldSendSavedNotification);
-        $this->redirect($this->getResource()::getUrl('index'));
     }
 
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
     }
-
-
 }

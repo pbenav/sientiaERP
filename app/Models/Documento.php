@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Traits\BloqueoDocumentos;
-use App\Traits\HasUppercaseDisplay;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,20 +13,16 @@ use Illuminate\Support\Facades\DB;
 
 class Documento extends Model
 {
-    use HasFactory, SoftDeletes, BloqueoDocumentos, HasUppercaseDisplay;
+    use HasFactory, SoftDeletes, BloqueoDocumentos;
 
     protected $fillable = [
         'tipo', 'numero', 'serie', 'fecha', 'tercero_id', 'user_id',
         'documento_origen_id', 'estado',
         'subtotal', 'descuento', 'base_imponible', 'iva', 'irpf', 'porcentaje_irpf', 'recargo_equivalencia', 'total',
-        'stock_actualizado',
         'forma_pago_id',
         'observaciones', 'observaciones_internas',
         'fecha_validez', 'fecha_entrega', 'fecha_vencimiento',
-        'es_rectificativa', 'factura_rectificada_id', 'motivo_rectificación',
-        'archivo',
-        'referencia_proveedor',
-        'label_format_id', 'fila_inicio', 'columna_inicio',
+        'es_rectificativa', 'rectificada_id'
     ];
 
     protected $casts = [
@@ -44,7 +39,6 @@ class Documento extends Model
         'recargo_equivalencia' => 'decimal:2',
         'total' => 'decimal:2',
         'es_rectificativa' => 'boolean',
-        'stock_actualizado' => 'boolean',
     ];
 
     protected static function boot()
@@ -53,14 +47,11 @@ class Documento extends Model
 
         static::creating(function ($documento) {
             // No generamos número automáticamente para facturas (se hace al confirmar)
-            if (!empty($documento->tipo) && empty($documento->numero) && !in_array($documento->tipo, ['factura', 'factura_compra'])) {
+            if (empty($documento->numero) && !in_array($documento->tipo, ['factura', 'factura_compra'])) {
                 $documento->numero = NumeracionDocumento::generarNumero($documento->tipo, $documento->serie ?? 'A');
             }
             if (empty($documento->fecha)) {
                 $documento->fecha = now();
-            }
-            if (empty($documento->user_id)) {
-                $documento->user_id = auth()->id() ?? (\class_exists('\Filament\Facades\Filament') ? \Filament\Facades\Filament::auth()->id() : null) ?? 1;
             }
         });
 
@@ -138,14 +129,6 @@ class Documento extends Model
     }
 
     /**
-     * Formato de etiqueta asociado
-     */
-    public function labelFormat(): BelongsTo
-    {
-        return $this->belongsTo(LabelFormat::class);
-    }
-
-    /**
      * Documentos origen múltiples (para documentos agrupados)
      */
     public function documentosOrigenMultiples(): BelongsToMany
@@ -169,44 +152,6 @@ class Documento extends Model
             'documento_origen_id',
             'documento_id'
         )->withPivot('cantidad_procesada')->withTimestamps();
-    }
-
-    /**
-     * Obtener desglose de impuestos (para visualización)
-     */
-    public function getDesgloseImpuestos(): array
-    {
-        $lineas = $this->lineas;
-        $desglose = [];
-
-        // Agrupación por tipos de IVA (Buckets)
-        $buckets = $lineas->groupBy(function ($linea) {
-            return number_format($linea->iva, 2); // Agrupar por % IVA (string key)
-        });
-
-        foreach ($buckets as $ivaKey => $grupoLineas) {
-            $baseGrupo = $grupoLineas->sum('subtotal');
-            $primerLinea = $grupoLineas->first();
-            $porcentajeIva = $primerLinea->iva;
-            $porcentajeRe = $primerLinea->recargo_equivalencia;
-
-            $cuotaIvaGrupo = round($baseGrupo * ($porcentajeIva / 100), 2);
-            $cuotaReGrupo = round($baseGrupo * ($porcentajeRe / 100), 2);
-
-            $desglose[] = [
-                'iva' => $porcentajeIva,
-                're' => $porcentajeRe,
-                'base' => $baseGrupo,
-                'cuota_iva' => $cuotaIvaGrupo,
-                'cuota_re' => $cuotaReGrupo,
-                'total' => $baseGrupo + $cuotaIvaGrupo + $cuotaReGrupo,
-            ];
-        }
-        
-        // Ordenar por tipo de IVA
-        usort($desglose, fn($a, $b) => $a['iva'] <=> $b['iva']);
-
-        return $desglose;
     }
 
     /**
@@ -284,7 +229,7 @@ class Documento extends Model
         // El usuario dijo "En facturas rectificativas, todas las unidades y cuotas deben ser negativas".
         // Validaremos en el futuro o dejaremos que el usuario meta negativos.
         
-        $this->saveQuietly();
+        $this->save();
     }
 
     /**
@@ -315,32 +260,6 @@ class Documento extends Model
             }
 
             $this->update($data);
-
-            // ACTUALIZACIÓN DE STOCK
-            try {
-                $stockService = new \App\Services\StockService();
-                $stockService->actualizarStockDesdeDocumento($this);
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('Error actualizando stock al confirmar documento ' . $this->id . ': ' . $e->getMessage());
-            }
-
-            // Generar recibos automáticamente si es factura
-            if (in_array($this->tipo, ['factura', 'factura_compra'])) {
-                try {
-                    $service = new \App\Services\RecibosService();
-                    // Verificar si ya tiene recibos antes de intentar generar
-                    $tipoRecibo = $this->tipo === 'factura_compra' ? 'recibo_compra' : 'recibo';
-                    $tieneRecibos = self::where('documento_origen_id', $this->id)
-                        ->where('tipo', $tipoRecibo)
-                        ->exists();
-
-                    if (!$tieneRecibos && $this->forma_pago_id) {
-                        $service->generarRecibosDesdeFactura($this);
-                    }
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::error('Error generando recibos automáticos al confirmar factura ' . $this->id . ': ' . $e->getMessage());
-                }
-            }
         }
     }
 
@@ -349,16 +268,6 @@ class Documento extends Model
      */
     public function anular(): void
     {
-        // Solo se puede anular si está confirmado o procesado
-        if (!in_array($this->estado, ['confirmado', 'procesado'])) {
-            throw new \Exception('Solo pueden anularse documentos confirmados o procesados.');
-        }
-
-        // Verificar si tiene derivado que no esté anulado (Usa el Trait BloqueoDocumentos)
-        if ($this->tieneDocumentosDerivados()) {
-            throw new \Exception('No se puede anular el documento porque tiene documentos derivados activos.');
-        }
-
         // Validar recibos si es factura
         if (in_array($this->tipo, ['factura', 'factura_compra'])) {
             $recibosPagados = self::where('documento_origen_id', $this->id)
@@ -371,23 +280,7 @@ class Documento extends Model
             }
         }
         
-        DB::transaction(function() {
-            // REVERTIR STOCK si aplica
-            if ($this->stock_actualizado) {
-                $stockService = new \App\Services\StockService();
-                $stockService->actualizarStockDesdeDocumento($this, true);
-            }
-
-            $this->update(['estado' => 'anulado']);
-
-            // DESBLOQUEAR EL ORIGEN (si existe)
-            if ($this->documento_origen_id) {
-                $origen = $this->documentoOrigen;
-                if ($origen && $origen->estado === 'procesado') {
-                    $origen->update(['estado' => 'confirmado']);
-                }
-            }
-        });
+        $this->update(['estado' => 'anulado']);
     }
 
     /**
@@ -395,35 +288,21 @@ class Documento extends Model
      */
     public function convertirA(string $tipoDestino): self
     {
-        if ($this->estado === 'anulado') {
-            throw new \Exception('No se puede convertir un documento anulado.');
+        $nuevoDocumento = $this->replicate();
+        $nuevoDocumento->tipo = $tipoDestino;
+        $nuevoDocumento->numero = null; // Se generará automáticamente
+        $nuevoDocumento->documento_origen_id = $this->id;
+        $nuevoDocumento->estado = 'borrador';
+        $nuevoDocumento->save();
+
+        // Copiar líneas
+        foreach ($this->lineas as $linea) {
+            $nuevaLinea = $linea->replicate();
+            $nuevaLinea->documento_id = $nuevoDocumento->id;
+            $nuevaLinea->save();
         }
 
-        $nuevoDocumento = DB::transaction(function() use ($tipoDestino) {
-            $nuevo = $this->replicate();
-            $nuevo->tipo = $tipoDestino;
-            $nuevo->numero = null; // Se generará automáticamente
-            $nuevo->documento_origen_id = $this->id;
-            $nuevo->estado = 'borrador';
-            $nuevo->stock_actualizado = false;
-            $nuevo->save();
-
-            // Copiar líneas
-            foreach ($this->lineas as $linea) {
-                $nuevaLinea = $linea->replicate();
-                $nuevaLinea->documento_id = $nuevo->id;
-                $nuevaLinea->save();
-            }
-
-            $nuevo->recalcularTotales();
-
-            // Actualizar estado del origen a 'procesado' si estaba confirmado
-            if ($this->estado === 'confirmado') {
-                $this->update(['estado' => 'procesado']);
-            }
-
-            return $nuevo;
-        });
+        $nuevoDocumento->recalcularTotales();
 
         return $nuevoDocumento;
     }

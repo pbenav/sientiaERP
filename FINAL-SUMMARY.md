@@ -1,4 +1,4 @@
-# 🏁 Finalización del Proyecto sienteERP
+# 🏁 Finalización del Proyecto nexERP
 
 El sistema híbrido ERP/POS ha sido completado con éxito, cubriendo todas las fases desde la administración web hasta los clientes TUI de alto rendimiento.
 
@@ -45,4 +45,4 @@ php bin/erp-tui.php        # Cliente de Gestión ERP
 Los PDFs se generan dinámicamente desde el panel Filament o vía API `/api/erp/documentos/{id}/pdf`.
 
 ---
-**Proyecto sienteERP completado al 100%**
+**Proyecto nexERP completado al 100%**

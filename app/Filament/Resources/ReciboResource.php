@@ -133,15 +133,13 @@ class ReciboResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make()->tooltip('Editar')->label(''),
                 Tables\Actions\Action::make('pdf')
-                    ->label('')
-                    ->tooltip('Descargar PDF')
+                    ->label('PDF')
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('info')
                     ->url(fn($record) => route('documentos.pdf', $record))
                     ->openUrlInNewTab(),
                 Tables\Actions\Action::make('marcar_pagado')
-                    ->label('')
-                    ->tooltip('Marcar Cobrado')
+                    ->label('Marcar Cobrado')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->visible(fn($record) => $record->estado === 'borrador')

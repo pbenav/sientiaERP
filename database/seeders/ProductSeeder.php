@@ -94,13 +94,10 @@ class ProductSeeder extends Seeder
 
         $this->command->info('✓ 8 productos base creados');
 
-        // Generar 992 productos adicionales solo si no existen suficientes productos (idempotencia)
-        if (Product::count() < 100) {
-            Product::factory()->count(992)->create();
-            $this->command->info('✓ 992 productos adicionales generados');
-        } else {
-             $this->command->info('✓ Se omitió la generación masiva de productos (ya existen)');
-        }
+        // Generar 992 productos adicionales usando el factory (total: 1000)
+        Product::factory()->count(992)->create();
+        
+        $this->command->info('✓ 992 productos adicionales generados');
         $this->command->info('✓ Total: 1000 productos en la base de datos');
     }
 }

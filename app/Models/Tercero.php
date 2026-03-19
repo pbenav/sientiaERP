@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Traits\HasUppercaseDisplay;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -11,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Tercero extends Model
 {
-    use HasFactory, SoftDeletes, HasUppercaseDisplay;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'codigo', 'nombre_comercial', 'razon_social', 'nif_cif',
