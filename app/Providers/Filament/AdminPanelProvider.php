@@ -66,6 +66,10 @@ class AdminPanelProvider extends PanelProvider
                 'Configuración',
             ])
             ->renderHook(
+                'panels::footer',
+                fn () => view('filament.hooks.footer')
+            )
+            ->renderHook(
                 'panels::body.end',
                 fn () => view('filament.hooks.document-navigation')
             )

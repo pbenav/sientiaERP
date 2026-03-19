@@ -13,7 +13,9 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'sienteERP'),
+    'name' => env('APP_NAME', 'sientiaERP'),
+
+    'version' => env('APP_VER', '1.0.1'),
 
     /*
     |--------------------------------------------------------------------------
