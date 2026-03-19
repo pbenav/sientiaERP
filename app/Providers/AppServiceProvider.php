@@ -25,7 +25,6 @@ class AppServiceProvider extends ServiceProvider
         
         // Register observers
         \App\Models\DocumentoLinea::observe(\App\Observers\DocumentoLineaObserver::class);
-        \App\Models\Documento::observe(\App\Observers\DocumentoObserver::class);
 
         // CONFIGURACIÓN PARA PROXY SSL (Se basa directamente en la URL configurada)
         if (str_starts_with(config('app.url') ?? '', 'https')) {
