@@ -568,6 +568,31 @@ class Documento extends Model
         return $query->where('tipo', 'recibo');
     }
 
+    public function scopePresupuestosCompra($query)
+    {
+        return $query->where('tipo', 'presupuesto_compra');
+    }
+
+    public function scopePedidosCompra($query)
+    {
+        return $query->where('tipo', 'pedido_compra');
+    }
+
+    public function scopeAlbaranesCompra($query)
+    {
+        return $query->where('tipo', 'albaran_compra');
+    }
+
+    public function scopeFacturasCompra($query)
+    {
+        return $query->where('tipo', 'factura_compra');
+    }
+
+    public function scopeRecibosCompra($query)
+    {
+        return $query->where('tipo', 'recibo_compra');
+    }
+
     /**
      * Scopes por estado
      */

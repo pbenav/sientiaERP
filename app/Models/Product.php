@@ -23,6 +23,9 @@ class Product extends Model
         'active',
         'barcode',
         'tax_rate',
+        'requires_stock',
+        'is_salable',
+        'is_purchasable',
         'metadata',
     ];
 
@@ -34,6 +37,9 @@ class Product extends Model
         'tax_rate' => 'decimal:2',
         'stock' => 'integer',
         'active' => 'boolean',
+        'requires_stock' => 'boolean',
+        'is_salable' => 'boolean',
+        'is_purchasable' => 'boolean',
         'metadata' => 'array',
     ];
 
@@ -55,6 +61,7 @@ class Product extends Model
      */
     public function hasStock(int $quantity = 1): bool
     {
+        if (!$this->requires_stock) return true;
         return $this->stock >= $quantity;
     }
 
@@ -63,6 +70,7 @@ class Product extends Model
      */
     public function decrementStock(int $quantity): void
     {
+        if (!$this->requires_stock) return;
         $this->decrement('stock', $quantity);
     }
 
@@ -161,26 +169,34 @@ class Product extends Model
 
         $integerPart = floor($price);
         
-        $candidates = [
+        $candidates = [];
+        
+        // Puntos de precio psicológicos para artículos de bajo valor (< 1€)
+        if ($price < 1) {
+            $candidates = [0.15, 0.19, 0.25, 0.29, 0.45, 0.49, 0.50, 0.75, 0.79, 0.85, 0.89];
+        }
+
+        // Puntos estándar basados en la parte entera
+        $candidates = array_merge($candidates, [
+            $integerPart + 0.49,
+            $integerPart + 0.50,
             $integerPart + 0.90,
             $integerPart + 0.95,
             $integerPart + 0.99,
+            $integerPart + 1 + 0.49,
             $integerPart + 1 + 0.90,
-            $integerPart + 1 + 0.95,
             $integerPart + 1 + 0.99,
-        ];
+        ]);
 
-        $superior = null;
+        sort($candidates); 
 
         foreach ($candidates as $candidate) {
-            if ($candidate > $price + 0.001) { // Pequeño margen para evitar flotantes
-                if ($superior === null || $candidate < $superior) {
-                    $superior = $candidate;
-                }
+            if ($candidate > $price + 0.001) { 
+                return (float)$candidate;
             }
         }
         
-        return $superior ?? ($integerPart + 1.90);
+        return (float)($integerPart + 1.90);
     }
 
     /**

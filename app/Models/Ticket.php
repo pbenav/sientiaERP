@@ -100,10 +100,8 @@ class Ticket extends Model
      */
     public function recalculateTotals(): void
     {
-        $items = $this->items;
-
-        $this->subtotal = $items->sum('subtotal');
-        $this->tax = $items->sum('tax_amount');
+        $this->subtotal = $this->items()->sum('subtotal') ?: 0;
+        $this->tax = $this->items()->sum('tax_amount') ?: 0;
         
         $totalBruto = (float)$this->subtotal + (float)$this->tax;
         
@@ -112,7 +110,7 @@ class Ticket extends Model
         $imp = (float)($this->descuento_importe ?? 0);
         
         $descuentoPorcentajeV = ($totalBruto * ($perc / 100));
-        $this->total = $totalBruto - $descuentoPorcentajeV - $imp;
+        $this->total = round($totalBruto - $descuentoPorcentajeV - $imp, 2);
 
         $this->save();
     }

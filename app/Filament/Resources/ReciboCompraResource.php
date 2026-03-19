@@ -31,7 +31,7 @@ class ReciboCompraResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Recibos de Compra';
 
-    protected static ?int $navigationSort = 14;
+    protected static ?int $navigationSort = 15;
 
     protected static ?string $navigationGroup = 'Compras';
 

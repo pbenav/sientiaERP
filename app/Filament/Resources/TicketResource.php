@@ -23,7 +23,7 @@ class TicketResource extends Resource
     protected static string $editPermission   = 'pos.operate';
     protected static string $deletePermission = 'pos.operate';
 
-    protected static bool $shouldRegisterNavigation = false;
+    protected static bool $shouldRegisterNavigation = true;
 
     protected static ?string $model = Ticket::class;
 
@@ -35,7 +35,37 @@ class TicketResource extends Resource
 
     protected static ?string $pluralModelLabel = 'TPV';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 2;
+
+    public static function getNavigationItems(): array
+    {
+        $urlTpv = static::getUrl('create');
+        try {
+            $hasSession = \App\Models\CashSession::where('user_id', auth()->id())
+                ->where('estado', 'open')
+                ->exists();
+            if (!$hasSession) {
+                $urlTpv = \App\Filament\Resources\CashSessionResource::getUrl('create');
+            }
+        } catch (\Exception $e) {
+            $urlTpv = static::getUrl('index');
+        }
+
+        return [
+            \Filament\Navigation\NavigationItem::make('TPV')
+                ->icon('heroicon-o-computer-desktop')
+                ->activeIcon('heroicon-s-computer-desktop')
+                ->isActiveWhen(fn () => request()->routeIs('filament.admin.resources.tickets.create'))
+                ->sort(2)
+                ->url($urlTpv),
+
+            \Filament\Navigation\NavigationItem::make('Historial TPV')
+                ->icon('heroicon-o-list-bullet')
+                ->isActiveWhen(fn () => request()->routeIs('filament.admin.resources.tickets.index') || request()->routeIs('filament.admin.resources.tickets.view') || request()->routeIs('filament.admin.resources.tickets.edit'))
+                ->sort(3)
+                ->url(static::getUrl('index')),
+        ];
+    }
 
     public static function form(Form $form): Form
     {
@@ -324,7 +354,10 @@ class TicketResource extends Resource
                     ->url(fn ($record) => TicketResource::getUrl('create', ['ticket_id' => $record->id])),
                 Tables\Actions\ViewAction::make()->label('')->tooltip('Ver'),
                 Tables\Actions\EditAction::make()->label('')->tooltip('Editar')->visible(fn (Ticket $record) => !$record->hasInvoice()),
-                Tables\Actions\DeleteAction::make()->label('')->tooltip('Borrar'),
+                Tables\Actions\DeleteAction::make()
+                    ->label('')
+                    ->tooltip('Eliminar Ticket (solo borradores)')
+                    ->visible(fn (Ticket $record) => $record->status === 'open'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

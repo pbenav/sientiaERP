@@ -34,6 +34,13 @@ class EditPresupuesto extends EditRecord
                     return redirect()->route('filament.admin.resources.pedidos.edit', $pedido);
                 }),
             
+            Actions\Action::make('pdf')
+                ->label('Descargar PDF')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('info')
+                ->url(fn() => route('documentos.pdf', $this->record))
+                ->openUrlInNewTab(),
+            
             Actions\DeleteAction::make(),
         ];
     }

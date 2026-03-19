@@ -44,6 +44,7 @@ class SettingsPage extends Page
             'locale' => Setting::get('locale', 'es'),
             'timezone' => Setting::get('timezone', 'Europe/Madrid'),
             'pos_default_tercero_id' => Setting::get('pos_default_tercero_id'),
+            'pos_quick_skus' => Setting::get('pos_quick_skus', 'BOLSA,VARIO,GENERICO'),
             'default_commercial_margin' => Setting::get('default_commercial_margin', 30),
             'default_supplier_id' => Setting::get('default_supplier_id'),
             'presupuesto_validez_dias' => Setting::get('presupuesto_validez_dias', 5),
@@ -255,6 +256,12 @@ class SettingsPage extends Page
                             ->preload()
                             ->helperText('Proveedor que se selecciona automáticamente al importar un albarán vía OCR')
                             ->columnSpanFull(),
+
+                        TextInput::make('pos_quick_skus')
+                            ->label('Artículos de Acceso Rápido (SKUs)')
+                            ->helperText('Lista de SKUs separados por comas para mostrar botones rápidos en el TPV (ej: BOLSA, VARIO, CAJA)')
+                            ->placeholder('BOLSA,VARIO,GENERICO')
+                            ->columnSpanFull(),
                     ]),
 
                 Section::make('Importación OCR')
@@ -435,6 +442,7 @@ class SettingsPage extends Page
                 'default_profit_percentage' => 'Porcentaje de Beneficio Defecto',
                 'intermediate_precision' => 'Decimales en cálculos intermedios',
                 'final_precision' => 'Decimales en documentos finales',
+                'pos_quick_skus' => 'SKUs de Acceso Rápido POS',
             ];
             
             $groups = [
@@ -470,6 +478,7 @@ class SettingsPage extends Page
                 'default_profit_percentage' => 'Precios',
                 'intermediate_precision' => 'Formato',
                 'final_precision' => 'Formato',
+                'pos_quick_skus' => 'POS',
             ];
 
             Setting::set($key, $value, $labels[$key] ?? $key, $groups[$key] ?? 'General');

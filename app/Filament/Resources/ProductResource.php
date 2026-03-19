@@ -313,18 +313,42 @@ class ProductResource extends Resource
 
                 Forms\Components\Section::make('Stock y Visibilidad')
                     ->schema([
-                        Forms\Components\TextInput::make('stock')
-                            ->label('Stock')
-                            ->required()
-                            ->numeric()
-                            ->inputMode('decimal')
-                            ->default(0),
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('stock')
+                                    ->label('Stock Actual')
+                                    ->numeric()
+                                    ->default(0)
+                                    ->disabled(fn ($get) => !$get('requires_stock'))
+                                    ->helperText(fn ($get) => !$get('requires_stock') ? 'Stock no gestionado para este producto' : ''),
+                                
+                                Forms\Components\Toggle::make('requires_stock')
+                                    ->label('Gestionar Stock')
+                                    ->default(true)
+                                    ->live()
+                                    ->inline(false),
+                            ]),
                         
-                        Forms\Components\Toggle::make('active')
-                            ->label('Activo')
-                            ->default(true)
-                            ->required(),
-                    ])->columns(2)->compact(),
+                        Forms\Components\Grid::make(3)
+                            ->schema([
+                                Forms\Components\Toggle::make('is_salable')
+                                    ->label('Venta')
+                                    ->onIcon('heroicon-m-shopping-cart')
+                                    ->offIcon('heroicon-m-x-mark')
+                                    ->default(true),
+                                
+                                Forms\Components\Toggle::make('is_purchasable')
+                                    ->label('Compra')
+                                    ->onIcon('heroicon-m-building-storefront')
+                                    ->offIcon('heroicon-m-x-mark')
+                                    ->default(true),
+
+                                Forms\Components\Toggle::make('active')
+                                    ->label('Activo')
+                                    ->default(true)
+                                    ->required(),
+                            ]),
+                    ])->compact(),
             ]);
     }
 
@@ -368,11 +392,23 @@ class ProductResource extends Resource
                     ->label('Stock')
                     ->sortable()
                     ->badge()
-                    ->color(fn (int $state): string => match (true) {
-                        $state === 0 => 'danger',
+                    ->formatStateUsing(fn ($state, $record) => $record->requires_stock ? $state : '∞')
+                    ->color(fn ($state, $record): string => match (true) {
+                        !$record->requires_stock => 'info',
+                        $state <= 0 => 'danger',
                         $state < 10 => 'warning',
                         default => 'success',
                     }),
+                
+                Tables\Columns\IconColumn::make('is_salable')
+                    ->label('Ven.')
+                    ->boolean()
+                    ->toggleable(),
+
+                Tables\Columns\IconColumn::make('is_purchasable')
+                    ->label('Com.')
+                    ->boolean()
+                    ->toggleable(),
                 
                 Tables\Columns\IconColumn::make('active')
                     ->label('Activo')

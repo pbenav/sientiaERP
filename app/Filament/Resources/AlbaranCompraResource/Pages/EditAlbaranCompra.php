@@ -75,7 +75,66 @@ class EditAlbaranCompra extends EditRecord
                         ->exists();
                 })
                 ->openUrlInNewTab(),
-            Actions\DeleteAction::make(),
+            Actions\Action::make('confirmar')
+                ->label('Confirmar')
+                ->icon('heroicon-o-check-circle')
+                ->color('success')
+                ->visible(fn() => $this->record->estado === 'borrador')
+                ->requiresConfirmation()
+                ->action(function () {
+                    try {
+                        $this->record->confirmar();
+                        $this->refreshFormData(['estado', 'numero']);
+                        Notification::make()->title('Albarán confirmado')->success()->send();
+                    } catch (\Exception $e) {
+                        Notification::make()->title('Error')->body($e->getMessage())->danger()->send();
+                    }
+                }),
+
+            Actions\Action::make('convertir_factura')
+                ->label('Generar Factura')
+                ->icon('heroicon-o-document-currency-euro')
+                ->color('success')
+                ->visible(fn() => $this->record->estado === 'confirmado')
+                ->requiresConfirmation()
+                ->action(function () {
+                    $factura = $this->record->convertirA('factura_compra');
+                    Notification::make()->title('Factura creada')->success()->send();
+                    return redirect()->route('filament.admin.resources.factura-compras.edit', $factura);
+                }),
+
+            Actions\Action::make('anular')
+                ->label('Anular')
+                ->icon('heroicon-o-x-circle')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->visible(fn() => in_array($this->record->estado, ['confirmado', 'procesado']) && !$this->record->tieneDocumentosDerivados())
+                ->action(function () {
+                    try {
+                        $this->record->anular();
+                        $this->refreshFormData(['estado']);
+                        Notification::make()->title('Albarán anulado')->danger()->send();
+                    } catch (\Exception $e) {
+                        Notification::make()->title('Error')->body($e->getMessage())->danger()->send();
+                    }
+                }),
+
+            Actions\Action::make('pdf')
+                ->label('Descargar PDF')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('info')
+                ->url(fn() => route('documentos.pdf', $this->record))
+                ->openUrlInNewTab(),
+
+            Actions\Action::make('ticket')
+                ->label('Imprimir Ticket')
+                ->icon('heroicon-o-printer')
+                ->color('warning')
+                ->url(fn() => route('documentos.ticket', $this->record))
+                ->openUrlInNewTab(),
+
+            Actions\DeleteAction::make()
+                ->visible(fn() => $this->record->puedeEliminarse()),
         ];
     }
 

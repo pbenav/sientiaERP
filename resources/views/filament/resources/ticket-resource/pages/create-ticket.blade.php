@@ -23,6 +23,10 @@
                     e.target.select();
                 }
             });
+
+            window.addEventListener('print-ticket', (event) => {
+                window.open(event.detail.url, '_blank');
+            });
         </script>
     @endpush
 
@@ -48,21 +52,26 @@
                     <span class="font-black text-lg tracking-tight">SIENTIA <span
                             class="text-primary-200">POS</span></span>
                 </div>
+
+                {{-- Selector de Ventas Simultáneas (TPV 1-4) --}}
+                <div class="flex gap-1 bg-primary-700/50 p-1 rounded-lg border border-white/10">
+                    @foreach (range(1, 4) as $tpv)
+                        <button wire:click="cambiarTpv({{ $tpv }})" type="button"
+                            class="px-3 py-1 rounded text-[10px] font-black transition-all duration-200 uppercase
+                                       {{ (int) $tpvActivo === (int) $tpv
+                                           ? 'bg-white text-primary-700 shadow-inner'
+                                           : 'text-primary-100 hover:bg-primary-500 hover:text-white' }}"
+                            wire:loading.attr="disabled">
+                            Venta {{ $tpv }}
+                        </button>
+                    @endforeach
+                </div>
+
                 <div
-                    class="hidden md:flex items-center gap-3 px-3 py-1 bg-primary-700/50 rounded-full border border-white/20">
+                    class="hidden lg:flex items-center gap-3 px-3 py-1 bg-primary-700/50 rounded-full border border-white/20">
                     <div class="flex items-center gap-1.5">
                         <x-heroicon-s-user class="w-3.5 h-3.5 text-primary-100" />
                         <span class="text-[10px] uppercase font-bold text-white">{{ auth()->user()->name }}</span>
-                    </div>
-                    <div class="w-px h-3 bg-white/20"></div>
-                    <div class="flex items-center gap-1.5">
-                        <div
-                            class="w-2 h-2 rounded-full {{ $isSessionOpen ? 'bg-green-400 animate-pulse' : 'bg-red-400' }}">
-                        </div>
-                        <span
-                            class="text-[10px] uppercase font-bold {{ $isSessionOpen ? 'text-green-300' : 'text-red-300' }}">
-                            Sesión {{ $isSessionOpen ? 'Abierta' : 'Cerrada' }}
-                        </span>
                     </div>
                 </div>
             </div>
@@ -70,104 +79,80 @@
             <div class="flex items-center gap-2">
                 @if ($isSessionOpen)
                     <button wire:click="openClosingModal" type="button"
-                        class="group flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600  rounded-md font-black text-[11px] uppercase transition shadow-lg active:scale-95 text-black">
+                        class="group flex items-center gap-1.5 px-4 py-1.5 bg-amber-500 hover:bg-amber-600 rounded-lg font-black text-[11px] uppercase transition shadow-lg active:scale-95 text-black">
                         <x-heroicon-s-banknotes class="w-4 h-4 group-hover:rotate-12 transition-transform" />
-                        CIERRE / ARQUEO
+                        ARQUEO / CIERRE
                     </button>
                 @endif
 
                 <button wire:click="salirPos" type="button"
                     class="flex items-center gap-1.5 px-3 py-1.5 bg-primary-700 hover:bg-red-600 rounded-md font-black text-[11px] uppercase transition shadow-lg active:scale-95 border border-white/20 text-white">
                     <x-heroicon-s-arrow-left-on-rectangle class="w-4 h-4" />
-                    SALIR (TPV)
+                    SALIR
                 </button>
             </div>
         </div>
 
         {{-- Header Compacto --}}
         <div class="bg-white border-b border-gray-200 px-3 md:px-4 py-2 shrink-0 shadow-sm">
-            {{-- Fila 1: Datos del ticket y cliente --}}
-            <div class="flex items-center gap-2 md:gap-4 mb-2">
+            <div class="flex items-center gap-2 md:gap-4">
                 {{-- Número --}}
-                <div class="w-24 md:w-32">
-                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Número</label>
+                <div class="w-16 md:w-24">
+                    <label class="block text-[10px] uppercase font-bold text-gray-400 mb-0.5 leading-none">Num</label>
                     <input type="text" value="{{ $this->data['numero'] ?? 'AUTO' }}" readonly
-                        class="w-full h-9 bg-gray-50 border border-gray-300 rounded px-2 text-sm font-mono font-medium text-gray-700" />
+                        class="w-full h-8 bg-gray-50 border border-gray-200 rounded px-2 text-xs font-mono font-medium text-gray-700" />
                 </div>
 
                 {{-- Fecha --}}
-                <div class="w-32 md:w-40">
-                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Fecha</label>
+                <div class="w-36 md:w-48">
+                    <label class="block text-[10px] uppercase font-bold text-gray-400 mb-0.5 leading-none">Fecha</label>
                     <input type="date" wire:model="fecha" id="pos-fecha"
-                        class="w-full h-9 border-gray-300 rounded px-2 text-sm font-medium focus:ring-primary-500 focus:border-primary-500" />
+                        class="w-full h-8 border-gray-200 rounded px-2 text-sm font-medium focus:ring-primary-500 focus:border-primary-500" />
                 </div>
 
                 {{-- Cliente --}}
-                <div class="flex-1">
-                    <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Cliente</label>
-                    <div class="relative">
-                        <select wire:model.live="nuevoClienteNombre" id="pos-cliente"
-                            class="w-full h-9 border-gray-300 rounded px-2 text-sm font-bold focus:ring-primary-500 focus:border-primary-500 appearance-none">
-                            <option value="">Selecciona un cliente...</option>
-                            @foreach ($resultadosClientes as $id => $nombre)
-                                <option value="{{ $id }}">{{ $nombre }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-
-                {{-- Teléfono oculto en móvil --}}
-                <div class="hidden lg:block w-40">
+                <div class="flex-1 min-w-[150px]">
                     <label
-                        class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Teléfono</label>
-                    <input type="text" value="{{ $this->clienteTelefono }}" readonly
-                        class="w-full h-9 bg-gray-50 border border-gray-300 rounded px-2 text-sm text-gray-600" />
-                </div>
-            </div>
-
-            {{-- Fila 2: TPV Buttons & Session Control --}}
-            <div class="flex gap-1 items-center">
-                <div class="flex gap-1 flex-1">
-                    @foreach (range(1, 4) as $tpv)
-                        <button wire:click="cambiarTpv({{ $tpv }})" type="button"
-                            class="flex-1 px-2 md:px-3 py-1.5 rounded text-xs font-bold transition-all duration-200 shadow-md active:scale-95
-                                       {{ (int) $tpvActivo === (int) $tpv
-                                           ? 'bg-primary-600 text-white shadow-lg ring-2 ring-primary-300'
-                                           : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:shadow-lg' }}"
-                            wire:loading.class="opacity-50 cursor-wait" wire:target="cambiarTpv">
-                            TPV {{ $tpv }}
-                        </button>
-                    @endforeach
+                        class="block text-[10px] uppercase font-bold text-gray-400 mb-0.5 leading-none">Cliente</label>
+                    <select wire:model.live="nuevoClienteNombre" id="pos-cliente"
+                        class="w-full h-8 border-gray-200 rounded px-2 text-sm font-bold focus:ring-primary-500 focus:border-primary-500 appearance-none py-0">
+                        <option value="">Selecciona un cliente...</option>
+                        @foreach ($resultadosClientes as $id => $nombre)
+                            <option value="{{ $id }}">{{ $nombre }}</option>
+                        @endforeach
+                    </select>
                 </div>
 
-                @if ($isSessionOpen)
-                    <button wire:click="openClosingModal" type="button"
-                        class="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-bold shadow-md transition active:scale-95 flex items-center gap-1">
-                        <x-heroicon-o-lock-closed class="w-4 h-4" /> CIERRE DE CAJA
-                    </button>
-                @endif
-
-                <button type="button"
-                    class="hidden md:flex px-3 py-1.5 bg-gray-100 border border-gray-300 hover:bg-gray-200 rounded text-xs items-center justify-center text-gray-700 font-bold shadow-sm transition active:scale-95">
-                    <x-heroicon-o-ticket class="w-3 h-3 mr-1 text-primary-500" /> VALE
-                </button>
+                {{-- Pago --}}
+                <div class="w-40">
+                    <label class="block text-[10px] uppercase font-bold text-gray-400 mb-0.5 leading-none">Pago</label>
+                    <select wire:model.live="payment_method"
+                        class="w-full h-8 border-gray-200 rounded text-xs bg-white font-black shadow-sm text-primary-700 uppercase py-0">
+                        <option value="cash">EFECTIVO</option>
+                        <option value="card">TARJETA</option>
+                        <option value="mixed">PAGO DIVIDIDO</option>
+                    </select>
+                </div>
             </div>
         </div>
 
         {{-- Área de Trabajo --}}
-        <div class="w-full flex flex-col p-2 md:p-4 gap-2 md:gap-4 bg-gray-50/50">
+        <div class="w-full flex flex-col p-1 md:p-2 gap-1 md:gap-2 bg-gray-50/50 relative"
+            wire:loading.class="opacity-75 pointer-events-none cursor-wait"
+            wire:target="anotarLinea,quickAdd,eliminarLinea">
 
             {{-- Fila Única de Entrada --}}
-            <div class="flex items-center space-x-2 bg-white p-3 rounded-lg border border-gray-200 shadow-sm shrink-0"
-                x-data="{ focusNext(nextId) { setTimeout(() => document.getElementById(nextId)?.focus(), 100); } }" @focus-cantidad.window="focusNext('pos-cantidad')"
+            <div class="flex items-center space-x-1 bg-white p-2 rounded border border-gray-200 shadow-xs shrink-0"
+                x-data="{ focusNext(nextId) { setTimeout(() => { let el = document.getElementById(nextId); if (el) { el.focus();
+                                el.select(); } }, 50); } }" @focus-cantidad.window="focusNext('pos-cantidad')"
                 @focus-precio.window="focusNext('pos-precio')" @focus-descuento.window="focusNext('pos-descuento')"
                 @focus-codigo.window="focusNext('pos-codigo')">
                 <div class="w-32" wire:key="container-codigo">
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Código</label>
                     <input type="text" wire:model.live.debounce.500ms="nuevoCodigo"
-                        wire:keydown.enter.prevent="buscarProducto(true)" list="codigos-list" id="pos-codigo"
-                        autocomplete="off"
-                        class="pos-input w-full h-9 border-gray-300 rounded px-2 font-mono text-sm focus:ring-primary-500 focus:border-primary-500 uppercase"
+                        wire:keydown.enter.prevent="anotarLinea" list="codigos-list" id="pos-codigo" autocomplete="off"
+                        onfocus="this.select()"
+                        class="pos-input w-full h-9 border-gray-300 rounded-none px-2 font-mono text-sm focus:ring-primary-500 focus:border-primary-500 uppercase"
                         placeholder="SKU" autofocus />
                     <datalist id="codigos-list">
                         @foreach ($resultadosCodigo as $id => $sku)
@@ -180,9 +165,9 @@
                     <label
                         class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Descripción</label>
                     <input type="text" wire:model.live.debounce.500ms="nuevoNombre"
-                        wire:keydown.enter.prevent="buscarProducto(true)" list="productos-list" id="pos-descripcion"
-                        autocomplete="off"
-                        class="pos-input w-full h-9 border-gray-300 rounded px-2 text-sm focus:ring-primary-500 focus:border-primary-500"
+                        wire:keydown.enter.prevent="anotarLinea" list="productos-list" id="pos-descripcion"
+                        autocomplete="off" onfocus="this.select()"
+                        class="pos-input w-full h-9 border-gray-300 rounded-none px-2 text-sm focus:ring-primary-500 focus:border-primary-500"
                         placeholder="Escribe para buscar..." />
                     <datalist id="productos-list">
                         @foreach ($resultadosNombre as $id => $nombre)
@@ -194,27 +179,28 @@
                 <div class="w-20">
                     <label
                         class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Cant</label>
-                    <input type="number" wire:model.live="nuevoCantidad"
-                        x-on:keydown.enter.prevent="document.getElementById('pos-precio').focus()" id="pos-cantidad"
-                        class="pos-input w-full h-9 border-gray-300 rounded px-2 text-right font-bold text-gray-800 focus:ring-primary-500 focus:border-primary-500" />
+                    <input type="number" wire:model.blur="nuevoCantidad"
+                        x-on:keydown.enter.prevent="$wire.anotarLinea()" id="pos-cantidad" onfocus="this.select()"
+                        class="pos-input w-full h-9 border-gray-300 rounded-none px-2 text-right font-bold text-gray-800 focus:ring-primary-500 focus:border-primary-500" />
                 </div>
 
                 <div class="w-24">
                     <label
                         class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Precio</label>
-                    <input type="number" wire:model.live="nuevoPrecio"
+                    <input type="number" wire:model.blur="nuevoPrecio"
                         x-on:keydown.enter.prevent="document.getElementById('pos-descuento').focus()" step="0.01"
-                        id="pos-precio"
-                        class="pos-input w-full h-9 border-gray-300 rounded px-2 text-right text-sm focus:ring-primary-500 focus:border-primary-500" />
+                        id="pos-precio" onfocus="this.select()"
+                        class="pos-input w-full h-9 border-gray-300 rounded-none px-2 text-right text-sm focus:ring-primary-500 focus:border-primary-500" />
                 </div>
 
                 <div class="w-16">
                     <label
                         class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Dto%</label>
-                    <input type="number" wire:model.live="nuevoDescuento"
-                        x-on:keydown.enter.prevent="document.getElementById('btn-anadir-producto').focus()"
-                        step="0.01" id="pos-descuento"
-                        class="pos-input w-full h-9 border-gray-300 rounded px-2 text-right text-sm focus:ring-primary-500 focus:border-primary-500" />
+                    <input type="number" wire:model.blur="nuevoDescuento"
+                        x-on:keydown.enter.prevent="$wire.anotarLinea()"
+                        x-on:keydown.tab.prevent="$wire.anotarLinea()" step="0.01" id="pos-descuento"
+                        onfocus="this.select()"
+                        class="pos-input w-full h-9 border-gray-300 rounded-none px-2 text-right text-sm focus:ring-primary-500 focus:border-primary-500" />
                 </div>
 
                 <div class="w-32 bg-gray-50 rounded p-1 flex flex-col items-end justify-center border border-gray-200 h-10 px-6 mt-4"
@@ -225,15 +211,28 @@
 
                 <button wire:click="anotarLinea" wire:keydown.enter="anotarLinea" id="btn-anadir-producto"
                     tabindex="0"
-                    class="pos-action mt-4 h-9 w-12 bg-primary-600 hover:bg-primary-500 text-white rounded shadow-sm flex items-center justify-center transition focus:ring-2 focus:ring-offset-1 focus:ring-primary-600"
-                    style="margin-top: 20px;">
+                    class="pos-action mt-3 h-8 w-10 bg-primary-600 hover:bg-primary-500 text-white rounded-none shadow-sm flex items-center justify-center transition focus:ring-2 focus:ring-offset-1 focus:ring-primary-600"
+                    style="margin-top: 15px;">
                     <x-heroicon-m-plus class="w-5 h-5" />
                 </button>
             </div>
 
+            {{-- Botonera de Acceso Rápido --}}
+            <div class="flex flex-wrap gap-1 px-1 mb-1">
+                @forelse($quickButtons as $qb)
+                    <button wire:click="quickAdd('{{ $qb['sku'] }}')" type="button"
+                        class="px-3 py-1 bg-gray-100 text-gray-700 border border-gray-300 text-[9px] font-black uppercase hover:bg-primary-600 hover:text-white hover:border-primary-600 transition shadow-xs rounded-none">
+                        + {{ $qb['name'] }}
+                    </button>
+                @empty
+                    <span class="text-[9px] text-gray-400 italic px-2">Configura SKUs habituales en Ajustes para ver
+                        botones rápidos aquí (ej: BOLSA, VARIO)</span>
+                @endforelse
+            </div>
+
             {{-- Grid --}}
             <div
-                class="border border-gray-200 rounded-lg bg-white shadow-sm flex flex-col h-[380px] overflow-hidden shrink-0">
+                class="border border-gray-200 rounded-none bg-white shadow-sm flex flex-col h-[65vh] md:h-[calc(100vh-280px)] overflow-hidden shrink-0">
                 <div class="overflow-y-auto w-full h-full">
                     <table class="w-full text-sm text-left">
                         <thead class="bg-gray-200 text-gray-700 text-xs uppercase sticky top-0">
@@ -250,7 +249,8 @@
                         </thead>
                         <tbody class="text-sm">
                             @forelse($lineas as $idx => $linea)
-                                <tr class="border-b hover:bg-gray-50">
+                                <tr class="border-b hover:bg-gray-50 bg-white"
+                                    wire:key="ticket-line-{{ $idx }}-{{ $linea['product_id'] }}">
                                     <td class="px-2 py-1 text-right text-gray-600 font-medium">{{ $idx + 1 }}
                                     </td>
                                     <td class="px-2 py-1 font-mono text-xs">{{ $linea['codigo'] }}</td>
@@ -277,7 +277,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="px-2 py-8 text-center text-gray-400">
+                                    <td colspan="8" class="px-2 py-2 text-center text-gray-400 text-xs italic">
                                         No hay artículos añadidos
                                     </td>
                                 </tr>
@@ -295,132 +295,108 @@
             </div>
 
             {{-- Footer Principal --}}
+            {{-- Footer Principal (Dos Filas para Máximo Espacio) --}}
             <div
-                class="flex flex-col md:flex-row gap-4 shrink-0 bg-gray-100 p-3 rounded-lg border border-gray-300 shadow-inner overflow-hidden">
+                class="flex flex-col gap-3 shrink-0 bg-white p-4 rounded-t-2xl border-t border-x border-gray-300 shadow-xl overflow-hidden mt-2">
 
-                {{-- Panel Botones (Izquierda) - Responsive --}}
-                <div class="grid grid-cols-3 lg:grid-cols-2 gap-2 shrink-0 min-w-[180px]">
-                    @foreach ([['Grabar', 'heroicon-o-check', 'from-green-50 to-green-100 border-green-400 text-green-700 hover:from-green-100 hover:to-green-200 hover:border-green-500 hover:text-green-800 hover:shadow-xl active:from-green-600 active:to-green-700 active:border-green-800 active:text-white'], ['Anular', 'heroicon-o-trash', 'from-red-50 to-red-100 border-red-400 text-red-700 hover:from-red-100 hover:to-red-200'], ['Imprimir', 'heroicon-o-printer', 'from-white to-gray-100 border-gray-400 text-gray-700 hover:from-gray-50 hover:to-gray-200'], ['Nueva', 'heroicon-o-plus', 'from-amber-100 to-amber-200 border-amber-400 text-amber-900 hover:from-amber-200 hover:to-amber-300 font-black'], ['Regalo', 'heroicon-o-gift', 'from-white to-gray-100 border-gray-400 text-purple-700 hover:from-gray-50 hover:to-gray-200'], ['Salir', 'heroicon-o-arrow-right-on-rectangle', 'from-amber-100 to-amber-200 border-amber-400 text-amber-900 hover:from-amber-200 hover:to-amber-300']] as $i => $btn)
-                        <button
-                            @if ($btn[0] === 'Grabar') wire:click="grabarTicket" 
-                            wire:loading.attr="disabled"
-                        @elseif($btn[0] === 'Imprimir')
-                            wire:click="imprimirTicket"
-                        @elseif($btn[0] === 'Anular')
-                            wire:click="anularTicket"
-                            wire:confirm="¿Estás seguro de que deseas anular/eliminar este ticket?"
-                        @elseif($btn[0] === 'Nueva')
-                            wire:click="nuevaVenta"
-                        @elseif($btn[0] === 'Salir')
-                            wire:click="salirPos" @endif
-                            @if ($btn[0] === 'Grabar') onclick="this.style.background='linear-gradient(to bottom, #059669, #047857)'; this.style.color='white'; this.style.transform='scale(0.9)'; setTimeout(() => { this.style.background=''; this.style.color=''; this.style.transform=''; }, 300);" @endif
-                            type="button"
-                            class="flex flex-col items-center justify-center rounded border-2 shadow-md hover:shadow-lg transition-all duration-150 bg-gradient-to-b {{ $btn[2] }} w-full aspect-square sm:h-20 sm:w-20 lg:h-20 shrink-0 {{ $btn[0] === 'Grabar' ? 'ring-2 ring-green-300 scale-105 z-10' : 'active:shadow-sm active:scale-95' }}">
-                            <x-dynamic-component :component="$btn[1]"
-                                class="w-5 sm:w-6 h-5 sm:h-6 mb-1 {{ $btn[0] === 'Grabar' ? 'transition-transform hover:scale-110' : '' }}" />
-                            <span
-                                class="font-bold text-[9px] sm:text-[10px] leading-none text-center uppercase text-black">{{ $btn[0] }}</span>
-                            @if ($btn[0] === 'Grabar')
-                                <span wire:loading wire:target="grabarTicket"
-                                    class="absolute inset-0 flex items-center justify-center bg-green-700 bg-opacity-90 rounded text-white font-bold text-[8px]">
-                                    ESPERE...
-                                </span>
-                            @endif
-                        </button>
-                    @endforeach
+                {{-- Fila 1: Botonera de Acciones --}}
+                <div class="flex flex-row gap-2 items-center justify-between border-b border-gray-100 pb-3">
+                    <div class="flex gap-2 items-center">
+                        @foreach ([['Grabar', 'heroicon-o-check', 'background-color: #16a34a; color: white;', 'scale-105 !px-12 mx-2 font-black text-xl shadow-green-200'], ['Anular', 'heroicon-o-trash', 'background-color: #fef2f2; color: #dc2626;', 'font-bold'], ['Imprimir', 'heroicon-o-printer', 'background-color: #f3f4f6; color: #374151;', 'font-bold'], ['Regalo', 'heroicon-o-gift', 'background-color: #f3f4f6; color: #7e22ce;', 'font-bold'], ['Nueva', 'heroicon-o-plus', 'background-color: #f59e0b; color: white;', 'font-bold'], ['Salir', 'heroicon-o-arrow-right-on-rectangle', 'background-color: #f3f4f6; color: #b45309;', 'font-bold']] as $btn)
+                            <button
+                                @if ($btn[0] === 'Grabar') wire:click="grabarTicket" wire:loading.attr="disabled"
+                                @elseif($btn[0] === 'Imprimir') wire:click="imprimirTicket"
+                                @elseif($btn[0] === 'Anular') wire:click="anularTicket" wire:confirm="¿Anular?"
+                                @elseif($btn[0] === 'Nueva') wire:click="nuevaVenta"
+                                @elseif($btn[0] === 'Regalo') wire:click="imprimirTicketRegalo"
+                                @elseif($btn[0] === 'Salir') wire:click="salirPos" @endif
+                                type="button" style="{{ $btn[2] }}"
+                                class="flex items-center gap-3 px-6 h-14 rounded-none border border-gray-400 shadow-sm transition-all duration-150 {{ $btn[3] }} active:scale-95 hover:brightness-95">
+                                <x-dynamic-component :component="$btn[1]" class="w-6 h-6" />
+                                <span class="uppercase tracking-wide font-black">{{ $btn[0] }}</span>
+                            </button>
+                        @endforeach
+                    </div>
+
+                    {{-- Vendedor --}}
+                    <div class="flex flex-col items-end">
+                        <span class="text-[9px] uppercase font-black text-gray-400 mb-0.5">Vendedor</span>
+                        <div
+                            class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-none border border-gray-200">
+                            <x-heroicon-s-user class="w-3.5 h-3.5 text-gray-400" />
+                            <span class="font-black text-xs text-gray-700 uppercase">{{ auth()->user()->name }}</span>
+                        </div>
+                    </div>
                 </div>
 
-                {{-- Panel Datos (Central) --}}
-                <div class="flex-1 flex flex-col gap-4">
-                    {{-- Descuentos (Arriba) --}}
-                    <div
-                        class="flex items-center gap-4 bg-white p-3 rounded-lg border border-gray-300 shadow-sm h-fit">
-                        <div class="flex flex-col">
-                            <span class="text-[10px] uppercase font-bold text-gray-500">Dto Gral %</span>
-                            <input type="number" wire:model.blur="descuento_general_porcentaje"
-                                class="pos-input h-10 w-20 text-right border-gray-200 rounded bg-gray-50/50 font-bold text-lg focus:ring-amber-500" />
+                {{-- Fila 2: Totales y Pagos --}}
+                <div class="flex flex-row gap-4 items-end">
+
+                    {{-- Bloque Descuentos --}}
+                    <div class="flex gap-2 bg-gray-50 p-3 rounded-none border border-gray-200 shadow-inner">
+                        <div class="w-20">
+                            <label
+                                class="block text-[9px] uppercase font-black text-gray-500 mb-1 leading-none text-right">Dto
+                                %</label>
+                            <input onfocus="this.select()" type="number"
+                                wire:model.live.debounce.500ms="descuento_general_porcentaje" step="0.01"
+                                class="h-9 w-full text-right text-sm border-gray-300 rounded-none font-bold" />
+                        </div>
+                        <div class="w-28">
+                            <label
+                                class="block text-[9px] uppercase font-black text-gray-500 mb-1 leading-none text-right">Dto
+                                €</label>
+                            <input onfocus="this.select()" type="number"
+                                wire:model.live.debounce.500ms="descuento_general_importe" step="0.01"
+                                class="h-9 w-full text-right text-base border-gray-300 rounded-none font-black bg-white" />
+                        </div>
+                    </div>
+
+                    {{-- Bloque Pagos --}}
+                    <div class="flex-1 flex gap-3 bg-gray-50 p-3 rounded-none border border-gray-200 shadow-inner">
+                        <div class="flex flex-col flex-1">
+                            <span class="text-[10px] font-black text-green-700 uppercase leading-none mb-1.5">Efectivo
+                                (€)</span>
+                            <input onfocus="this.select()" type="number" wire:model.live="pago_efectivo"
+                                @keydown.enter="$wire.grabarTicket()"
+                                class="h-10 w-full text-right text-xl border-green-300 rounded-none bg-white font-black text-green-800 shadow-sm focus:ring-green-500" />
                         </div>
                         <div class="flex flex-col flex-1">
-                            <span class="text-[10px] uppercase font-bold text-gray-500">Dto Gral €</span>
-                            <input type="number" wire:model.blur="descuento_general_importe"
-                                class="pos-input h-10 w-full text-right border-gray-200 rounded bg-gray-50/50 font-bold text-lg focus:ring-amber-500" />
+                            <span class="text-[10px] font-black text-blue-700 uppercase leading-none mb-1.5">Tarjeta
+                                (€)</span>
+                            <input onfocus="this.select()" type="number" wire:model.live="pago_tarjeta"
+                                @keydown.enter="$wire.grabarTicket()"
+                                class="h-10 w-full text-right text-xl border-blue-300 rounded-none bg-white font-black text-blue-800 shadow-sm focus:ring-blue-500" />
                         </div>
                     </div>
 
-                    {{-- Vendedor (Abajo) --}}
-                    <div class="flex-1 space-y-3">
-                        <div>
-                            <span class="text-[10px] font-bold text-gray-500 uppercase block mb-1">Vendedor</span>
-                            <div
-                                class="h-10 px-3 bg-white border border-gray-200 rounded flex items-center text-sm font-bold text-gray-700 shadow-sm">
-                                {{ auth()->user()->name }}
-                            </div>
-                        </div>
-                        <div>
-                            <span class="text-[10px] font-bold text-gray-500 uppercase block mb-1">Forma de Pago</span>
-                            <select wire:model.live="payment_method"
-                                class="w-full h-10 border-gray-300 rounded text-sm bg-white font-black shadow-sm text-primary-700 uppercase">
-                                <option value="cash">EFECTIVO</option>
-                                <option value="card">TARJETA</option>
-                                <option value="mixed">PAGO DIVIDIDO</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Panel Totales y Cobro (Derecha) --}}
-                <div class="w-full md:w-80 lg:w-96 flex flex-col gap-2 shrink-0">
-                    {{-- Total a Pagar (Arriba) --}}
+                    {{-- Dinámica de Cambio / Pendiente --}}
+                    @php
+                        $receivedTotal = (float) ($pago_efectivo ?? 0) + (float) ($pago_tarjeta ?? 0);
+                        $balVal = $receivedTotal - (float) ($total ?? 0);
+                        $isPendingV = $balVal < -0.01;
+                    @endphp
                     <div
-                        class="flex flex-col items-end w-full rounded-lg bg-white p-3 border border-gray-300 shadow-sm min-h-[70px] justify-center overflow-hidden">
+                        class="flex flex-col items-end p-3 px-6 rounded-none w-44 border-2 shadow-lg transition-all duration-300 {{ $isPendingV ? 'bg-red-100 border-red-500' : 'bg-green-100 border-green-500' }}">
                         <span
-                            class="text-[10px] uppercase font-bold text-gray-500 tracking-widest leading-none mb-1">Total
-                            a Pagar</span>
-                        <div class="flex items-baseline gap-1 text-amber-500">
-                            <span
-                                class="font-black tracking-tighter leading-none text-3xl sm:text-4xl">{{ number_format($total, 2) }}</span>
-                            <span class="font-black text-xl">€</span>
+                            class="text-[10px] uppercase font-black {{ $isPendingV ? 'text-red-700' : 'text-green-800' }} leading-none mb-1">
+                            {{ $isPendingV ? 'FALTAN' : 'CAMBIO' }}
+                        </span>
+                        <div class="flex items-baseline gap-1 {{ $isPendingV ? 'text-red-900' : 'text-green-900' }}">
+                            <span class="font-black text-3xl leading-none">{{ number_format(abs($balVal), 2) }}</span>
+                            <span class="text-xs font-black">€</span>
                         </div>
                     </div>
 
-                    {{-- Entrega (Medio) --}}
-                    <div class="flex flex-col bg-white p-3 rounded-lg border border-gray-300 shadow-sm">
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-[11px] uppercase font-bold text-gray-500">Entrega Cliente €</span>
-                            <button wire:click="dividirPago"
-                                class="text-[10px] font-bold text-primary-600 hover:text-primary-800 flex items-center gap-1">
-                                <x-heroicon-o-banknotes class="w-3 h-3" />
-                                {{ $payment_method === 'mixed' ? 'Volver a único' : 'Dividir' }}
-                            </button>
-                        </div>
-
-                        @if ($payment_method === 'mixed')
-                            <div class="grid grid-cols-2 gap-2">
-                                <div class="flex flex-col">
-                                    <span class="text-[9px] font-bold text-green-600 uppercase mb-0.5">Efectivo</span>
-                                    <input type="number" wire:model.blur="pago_efectivo"
-                                        class="pos-input h-10 w-full text-right font-black text-lg border-green-300 rounded bg-green-50 focus:ring-green-500" />
-                                </div>
-                                <div class="flex flex-col">
-                                    <span class="text-[9px] font-bold text-blue-600 uppercase mb-0.5">Tarjeta</span>
-                                    <input type="number" wire:model.blur="pago_tarjeta"
-                                        class="pos-input h-10 w-full text-right font-black text-lg border-blue-300 rounded bg-blue-50 focus:ring-blue-500" />
-                                </div>
-                            </div>
-                        @else
-                            <input type="number" wire:model.blur="entrega" id="pos-entrega"
-                                class="pos-input h-10 w-full text-right font-black text-2xl border-gray-200 rounded bg-gray-50/50 shadow-inner focus:ring-primary-500" />
-                        @endif
-                    </div>
-
-                    {{-- Cambio (Final) --}}
-                    <div class="flex flex-col items-end bg-gray-100 px-4 py-2 rounded-lg border border-gray-200">
-                        <span class="text-[10px] uppercase font-bold text-gray-500 text-right leading-none mb-1">Cambio
-                            a devolver</span>
-                        <div class="flex items-baseline gap-1">
-                            <span
-                                class="font-black text-3xl text-gray-900 leading-none">{{ number_format(max(0, (float) $entrega - (float) $total), 2) }}</span>
-                            <span class="text-lg font-black text-gray-700">€</span>
+                    {{-- TOTAL A PAGAR --}}
+                    <div
+                        class="flex flex-col items-end justify-center rounded-none bg-amber-400 px-8 border-4 border-amber-600 shadow-2xl min-w-[200px] h-[72px]">
+                        <span
+                            class="text-[11px] uppercase font-black text-amber-900 tracking-widest leading-none mb-1">PAGAR
+                            TOTAL</span>
+                        <div class="flex items-baseline gap-1.5 text-black">
+                            <span class="font-black text-5xl leading-none">{{ number_format($total ?? 0, 2) }}</span>
+                            <span class="font-black text-2xl text-amber-900">€</span>
                         </div>
                     </div>
                 </div>
@@ -430,7 +406,7 @@
         {{-- Overlay de Sesión Cerrada --}}
         @if (!$isSessionOpen)
             <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/80 backdrop-blur-sm px-4">
-                <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-8 border-t-8 border-primary-600">
+                <div class="bg-white rounded-none shadow-2xl max-w-md w-full p-8 border-t-8 border-primary-600">
                     <div class="text-center mb-6">
                         <div
                             class="bg-primary-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -447,11 +423,11 @@
                                 de Apertura
                                 (€)</label>
                             <input type="number" wire:model="openingFund" step="0.01"
-                                class="w-full h-14 text-center text-3xl font-black border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-primary-500 bg-white !text-black" />
+                                class="w-full h-14 text-center text-3xl font-black border-2 border-gray-300 rounded-none focus:border-primary-500 focus:ring-primary-500 bg-white !text-black" />
                         </div>
 
                         <button wire:click="openSession" type="button"
-                            class="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-black text-lg uppercase shadow-xl transition active:scale-95 flex items-center justify-center gap-2">
+                            class="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white rounded-none font-black text-lg uppercase shadow-xl transition active:scale-95 flex items-center justify-center gap-2">
                             <x-heroicon-o-play class="w-6 h-6" /> ABRIR DÍA / VENTA
                         </button>
 
@@ -469,10 +445,10 @@
             <div
                 class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/80 backdrop-blur-sm px-4 py-8 overflow-y-auto">
                 <div
-                    class="bg-white rounded-xl shadow-2xl max-w-4xl w-full p-0 border-t-8 border-red-600 flex flex-col max-h-full">
+                    class="bg-white rounded-none shadow-2xl max-w-4xl w-full p-0 border-t-8 border-red-600 flex flex-col max-h-full">
                     {{-- Header Modal --}}
                     <div
-                        class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-xl shrink-0">
+                        class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-none shrink-0">
                         <div>
                             <h2 class="text-xl font-black text-gray-900 uppercase">Cierre de Caja (Arqueo)</h2>
                             <p class="text-[10px] text-gray-500 font-bold">FECHA: {{ now()->format('d/m/Y H:i') }}
@@ -510,7 +486,7 @@
 
                         {{-- Columna Derecha: Resumen y Cuadre --}}
                         <div class="space-y-6">
-                            <div class="bg-gray-100 p-4 rounded-xl border border-gray-200">
+                            <div class="bg-gray-100 p-4 rounded-none border border-gray-200">
                                 <h3
                                     class="text-[10px] font-black text-gray-500 uppercase mb-3 text-center tracking-widest leading-none">
                                     Cálculo del Sistema</h3>
@@ -543,7 +519,7 @@
                                 </div>
                             </div>
 
-                            <div class="bg-primary-50 p-4 rounded-xl border-2 border-primary-200">
+                            <div class="bg-primary-50 p-4 rounded-none border-2 border-primary-200">
                                 <h3
                                     class="text-[10px] font-black text-primary-600 uppercase mb-2 text-center tracking-widest leading-none">
                                     TOTAL EFECTIVO REAL</h3>
@@ -579,7 +555,7 @@
                                     /
                                     Notas</label>
                                 <textarea wire:model="sessionNotes" rows="3"
-                                    class="w-full text-sm border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                    class="w-full text-sm border-gray-300 rounded-none focus:ring-primary-500 focus:border-primary-500"
                                     placeholder="Escribe alguna observación sobre el arqueo si es necesario..."></textarea>
                             </div>
                         </div>
@@ -587,14 +563,73 @@
 
                     {{-- Footer Modal --}}
                     <div
-                        class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3 rounded-b-xl shrink-0">
+                        class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3 rounded-none shrink-0">
                         <button wire:click="$set('showClosingModal', false)" type="button"
-                            class="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg font-bold text-sm uppercase hover:bg-gray-100 transition">
+                            class="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-none font-bold text-sm uppercase hover:bg-gray-100 transition">
                             Cancelar
                         </button>
                         <button wire:click="confirmSessionClosure" type="button"
-                            class="px-8 py-2.5 bg-red-600 !hover:bg-red-700 !ext-gray-700 rounded-lg font-black text-sm uppercase shadow-lg transition active:scale-95 flex items-center gap-2">
+                            class="px-8 py-2.5 bg-red-600 !hover:bg-red-700 !ext-gray-700 rounded-none font-black text-sm uppercase shadow-lg transition active:scale-95 flex items-center gap-2">
                             <x-heroicon-o-check class="w-5 h-5" /> Confirmar Arqueo y Cerrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        {{-- Modal de Previsualización e Impresión --}}
+        @if ($showPrintModal)
+            <div
+                class="fixed inset-0 z-[999] flex items-center justify-center bg-gray-900/90 backdrop-blur-sm px-4 py-8">
+                <div class="bg-white rounded-none shadow-2xl max-w-xl w-full p-0 flex flex-col h-full max-h-[90vh] border-t-8 border-primary-600 overflow-hidden"
+                    x-data="{
+                        print() {
+                            const iframe = document.getElementById('print-iframe');
+                            if (iframe && iframe.contentWindow) {
+                                try {
+                                    iframe.contentWindow.focus();
+                                    iframe.contentWindow.print();
+                                } catch (e) { console.error('Error printing:', e); }
+                            }
+                        }
+                    }" @keydown.enter.window="print()">
+
+                    {{-- Header Modal --}}
+                    <div
+                        class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 shrink-0">
+                        <div>
+                            <h2 class="text-xl font-black text-gray-900 uppercase">Imprimir Ticket</h2>
+                            <p class="text-[10px] text-gray-500 font-bold uppercase">Previsualización del PDF</p>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <a href="{{ $printUrl }}" target="_blank"
+                                class="text-[10px] text-primary-600 hover:text-primary-800 font-black underline uppercase">Abrir
+                                en pestaña nueva</a>
+                            <button wire:click="$set('showPrintModal', false)"
+                                class="text-gray-400 hover:text-red-600 transition-colors">
+                                <x-heroicon-m-x-mark class="w-8 h-8" />
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Contenido (Iframe) --}}
+                    <div class="flex-1 bg-gray-200 p-2 md:p-4 overflow-hidden relative">
+                        <iframe id="print-iframe" wire:key="iframe-{{ $printUrl }}" src="{{ $printUrl }}"
+                            onload="setTimeout(() => { try { this.contentWindow.focus(); this.contentWindow.print(); } catch(e){} }, 2000);"
+                            class="w-full h-full rounded-none shadow-lg bg-white border-0"></iframe>
+
+                    </div>
+
+                    {{-- Footer --}}
+                    <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3 shrink-0">
+                        <button wire:click="$set('showPrintModal', false)" type="button"
+                            class="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-none font-bold text-sm uppercase hover:bg-gray-100 transition">
+                            Cerrar
+                        </button>
+
+                        <button @click="print()" type="button"
+                            class="flex-1 py-4 bg-green-600 hover:bg-green-700 text-white rounded-none font-black text-lg uppercase shadow-xl transition active:scale-95 flex items-center justify-center gap-2">
+                            <x-heroicon-s-printer class="w-6 h-6" /> IMPRIMIR (ENTER)
                         </button>
                     </div>
                 </div>

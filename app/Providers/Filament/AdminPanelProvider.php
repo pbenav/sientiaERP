@@ -76,6 +76,14 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 'panels::head.end',
                 fn () => new HtmlString(Blade::render("@vite('resources/css/document-lines.css')"))
+            )
+            ->renderHook(
+                'panels::footer',
+                fn () => view('filament.hooks.footer')
+            )
+            ->renderHook(
+                'panels::body.end',
+                fn () => view('filament.hooks.pos-hotkeys')
             );
     }
 }

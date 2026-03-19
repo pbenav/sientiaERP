@@ -30,7 +30,7 @@ class FacturaCompraResource extends Resource
     protected static ?string $navigationLabel = 'Facturas de Compra';
     protected static ?string $modelLabel = 'Factura de Compra';
     protected static ?string $pluralModelLabel = 'Facturas de Compra';
-    protected static ?int $navigationSort = 13;
+    protected static ?int $navigationSort = 14;
     protected static ?string $navigationGroup = 'Compras';
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder

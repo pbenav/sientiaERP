@@ -30,7 +30,7 @@ class AlbaranCompraResource extends Resource
     protected static ?string $navigationLabel = 'Albaranes de Compra';
     protected static ?string $modelLabel = 'Albarán de Compra';
     protected static ?string $pluralModelLabel = 'Albaranes de Compra';
-    protected static ?int $navigationSort = 12;
+    protected static ?int $navigationSort = 13;
     protected static ?string $navigationGroup = 'Compras';
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder

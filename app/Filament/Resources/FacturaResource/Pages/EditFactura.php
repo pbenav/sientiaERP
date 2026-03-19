@@ -93,6 +93,20 @@ class EditFactura extends EditRecord
                         ->send();
                 }),
 
+            Actions\Action::make('pdf')
+                ->label('Descargar PDF')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('info')
+                ->url(fn() => route('documentos.pdf', $this->record))
+                ->openUrlInNewTab(),
+
+            Actions\Action::make('ticket')
+                ->label('Imprimir Ticket')
+                ->icon('heroicon-o-printer')
+                ->color('warning')
+                ->url(fn() => route('documentos.ticket', $this->record))
+                ->openUrlInNewTab(),
+
             Actions\DeleteAction::make()
                 ->visible(fn() => $this->record->puedeEliminarse()),
         ];

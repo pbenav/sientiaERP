@@ -13,7 +13,73 @@ class EditFacturaCompra extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\DeleteAction::make(),
+            Actions\Action::make('confirmar')
+                ->label('Confirmar')
+                ->icon('heroicon-o-check-circle')
+                ->color('success')
+                ->visible(fn() => $this->record->estado === 'borrador')
+                ->requiresConfirmation()
+                ->action(function () {
+                    try {
+                        $this->record->confirmar();
+                        $this->refreshFormData(['estado', 'numero']);
+                        Notification::make()->title('Factura confirmada')->success()->send();
+                    } catch (\Exception $e) {
+                        Notification::make()->title('Error')->body($e->getMessage())->danger()->send();
+                    }
+                }),
+
+            Actions\Action::make('generar_recibos')
+                ->label('Generar Recibos')
+                ->icon('heroicon-o-banknotes')
+                ->color('success')
+                ->visible(function () {
+                    return $this->record->estado === 'confirmado' && 
+                           !\App\Models\Documento::where('documento_origen_id', $this->record->id)->where('tipo', 'recibo_compra')->exists();
+                })
+                ->requiresConfirmation()
+                ->action(function () {
+                    try {
+                        $service = new \App\Services\RecibosService();
+                        $recibos = $service->generarRecibosDesdeFactura($this->record);
+                        Notification::make()->title('Recibos generados')->success()->body("Se han generado {$recibos->count()} recibo(s)")->send();
+                    } catch (\Exception $e) {
+                        Notification::make()->title('Error')->body($e->getMessage())->danger()->send();
+                    }
+                }),
+
+            Actions\Action::make('anular')
+                ->label('Anular')
+                ->icon('heroicon-o-x-circle')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->visible(fn() => $this->record->estado === 'confirmado' && !empty($this->record->numero))
+                ->action(function () {
+                    try {
+                        $this->record->anular();
+                        $this->refreshFormData(['estado']);
+                        Notification::make()->title('Factura anulada')->danger()->send();
+                    } catch (\Exception $e) {
+                        Notification::make()->title('Error')->body($e->getMessage())->danger()->send();
+                    }
+                }),
+
+            Actions\Action::make('pdf')
+                ->label('Descargar PDF')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('info')
+                ->url(fn() => route('documentos.pdf', $this->record))
+                ->openUrlInNewTab(),
+
+            Actions\Action::make('ticket')
+                ->label('Imprimir Ticket')
+                ->icon('heroicon-o-printer')
+                ->color('warning')
+                ->url(fn() => route('documentos.ticket', $this->record))
+                ->openUrlInNewTab(),
+
+            Actions\DeleteAction::make()
+                ->visible(fn() => $this->record->puedeEliminarse()),
         ];
     }
 
