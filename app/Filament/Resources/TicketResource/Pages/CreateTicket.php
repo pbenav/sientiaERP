@@ -920,6 +920,14 @@ class CreateTicket extends Page
         
         $this->ticket->save();
 
+        // PASO 6.5: Integración Veri*Factu (Encadenamiento y Huella)
+        try {
+            $verifactuService = app(\App\Services\VerifactuService::class);
+            $verifactuService->procesarEncadenamiento($this->ticket);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error Verifactu TPV: ' . $e->getMessage());
+        }
+
         // PASO 7: Decrementar stock (Importante: solicitado por el usuario)
         foreach ($this->ticket->items as $item) {
             if ($item->product) {

@@ -149,7 +149,19 @@
     <div class="footer">
         {{ App\Models\Setting::get('pdf_footer_text', '¡Gracias por su confianza!') }}
         <br>
-        Sientia ERP - 1.0.4 Rescue Linear
+        Sientia ERP - {{ config('app.version') }}
+        @if ($doc->verifactu_qr_url)
+            <div class="divider"></div>
+            <div class="text-center" style="margin-top: 5px;">
+                <div style="font-size: 8px; margin-bottom: 5px; font-weight: bold;">Factura verificable en la sede
+                    electr&oacute;nica de la AEAT</div>
+                <img src="data:image/png;base64, {!! base64_encode(
+                    SimpleSoftwareIO\QrCode\Facades\QrCode::format('png')->size(100)->generate($doc->verifactu_qr_url),
+                ) !!} ">
+                <div style="font-size: 7px; margin-top: 5px; font-family: monospace; color: #333;">Huella:
+                    {{ substr($doc->verifactu_huella, 0, 20) }}...</div>
+            </div>
+        @endif
     </div>
 </body>
 

@@ -32,6 +32,8 @@ class Ticket extends Model
         'change_given',
         'completed_at',
         'cash_session_id',
+        'verifactu_huella', 'verifactu_huella_anterior', 'verifactu_status',
+        'verifactu_aeat_id', 'verifactu_qr_url', 'verifactu_signature',
     ];
 
     protected $attributes = [

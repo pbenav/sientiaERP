@@ -28,6 +28,8 @@ class Documento extends Model
         'archivo',
         'referencia_proveedor',
         'label_format_id', 'fila_inicio', 'columna_inicio',
+        'verifactu_huella', 'verifactu_huella_anterior', 'verifactu_status',
+        'verifactu_aeat_id', 'verifactu_qr_url', 'verifactu_signature',
     ];
 
     protected $casts = [
@@ -360,6 +362,14 @@ class Documento extends Model
                     }
                 } catch (\Exception $e) {
                     \Illuminate\Support\Facades\Log::error('Error generando recibos automáticos al confirmar factura ' . $this->id . ': ' . $e->getMessage());
+                }
+
+                // INTEGRACIÓN VERI*FACTU
+                try {
+                   $verifactuService = app(\App\Services\VerifactuService::class);
+                   $verifactuService->procesarEncadenamiento($this);
+                } catch (\Exception $e) {
+                   \Illuminate\Support\Facades\Log::error('Error Verifactu Documento: ' . $e->getMessage());
                 }
             }
         }
