@@ -108,11 +108,13 @@ class VerifactuService
         return false;
     }
 
-    /**
-     * Generar la URL para el código QR de Veri*Factu (URL de la AEAT)
-     */
     protected function generarQrUrl(Model $model, string $huella): string
     {
+        $mode = \App\Models\Setting::get('verifactu_mode', 'test');
+        $baseUrl = ($mode === 'production') 
+            ? "https://www2.agenciatributaria.gob.es/wlpl/ARET-LITX/VERIFACTU/Consulta"
+            : "https://prewww2.agenciatributaria.gob.es/wlpl/ARET-LITX/VERIFACTU/Consulta";
+
         $nif = \App\Models\Setting::get('verifactu_nif_emisor', config('verifactu.nif_emisor', 'B00000000'));
         $fecha = $model->fecha ? $model->fecha->format('d-m-Y') : ($model->completed_at ? $model->completed_at->format('d-m-Y') : now()->format('d-m-Y'));
         
@@ -123,6 +125,6 @@ class VerifactuService
             'imp' => number_format($model->total, 2, '.', ''),
         ];
 
-        return "https://www2.agenciatributaria.gob.es/wlpl/ARET-LITX/VERIFACTU/Consulta?" . http_build_query($params);
+        return $baseUrl . "?" . http_build_query($params);
     }
 }

@@ -12,8 +12,8 @@ return [
     
     // AEAT Endpoints (Pruebas / Producción)
     'endpoints' => [
-        'test' => 'https://www2.agenciatributaria.gob.es/ar_aret_litx_ws/VeriFactu',
-        'production' => 'https://www2.agenciatributaria.gob.es/ar_aret_litx_ws/VeriFactu',
+        'test' => 'https://prewww1.agenciatributaria.gob.es/ar_aret_litx_ws/VeriFactu',
+        'production' => 'https://www1.agenciatributaria.gob.es/ar_aret_litx_ws/VeriFactu',
     ],
 
     'mode' => env('VERIFACTU_MODE', 'test'), // test | production
