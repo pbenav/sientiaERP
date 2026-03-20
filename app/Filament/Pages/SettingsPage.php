@@ -50,6 +50,12 @@ class SettingsPage extends Page
             'intermediate_precision' => Setting::get('intermediate_precision', 3),
             'final_precision' => Setting::get('final_precision', 2),
             
+            // Valores por Defecto
+            'default_tercero_id' => Setting::get('default_tercero_id'),
+            'default_supplier_id' => Setting::get('default_supplier_id'),
+            'default_forma_pago_id' => Setting::get('default_forma_pago_id'),
+            'default_tax_rate' => Setting::get('default_tax_rate', 21),
+            
             // TPV & Precios
             'pos_default_tercero_id' => Setting::get('pos_default_tercero_id'),
             'pos_quick_skus' => Setting::get('pos_quick_skus', 'BOLSA,VARIO,GENERICO'),
@@ -138,6 +144,26 @@ class SettingsPage extends Page
                                             ->helperText('Usados para el total final del documento.')
                                             ->numeric()->default(2),
                                     ])->columns(2),
+                                Section::make('Valores por Defecto en Compras y Ventas')
+                                    ->description('Parámetros automáticos para nuevas facturas y compras.')
+                                    ->schema([
+                                        Select::make('default_tercero_id')
+                                            ->label('Cliente Preferente')
+                                            ->options(fn() => \App\Models\Tercero::clientes()->pluck('nombre_comercial', 'id'))
+                                            ->searchable(),
+                                        Select::make('default_supplier_id')
+                                            ->label('Proveedor Preferente')
+                                            ->options(fn() => \App\Models\Tercero::proveedores()->pluck('nombre_comercial', 'id'))
+                                            ->searchable(),
+                                        Select::make('default_forma_pago_id')
+                                            ->label('Forma de Pago')
+                                            ->options(fn() => \App\Models\FormaPago::activas()->pluck('nombre', 'id'))
+                                            ->searchable(),
+                                        TextInput::make('default_tax_rate')
+                                            ->label('IVA Predeterminado (%)')
+                                            ->numeric()
+                                            ->suffix('%'),
+                                    ])->columns(2),
                             ]),
 
                         Tabs\Tab::make('TPV & Precios')
@@ -203,7 +229,7 @@ class SettingsPage extends Page
                                             ]),
                                         Select::make('default_supplier_id')
                                             ->label('Proveedor por Defecto (OCR)')
-                                            ->options(\App\Models\Tercero::where('es_proveedor', true)->pluck('nombre_comercial', 'id'))
+                                            ->options(fn() => \App\Models\Tercero::proveedores()->pluck('nombre_comercial', 'id'))
                                             ->searchable()
                                             ->helperText('Utilizado cuando el OCR no identifica al emisor.'),
                                     ])->columns(3),
