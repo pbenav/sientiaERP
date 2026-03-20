@@ -111,7 +111,7 @@ class VerifactuService
     protected function generarQrUrl(Model $model, string $huella): string
     {
         // URL Oficial de consulta de Veri*Factu (Tike)
-        $baseUrl = "https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/qr/verfactu.html";
+        $baseUrl = "https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/ValidarQR";
 
         $nif = \App\Models\Setting::get('verifactu_nif_emisor', config('verifactu.nif_emisor', 'B00000000'));
         $fecha = $model->fecha ? $model->fecha->format('d-m-Y') : ($model->completed_at ? $model->completed_at->format('d-m-Y') : now()->format('d-m-Y'));
