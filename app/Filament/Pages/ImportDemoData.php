@@ -13,6 +13,9 @@ use Filament\Notifications\Notification;
 use App\Models\Product;
 use App\Models\Tercero;
 use App\Models\Documento;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Filament\Forms\Components\CheckboxList;
 
 class ImportDemoData extends Page implements HasForms
 {
@@ -84,6 +87,33 @@ class ImportDemoData extends Page implements HasForms
                             ->helperText('Se generarán tipos aleatorios: presupuestos, pedidos, facturas, etc.'),
                     ])
                     ->columns(2),
+
+                Section::make('PELIGRO: Reseteo de Base de Datos')
+                    ->description('Selecciona qué tablas deseas VACIAR por completo y REINICIAR sus contadores (ID=1). ESTA ACCIÓN NO SE PUEDE DESHACER.')
+                    ->collapsed() // Escondido por defecto por seguridad
+                    ->schema([
+                        CheckboxList::make('reset_tables')
+                            ->label('¿Qué quieres resetear?')
+                            ->options([
+                                'ventas_tpv'  => 'Ventas TPV (Tickets y líneas de ticket)',
+                                'ventas_docs' => 'Ventas de Gestión (Presupuestos, Pedidos, Albaranes y Facturas)',
+                                'compras_docs'=> 'Compras de Gestión (Pedidos, Albaranes y Facturas de Compra)',
+                                'terceros'    => 'Terceros (Clientes y Proveedores)',
+                                'catalogo'    => 'Catálogo (Productos, Categorías, Marcas y Stock)',
+                            ])
+                            ->columns(2)
+                            ->required(),
+                    ])
+                    ->footerActions([
+                        Action::make('resetData')
+                            ->label('¡Borrar y Reiniciar Seleccionados!')
+                            ->color('danger')
+                            ->icon('heroicon-o-trash')
+                            ->requiresConfirmation()
+                            ->modalHeading('¿ESTÁS ABSOLUTAMENTE SEGURO?')
+                            ->modalDescription('Esta acción truncará las tablas seleccionadas. Todos los registros y contadores se reiniciarán a 1.')
+                            ->action('resetDatabase')
+                    ]),
             ])
             ->statePath('data');
     }
@@ -179,6 +209,79 @@ class ImportDemoData extends Page implements HasForms
         } catch (\Exception $e) {
             Notification::make()
                 ->title('Error en la generación')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    public function resetDatabase()
+    {
+        $formData = $this->form->getRawState();
+        $toReset = $formData['reset_tables'] ?? [];
+
+        if (empty($toReset)) {
+            Notification::make()->title('Ninguna tabla seleccionada')->warning()->send();
+            return;
+        }
+
+        try {
+            DB::beginTransaction();
+            Schema::disableForeignKeyConstraints();
+
+            if (in_array('ventas_tpv', $toReset)) {
+                DB::table('ticket_items')->truncate();
+                DB::table('tickets')->truncate();
+            }
+
+            $resetVentas = in_array('ventas_docs', $toReset);
+            $resetCompras = in_array('compras_docs', $toReset);
+
+            if ($resetVentas && $resetCompras) {
+                DB::table('documento_lineas')->truncate();
+                DB::table('documentos')->truncate();
+            } elseif ($resetVentas) {
+                // Tipos de venta
+                $tiposVenta = ['presupuesto', 'pedido', 'albaran', 'factura'];
+                $ids = DB::table('documentos')->whereIn('tipo', $tiposVenta)->pluck('id');
+                DB::table('documento_lineas')->whereIn('documento_id', $ids)->delete();
+                DB::table('documentos')->whereIn('id', $ids)->delete();
+            } elseif ($resetCompras) {
+                // Tipos de compra
+                $tiposCompra = ['presupuesto_compra', 'pedido_compra', 'albaran_compra', 'factura_compra', 'factura_proveedor'];
+                $ids = DB::table('documentos')->whereIn('tipo', $tiposCompra)->pluck('id');
+                DB::table('documento_lineas')->whereIn('documento_id', $ids)->delete();
+                DB::table('documentos')->whereIn('id', $ids)->delete();
+            }
+
+            if (in_array('terceros', $toReset)) {
+                DB::table('terceros')->truncate();
+            }
+
+            if (in_array('catalogo', $toReset)) {
+                DB::table('stocks')->truncate();
+                DB::table('category_product')->truncate();
+                DB::table('brands')->truncate();
+                DB::table('categories')->truncate();
+                DB::table('products')->truncate();
+            }
+
+            Schema::enableForeignKeyConstraints();
+            DB::commit();
+
+            Notification::make()
+                ->title('Reseteo Correcto')
+                ->body('Se han vaciado las tablas seleccionadas y se han reiniciado los contadores de ID.')
+                ->success()
+                ->send();
+
+            return redirect()->to(request()->header('Referer'));
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Schema::enableForeignKeyConstraints();
+            Notification::make()
+                ->title('Error al resetear')
                 ->body($e->getMessage())
                 ->danger()
                 ->send();

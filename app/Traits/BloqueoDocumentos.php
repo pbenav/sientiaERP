@@ -68,8 +68,8 @@ trait BloqueoDocumentos
      */
     public function puedeEliminarse(): bool
     {
-        // 1. No se elimina si está anulado o procesado
-        if (in_array(strtolower($this->estado), ['procesado', 'anulado'])) {
+        // 1. No se elimina si está confirmado, anulado o procesado
+        if (in_array(strtolower($this->estado), ['procesado', 'anulado', 'confirmado'])) {
             return false;
         }
 

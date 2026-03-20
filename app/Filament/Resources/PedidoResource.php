@@ -27,6 +27,7 @@ class PedidoResource extends Resource
     protected static string $deletePermission = 'ventas.delete';
 
     protected static ?string $model = Documento::class;
+    protected static ?string $slug = 'pedidos';
 
     protected static ?string $navigationIcon = 'heroicon-o-shopping-bag';
 
@@ -258,9 +259,23 @@ class PedidoResource extends Resource
                                     ->send();
                             }
                         }),
+                    Tables\Actions\BulkAction::make('borrar_en_cadena')
+                        ->label('Borrar en cadena')
+                        ->icon('heroicon-o-trash')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalDescription('Esta acción borrará los pedidos seleccionados Y TODA su cadena de origen (presupuestos) de forma recursiva. IMPORTANTE: Solo se eliminarán los documentos que no estén bloqueados oficialmente.')
+                        ->action(function ($records) {
+                            $count = 0;
+                            foreach ($records as $record) {
+                                if ($record->borrarEnCadena()) {
+                                    $count++;
+                                }
+                            }
+                            \Filament\Notifications\Notification::make()->title("Se han eliminado $count cadenas de documentos")->success()->send();
+                        }),
                     
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn($records) => $records && $records->every(fn($record) => $record->puedeEliminarse())),
+                    Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('fecha', 'desc');

@@ -26,6 +26,7 @@ class AlbaranCompraResource extends Resource
     protected static string $deletePermission = 'compras.delete';
 
     protected static ?string $model = Documento::class;
+    protected static ?string $slug = 'albaran-compras';
     protected static ?string $navigationIcon = 'heroicon-o-truck';
     protected static ?string $navigationLabel = 'Albaranes de Compra';
     protected static ?string $modelLabel = 'Albarán de Compra';
@@ -194,9 +195,25 @@ class AlbaranCompraResource extends Resource
                             Notification::make()->title('Error al agrupar')->danger()->body($e->getMessage())->send();
                         }
                     }),
-                Tables\Actions\DeleteBulkAction::make()->visible(fn($records) => $records && $records->every(fn($record) => $record->puedeEliminarse())),
-            ]),
-        ])->defaultSort('fecha', 'desc');
+                    Tables\Actions\BulkAction::make('borrar_en_cadena')
+                        ->label('Borrar en cadena')
+                        ->icon('heroicon-o-trash')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalDescription('Esta acción borrará los documentos de compra seleccionados Y TODA su cadena de origen de forma recursiva. IMPORTANTE: Solo se eliminarán los documentos que no estén bloqueados oficialmente.')
+                        ->action(function ($records) {
+                            $count = 0;
+                            foreach ($records as $record) {
+                                if ($record->borrarEnCadena()) {
+                                    $count++;
+                                }
+                            }
+                            \Filament\Notifications\Notification::make()->title("Se han eliminado $count cadenas de documentos")->success()->send();
+                        }),
+                    
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
+            ])->defaultSort('fecha', 'desc');
     }
 
     public static function getRelations(): array

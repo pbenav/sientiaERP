@@ -27,6 +27,7 @@ class FacturaResource extends Resource
     protected static string $deletePermission = 'ventas.delete';
 
     protected static ?string $model = Documento::class;
+    protected static ?string $slug = 'facturas';
 
     protected static ?string $navigationIcon = 'heroicon-o-document-currency-euro';
 
@@ -271,8 +272,23 @@ class FacturaResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn($records) => $records && $records->every(fn($record) => $record->puedeEliminarse())),
+                    Tables\Actions\BulkAction::make('borrar_en_cadena')
+                        ->label('Borrar en cadena')
+                        ->icon('heroicon-o-trash')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalDescription('Esta acción borrará las facturas seleccionadas Y TODA su cadena de origen (albaranes, pedidos, etc.) de forma recursiva. IMPORTANTE: Solo se eliminarán los documentos que no estén bloqueados oficialmente (como facturas con número asignado).')
+                        ->action(function ($records) {
+                            $count = 0;
+                            foreach ($records as $record) {
+                                if ($record->borrarEnCadena()) {
+                                    $count++;
+                                }
+                            }
+                            \Filament\Notifications\Notification::make()->title("Se han eliminado $count cadenas de documentos")->success()->send();
+                        }),
+                    
+                    Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('fecha', 'desc');

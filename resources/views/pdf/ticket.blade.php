@@ -155,9 +155,9 @@
             <div class="text-center" style="margin-top: 5px;">
                 <div style="font-size: 8px; margin-bottom: 5px; font-weight: bold;">Factura verificable en la sede
                     electr&oacute;nica de la AEAT</div>
-                <img src="data:image/png;base64, {!! base64_encode(
-                    SimpleSoftwareIO\QrCode\Facades\QrCode::format('png')->size(100)->generate($doc->verifactu_qr_url),
-                ) !!} ">
+                <img src="data:image/svg+xml;base64,{!! base64_encode(
+                    SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(100)->generate($doc->verifactu_qr_url),
+                ) !!}">
                 <div style="font-size: 7px; margin-top: 5px; font-family: monospace; color: #333;">Huella:
                     {{ substr($doc->verifactu_huella, 0, 20) }}...</div>
             </div>

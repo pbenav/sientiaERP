@@ -620,4 +620,34 @@ class Documento extends Model
     {
         return $query->where('estado', 'completado');
     }
+
+    /**
+     * Borrado recursivo en cadena (este documento y todos sus orígenes)
+     */
+    public function borrarEnCadena(): bool
+    {
+        // 1. Recoger orígenes ANTES de borrar este
+        $origenSimple = $this->documentoOrigen;
+        $origenesMultiples = $this->documentosOrigenMultiples()->get();
+
+        // 2. Intentar borrar este documento
+        if (!$this->puedeEliminarse()) {
+            return false;
+        }
+
+        if (!$this->delete()) {
+            return false;
+        }
+
+        // 3. Procesar orígenes recursivamente
+        if ($origenSimple) {
+            $origenSimple->borrarEnCadena();
+        }
+
+        foreach ($origenesMultiples as $origen) {
+            $origen->borrarEnCadena();
+        }
+
+        return true;
+    }
 }

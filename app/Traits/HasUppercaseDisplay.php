@@ -64,6 +64,8 @@ trait HasUppercaseDisplay
             'archivo',
             'status',
             'type',
+            'role',
+            'permissions',
         ], $this->excludedFromFormatting ?? []);
     }
 }

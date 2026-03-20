@@ -24,6 +24,7 @@ class PresupuestoCompraResource extends Resource
     protected static string $deletePermission = 'compras.delete';
 
     protected static ?string $model = Documento::class;
+    protected static ?string $slug = 'presupuesto-compras';
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
     protected static ?string $navigationLabel = 'Presupuestos de Compra';
     protected static ?string $modelLabel = 'Presupuesto de Compra';
@@ -122,6 +123,22 @@ class PresupuestoCompraResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\BulkAction::make('borrar_en_cadena')
+                        ->label('Borrar en cadena')
+                        ->icon('heroicon-o-trash')
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalDescription('Esta acción borrará los presupuestos seleccionados. IMPORTANTE: Solo se eliminarán los documentos que no estén bloqueados oficialmente.')
+                        ->action(function ($records) {
+                            $count = 0;
+                            foreach ($records as $record) {
+                                if ($record->borrarEnCadena()) {
+                                    $count++;
+                                }
+                            }
+                            \Filament\Notifications\Notification::make()->title("Se han eliminado $count documentos")->success()->send();
+                        }),
+                    
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])

@@ -61,6 +61,11 @@ class TerceroResource extends Resource
                             ->required()
                             ->unique(ignoreRecord: true)
                             ->maxLength(20),
+
+                        Forms\Components\Toggle::make('es_persona_fisica')
+                            ->label('Es Persona Física')
+                            ->helperText('Activar si es autónomo o particular.')
+                            ->inline(false),
                         
                         Forms\Components\Select::make('tipos')
                             ->label('Tipos de Tercero')
@@ -233,6 +238,24 @@ class TerceroResource extends Resource
                             ->suffix('%')
                             ->extraInputAttributes(['style' => 'width: 120px']),
                     ])->columns(2),
+
+                Forms\Components\Section::make('Factura Electrónica (B2G / FACe)')
+                    ->description('Códigos DIR3 obligatorios para facturación a administraciones públicas.')
+                    ->collapsible()
+                    ->schema([
+                        Forms\Components\TextInput::make('dir3_oficina_contable')
+                            ->label('Oficina Contable')
+                            ->placeholder('Ej: L01080197')
+                            ->maxLength(15),
+                        Forms\Components\TextInput::make('dir3_organo_gestor')
+                            ->label('Órgano Gestor')
+                            ->placeholder('Ej: L01080197')
+                            ->maxLength(15),
+                        Forms\Components\TextInput::make('dir3_unidad_tramitadora')
+                            ->label('Unidad Tramitadora')
+                            ->placeholder('Ej: L01080197')
+                            ->maxLength(15),
+                    ])->columns(3),
 
                 Forms\Components\Section::make('Observaciones')
                     ->schema([

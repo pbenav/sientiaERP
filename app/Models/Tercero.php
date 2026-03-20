@@ -24,6 +24,7 @@ class Tercero extends Model
         'iban', 'swift', 'banco',
         'forma_pago', 'forma_pago_id', 'dias_pago', 'descuento_comercial', 'limite_credito',
         'recargo_equivalencia', 'irpf',
+        'dir3_oficina_contable', 'dir3_organo_gestor', 'dir3_unidad_tramitadora', 'es_persona_fisica',
         'activo', 'observaciones'
     ];
 
@@ -31,9 +32,11 @@ class Tercero extends Model
         'activo' => 'boolean',
         'direccion_envio_diferente' => 'boolean',
         'recargo_equivalencia' => 'boolean',
+        'es_persona_fisica' => 'boolean',
         'descuento_comercial' => 'decimal:2',
         'limite_credito' => 'decimal:2',
         'irpf' => 'decimal:2',
+        'activo' => 'boolean',
     ];
 
     protected static function boot()
