@@ -13,6 +13,7 @@ use App\Models\Product;
 use App\Models\Ticket;
 use App\Models\Setting;
 use Filament\Notifications\Notification;
+use Filament\Support\Enums\MaxWidth;
 
 class CreateTicket extends Page
 {
@@ -21,6 +22,11 @@ class CreateTicket extends Page
     protected static string $view = 'filament.resources.ticket-resource.pages.create-ticket';
 
     protected ?string $heading = '';
+
+    public function getMaxContentWidth(): MaxWidth
+    {
+        return MaxWidth::Full;
+    }
 
     // Propiedades para la gestión del POS
     public $tpvActivo = 1;
@@ -479,7 +485,10 @@ class CreateTicket extends Page
         $this->nuevoNombre = $producto->name; 
         $this->nuevoPrecio = $producto->price;
         $this->nuevoCantidad = 1;
-        $this->nuevoDescuento = 0;
+        // Solo resetear descuento si no se ha introducido uno manualmente ya
+        if ($this->nuevoDescuento == 0) {
+            $this->nuevoDescuento = 0;
+        }
         $this->calcularImporteLinea();
         
         $this->dispatch('focus-cantidad');
@@ -575,6 +584,7 @@ class CreateTicket extends Page
             'product_id' => $this->nuevoProducto->id,
             'cantidad' => $this->nuevoCantidad,
             'precio' => $this->nuevoPrecio,
+            'descuento' => (float)$this->nuevoDescuento,
             'importe' => $this->nuevoImporte,
         ];
         
@@ -614,6 +624,7 @@ class CreateTicket extends Page
                 'product_id' => $linea['product_id'],
                 'quantity' => $linea['cantidad'],
                 'unit_price' => $linea['precio'],
+                'discount_percentage' => (float)($linea['descuento'] ?? 0),
                 'tax_rate' => $taxRate,
                 'subtotal' => round($linea['importe'] / $divisor, 4),
                 'tax_amount' => round($linea['importe'] - ($linea['importe'] / $divisor), 4),

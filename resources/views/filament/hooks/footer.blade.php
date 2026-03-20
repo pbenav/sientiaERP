@@ -4,7 +4,7 @@
 
         <span class="flex items-center gap-1">
             <x-filament::icon icon="heroicon-o-information-circle" class="h-4 w-4" />
-            Versi&oacute;n: 1.0.4 - Rescue Linear
+            Versi&oacute;n: {{ config('app.version') }}
         </span>
 
         <a href="https://www.patreon.com/sientia" target="_blank" tabindex="-1"

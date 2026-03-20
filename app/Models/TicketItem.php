@@ -15,6 +15,7 @@ class TicketItem extends Model
         'product_id',
         'quantity',
         'unit_price',
+        'discount_percentage',
         'tax_rate',
         'subtotal',
         'tax_amount',
@@ -24,6 +25,7 @@ class TicketItem extends Model
     protected $casts = [
         'quantity' => 'integer',
         'unit_price' => 'decimal:2',
+        'discount_percentage' => 'decimal:2',
         'tax_rate' => 'decimal:2',
         'subtotal' => 'decimal:2',
         'tax_amount' => 'decimal:2',
@@ -58,7 +60,8 @@ class TicketItem extends Model
      */
     protected function calculateAmounts(): void
     {
-        $this->subtotal = $this->unit_price * $this->quantity;
+        $grossSubtotal = $this->unit_price * $this->quantity;
+        $this->subtotal = $grossSubtotal * (1 - ($this->discount_percentage / 100));
         $this->tax_amount = $this->subtotal * ($this->tax_rate / 100);
         $this->total = $this->subtotal + $this->tax_amount;
     }

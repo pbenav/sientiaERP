@@ -16,6 +16,24 @@
                 outline: 2px solid #F59E0B;
                 border-color: #F59E0B;
             }
+
+            /* Forzar ancho completo en Filament */
+            .fi-main-ctn,
+            .fi-page-header,
+            .fi-page-content {
+                max-width: none !important;
+                width: 100% !important;
+            }
+
+            .fi-page {
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+            }
+
+            #tpv-main-container {
+                min-width: min-content;
+                width: 100% !important;
+            }
         </style>
         <script>
             document.addEventListener('focusin', (e) => {
@@ -31,6 +49,12 @@
     @endpush
 
     <div x-data="{
+        zoom: parseFloat(localStorage.getItem('pos_zoom') || 1.0),
+        adjustZoom(delta) {
+            this.zoom = Math.round((this.zoom + delta) * 10) / 10;
+            this.zoom = Math.max(0.7, Math.min(1.5, this.zoom));
+            localStorage.setItem('pos_zoom', this.zoom);
+        },
         handleEnter(e) {
             if (e.target.tagName === 'INPUT' && e.target.type !== 'submit') {
                 const inputs = Array.from(document.querySelectorAll('input.pos-input,  button.pos-action'));
@@ -42,10 +66,10 @@
                 }
             }
         }
-    }"
+    }" id="tpv-main-container" :style="'zoom: ' + zoom"
         class="flex flex-col text-gray-500 bg-white border border-gray-200 shadow-sm font-sans text-sm w-full md:rounded-lg">
         {{-- Barra de Navegación Profesional --}}
-        <div class="bg-primary-600 text-white px-4 py-2 flex justify-between items-center shrink-0">
+        <div class="bg-primary-600 text-white px-4 py-2 flex justify-between items-center shrink-0 min-w-max">
             <div class="flex items-center gap-4">
                 <div class="flex items-center gap-2">
                     <x-heroicon-s-computer-desktop class="w-5 h-5 text-white" />
@@ -57,7 +81,7 @@
                 <div class="flex gap-1 bg-primary-700/50 p-1 rounded-lg border border-white/10">
                     @foreach (range(1, 4) as $tpv)
                         <button wire:click="cambiarTpv({{ $tpv }})" type="button"
-                            class="px-3 py-1 rounded text-[10px] font-black transition-all duration-200 uppercase
+                            class="px-3 py-1 rounded text-[10px] font-black transition-all duration-200 uppercase whitespace-nowrap
                                        {{ (int) $tpvActivo === (int) $tpv
                                            ? 'bg-white text-primary-700 shadow-inner'
                                            : 'text-primary-100 hover:bg-primary-500 hover:text-white' }}"
@@ -77,9 +101,18 @@
             </div>
 
             <div class="flex items-center gap-2">
+                <div class="flex items-center bg-primary-700/50 rounded-md p-1 border border-white/10 mr-2">
+                    <button @click="adjustZoom(-0.1)" type="button"
+                        class="px-2 py-0.5 hover:bg-white/20 rounded text-white font-black text-xs transition">-</button>
+                    <span class="px-2 text-[9px] font-black text-primary-100 min-w-[35px] text-center"
+                        x-text="Math.round(zoom * 100) + '%'"></span>
+                    <button @click="adjustZoom(0.1)" type="button"
+                        class="px-2 py-0.5 hover:bg-white/20 rounded text-white font-black text-xs transition">+</button>
+                </div>
+
                 @if ($isSessionOpen)
                     <button wire:click="openClosingModal" type="button"
-                        class="group flex items-center gap-1.5 px-4 py-1.5 bg-amber-500 hover:bg-amber-600 rounded-lg font-black text-[11px] uppercase transition shadow-lg active:scale-95 text-black">
+                        class="group flex items-center gap-1.5 px-4 py-1.5 bg-amber-500 hover:bg-amber-600 rounded-lg font-black text-[11px] uppercase transition shadow-lg active:scale-95 text-black whitespace-nowrap">
                         <x-heroicon-s-banknotes class="w-4 h-4 group-hover:rotate-12 transition-transform" />
                         ARQUEO / CIERRE
                     </button>
@@ -176,11 +209,11 @@
 
                 <div class="w-40 relative" wire:key="container-codigo">
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Código</label>
-                    <input type="text" wire:model.live.debounce.300ms="nuevoCodigo"
+                    <input type="text" wire:model.live.debounce.150ms="nuevoCodigo"
                         @focus="openSearch = true; searchType = 'sku'"
                         @keydown.down.prevent="if(openSearch) { selectedIndex = Math.min(selectedIndex + 1, $refs.skuList.children.length - 1) }"
                         @keydown.up.prevent="if(openSearch) { selectedIndex = Math.max(selectedIndex - 1, 0) }"
-                        @keydown.enter.prevent="if(openSearch && $refs.skuList.children[selectedIndex]) { $refs.skuList.children[selectedIndex].click() } else { $wire.anotarLinea() }"
+                        @keydown.enter.prevent="if(openSearch && $refs.skuList.children[selectedIndex]) { $refs.skuList.children[selectedIndex].click() } else { $wire.set('nuevoCodigo', $event.target.value).then(() => $wire.anotarLinea()) }"
                         id="pos-codigo" autocomplete="off" onfocus="this.select()"
                         class="pos-input w-full h-9 border-gray-300 rounded-none px-2 font-mono text-sm focus:ring-primary-500 focus:border-primary-500 uppercase"
                         placeholder="SKU" autofocus />
@@ -206,11 +239,11 @@
                 <div class="flex-1 min-w-[200px] relative" wire:key="container-descripcion">
                     <label
                         class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Descripción</label>
-                    <input type="text" wire:model.live.debounce.300ms="nuevoNombre"
+                    <input type="text" wire:model.live.debounce.150ms="nuevoNombre"
                         @focus="openSearch = true; searchType = 'description'"
                         @keydown.down.prevent="if(openSearch) { selectedIndex = Math.min(selectedIndex + 1, $refs.descList.children.length - 1) }"
                         @keydown.up.prevent="if(openSearch) { selectedIndex = Math.max(selectedIndex - 1, 0) }"
-                        @keydown.enter.prevent="if(openSearch && $refs.descList.children[selectedIndex]) { $refs.descList.children[selectedIndex].click() } else { $wire.anotarLinea() }"
+                        @keydown.enter.prevent="if(openSearch && $refs.descList.children[selectedIndex]) { $refs.descList.children[selectedIndex].click() } else { $wire.set('nuevoNombre', $event.target.value).then(() => $wire.anotarLinea()) }"
                         id="pos-descripcion" autocomplete="off" onfocus="this.select()"
                         class="pos-input w-full h-9 border-gray-300 rounded-none px-2 text-sm focus:ring-primary-500 focus:border-primary-500"
                         placeholder="Escribe para buscar..." />
@@ -243,7 +276,8 @@
                     <label
                         class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Cant</label>
                     <input type="number" wire:model.live="nuevoCantidad"
-                        x-on:keydown.enter.prevent="$wire.anotarLinea()" id="pos-cantidad" onfocus="this.select()"
+                        x-on:keydown.enter.prevent="$wire.set('nuevoCantidad', $event.target.value).then(() => $wire.anotarLinea())"
+                        id="pos-cantidad" onfocus="this.select()"
                         class="pos-input w-full h-9 border-gray-300 rounded-none px-2 text-right font-bold text-gray-800 focus:ring-primary-500 focus:border-primary-500" />
                 </div>
 
@@ -251,8 +285,8 @@
                     <label
                         class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Precio</label>
                     <input type="number" wire:model.live="nuevoPrecio"
-                        x-on:keydown.enter.prevent="document.getElementById('pos-descuento').focus()" step="0.01"
-                        id="pos-precio" onfocus="this.select()"
+                        x-on:keydown.enter.prevent="$wire.set('nuevoPrecio', $event.target.value).then(() => document.getElementById('pos-descuento').focus())"
+                        step="0.01" id="pos-precio" onfocus="this.select()"
                         class="pos-input w-full h-9 border-gray-300 rounded-none px-2 text-right text-sm focus:ring-primary-500 focus:border-primary-500" />
                 </div>
 
@@ -260,9 +294,9 @@
                     <label
                         class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Dto%</label>
                     <input type="number" wire:model.live="nuevoDescuento"
-                        x-on:keydown.enter.prevent="$wire.anotarLinea()"
-                        x-on:keydown.tab.prevent="$wire.anotarLinea()" step="0.01" id="pos-descuento"
-                        onfocus="this.select()"
+                        x-on:keydown.enter.prevent="$wire.set('nuevoDescuento', $event.target.value).then(() => $wire.anotarLinea())"
+                        x-on:keydown.tab.prevent="$wire.set('nuevoDescuento', $event.target.value).then(() => $wire.anotarLinea())"
+                        step="0.01" id="pos-descuento" onfocus="this.select()"
                         class="pos-input w-full h-9 border-gray-300 rounded-none px-2 text-right text-sm focus:ring-primary-500 focus:border-primary-500" />
                 </div>
 
@@ -340,7 +374,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="px-6 py-4 text-center text-xs text-gray-400 italic">
+                                    <td colspan="8" class="px-6 py-2 text-center text-[10px] text-gray-400 italic">
                                         No hay artículos añadidos
                                     </td>
                                 </tr>
@@ -420,15 +454,15 @@
                     {{-- Bloque Pagos --}}
                     <div class="flex-1 flex gap-3 bg-gray-50 p-3 rounded-none border border-gray-200 shadow-inner">
                         <div class="flex flex-col flex-1">
-                            <span class="text-[9px] font-black text-green-700 uppercase leading-none mb-1">Efectivo
-                                (€)</span>
+                            <span
+                                class="text-[9px] font-black text-green-700 uppercase leading-none mb-1 whitespace-nowrap">Efectivo(€)</span>
                             <input onfocus="this.select()" type="number" wire:model.live="pago_efectivo"
                                 @keydown.enter="$wire.grabarTicket()"
                                 class="h-9 w-full text-right text-base border-gray-300 rounded-none bg-white font-bold text-gray-800 shadow-sm" />
                         </div>
                         <div class="flex flex-col flex-1">
-                            <span class="text-[9px] font-black text-blue-700 uppercase leading-none mb-1">Tarjeta
-                                (€)</span>
+                            <span
+                                class="text-[9px] font-black text-blue-700 uppercase leading-none mb-1 whitespace-nowrap">Tarjeta(€)</span>
                             <input onfocus="this.select()" type="number" wire:model.live="pago_tarjeta"
                                 @keydown.enter="$wire.grabarTicket()"
                                 class="h-9 w-full text-right text-base border-gray-300 rounded-none bg-white font-bold text-gray-800 shadow-sm" />
@@ -453,17 +487,13 @@
                         </div>
                     </div>
 
-                    {{-- TOTAL A PAGAR (AHORA DESTACADO CON ESTILO DEL ANTERIOR CAMBIO) --}}
+                    {{-- TOTAL A PAGAR (ESTILO UNIFICADO) --}}
                     <div
-                        class="flex flex-row items-center gap-4 bg-green-50 rounded shadow-md px-6 border border-green-200 min-w-[240px] h-[72px] hover:scale-[1.01] transition-transform">
-                        <div class="flex flex-col items-start leading-none gap-0.5">
-                            <span class="text-[10px] uppercase font-bold text-green-500 tracking-wider">TOTAL</span>
-                            <span class="text-[10px] uppercase font-black text-green-800 tracking-wider">PAGAR</span>
-                        </div>
-                        <div class="flex items-baseline gap-2 flex-1 justify-end">
-                            <span
-                                class="font-black text-5xl text-green-800 tabular-nums">{{ number_format($total ?? 0, 2) }}</span>
-                            <span class="font-black text-2xl text-green-600">€</span>
+                        class="flex flex-col gap-1 bg-green-50 p-3 rounded-none border border-green-200 shadow-md min-w-[200px]">
+                        <span class="text-[9px] font-black text-green-600 uppercase leading-none">TOTAL A PAGAR</span>
+                        <div
+                            class="h-9 w-full flex items-center justify-end px-2 border border-green-300 bg-white font-black text-2xl text-green-800 tabular-nums shadow-inner">
+                            {{ number_format($total ?? 0, 2) }} <span class="text-sm ml-1.5 text-green-600">€</span>
                         </div>
                     </div>
                 </div>
