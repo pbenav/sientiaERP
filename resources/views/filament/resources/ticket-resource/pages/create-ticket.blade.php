@@ -73,8 +73,8 @@
             <div class="flex items-center gap-4">
                 <div class="flex items-center gap-2">
                     <x-heroicon-s-computer-desktop class="w-5 h-5 text-white" />
-                    <span class="font-black text-lg tracking-tight">SIENTIA <span
-                            class="text-primary-200">POS</span></span>
+                    <span class="font-black text-xl tracking-tight">SIENTIA <span class="text-primary-200">POS
+                            V3.0</span></span>
                 </div>
 
                 {{-- Selector de Ventas Simultáneas (TPV 1-4) --}}
@@ -339,7 +339,9 @@
                                 <th class="px-2 py-2 text-left">Descripción</th>
                                 <th class="px-2 py-2 text-right w-16">Cant.</th>
                                 <th class="px-2 py-2 text-right w-20">Precio</th>
-                                <th class="px-2 py-2 text-right w-16">Dto%</th>
+                                <th
+                                    class="px-2 py-2 text-right w-20 bg-primary-100 text-primary-900 border-x border-primary-200 ring-1 ring-primary-300">
+                                    DESC. %</th>
                                 <th class="px-2 py-2 text-right w-24">Importe</th>
                                 <th class="px-2 py-2 text-center w-20">Acciones</th>
                             </tr>
