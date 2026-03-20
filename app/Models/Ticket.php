@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
+use App\Traits\HasUppercaseDisplay;
 
 class Ticket extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUppercaseDisplay;
 
     protected $fillable = [
         'user_id',

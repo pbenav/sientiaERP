@@ -146,6 +146,13 @@ class SettingsPage extends Page
                                                 '' => 'Ninguno',
                                             ])
                                             ->required(),
+                                        Select::make('display_uppercase')
+                                            ->label('Forzar Mayúsculas Globales')
+                                            ->options([
+                                                'true' => 'SÍ (Todo en Mayúsculas)',
+                                                'false' => 'NO (Normal / Tal cual)',
+                                            ])
+                                            ->default('false'),
                                     ])->columns(2),
                                 Section::make('Finanzas y Precisión')
                                     ->description('Controla el redondeo de los cálculos matemáticos.')
@@ -193,12 +200,6 @@ class SettingsPage extends Page
                                         TextInput::make('pos_quick_skus')
                                             ->label('SKUs Acceso Rápido')
                                             ->placeholder('BOLSA,VARIO'),
-                                        Select::make('display_uppercase')
-                                            ->label('Mostrar capitalización')
-                                            ->options([
-                                                'true' => 'SÍ (Todo en Mayúsculas)',
-                                                'false' => 'NO (Normal / Tal cual)',
-                                            ]),
                                         Select::make('barcode_type')
                                             ->label('Tipo de Códigos')
                                             ->options([
