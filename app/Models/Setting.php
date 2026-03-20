@@ -20,6 +20,11 @@ class Setting extends Model
 
     public static function set(string $key, $value, ?string $label = null, ?string $group = null)
     {
+        // Global normalization for booleans
+        if (is_bool($value)) {
+            $value = $value ? 'true' : 'false';
+        }
+
         return static::updateOrCreate(
             ['key' => $key],
             [

@@ -93,7 +93,9 @@ class SettingsPage extends Page
             'verifactu_cert_password' => Setting::get('verifactu_cert_password'),
             'verifactu_active' => filter_var(Setting::get('verifactu_active', false), FILTER_VALIDATE_BOOLEAN),
             'verifactu_endpoint_test' => Setting::get('verifactu_endpoint_test', config('verifactu.endpoints.test')),
+            'verifactu_endpoint_test_query' => Setting::get('verifactu_endpoint_test_query', config('verifactu.endpoints.test_query')),
             'verifactu_endpoint_production' => Setting::get('verifactu_endpoint_production', config('verifactu.endpoints.production')),
+            'verifactu_endpoint_production_query' => Setting::get('verifactu_endpoint_production_query', config('verifactu.endpoints.production_query')),
         ]);
     }
 
@@ -319,8 +321,10 @@ class SettingsPage extends Page
                                     ->description('Direcciones web oficiales de la Agencia Tributaria')
                                     ->collapsed()
                                     ->schema([
-                                        TextInput::make('verifactu_endpoint_test')->label('URL Pruebas')->columnSpanFull(),
-                                        TextInput::make('verifactu_endpoint_production')->label('URL Producción (Oficial)')->columnSpanFull(),
+                                        TextInput::make('verifactu_endpoint_test')->label('URL Alta (Pruebas)')->columnSpanFull(),
+                                        TextInput::make('verifactu_endpoint_test_query')->label('URL Consulta (Pruebas)')->columnSpanFull(),
+                                        TextInput::make('verifactu_endpoint_production')->label('URL Alta (Producción)')->columnSpanFull(),
+                                        TextInput::make('verifactu_endpoint_production_query')->label('URL Consulta (Producción)')->columnSpanFull(),
                                     ]),
                             ]),
                     ])->columnSpanFull()
@@ -335,10 +339,6 @@ class SettingsPage extends Page
 
         foreach ($data as $key => $value) {
             $valToSave = is_array($value) ? (count($value) > 0 ? reset($value) : null) : $value;
-            // Normalize boolean values to 'true'/'false' strings for consistency
-            if (is_bool($valToSave)) {
-                $valToSave = $valToSave ? 'true' : 'false';
-            }
             Setting::set($key, $valToSave);
         }
         

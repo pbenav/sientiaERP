@@ -9,7 +9,8 @@ class AeatService
 {
     private string $certPath;
     private string $certPassword;
-    private string $endpoint;
+    private string $altaEndpoint;
+    private string $consultaEndpoint;
 
     public function __construct()
     {
@@ -27,9 +28,11 @@ class AeatService
         
         $mode = \App\Models\Setting::get('verifactu_mode', config('verifactu.mode', 'test'));
         if ($mode === 'production') {
-            $this->endpoint = \App\Models\Setting::get('verifactu_endpoint_production', config('verifactu.endpoints.production'));
+            $this->altaEndpoint = \App\Models\Setting::get('verifactu_endpoint_production', config('verifactu.endpoints.production'));
+            $this->consultaEndpoint = \App\Models\Setting::get('verifactu_endpoint_production_query', config('verifactu.endpoints.production_query'));
         } else {
-            $this->endpoint = \App\Models\Setting::get('verifactu_endpoint_test', config('verifactu.endpoints.test'));
+            $this->altaEndpoint = \App\Models\Setting::get('verifactu_endpoint_test', config('verifactu.endpoints.test'));
+            $this->consultaEndpoint = \App\Models\Setting::get('verifactu_endpoint_test_query', config('verifactu.endpoints.test_query'));
         }
     }
 
@@ -57,7 +60,7 @@ class AeatService
 
             $response = Http::withOptions($options)
                 ->withBody($this->wrapInSoapEnvelope($xmlContent), 'text/xml; charset=utf-8')
-                ->post($this->endpoint);
+                ->post($this->altaEndpoint);
 
             if ($response->successful()) {
                 return [
@@ -74,6 +77,49 @@ class AeatService
 
         } catch (\Exception $e) {
             Log::error("Verifactu Submission Error: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Enviar una consulta de facturas a la AEAT.
+     */
+    public function submitConsulta(string $xmlContent): array
+    {
+        try {
+            $options = ['verify' => true];
+
+            if (str_ends_with(strtolower($this->certPath), '.p12') || str_ends_with(strtolower($this->certPath), '.pfx')) {
+                $options['curl'] = [
+                    CURLOPT_SSLCERT => $this->certPath,
+                    CURLOPT_SSLCERTPASSWD => $this->certPassword,
+                    CURLOPT_SSLCERTTYPE => 'P12',
+                ];
+            } else {
+                $options['cert'] = [$this->certPath, $this->certPassword];
+            }
+
+            $response = Http::withOptions($options)
+                ->withBody($this->wrapInSoapEnvelope($xmlContent), 'text/xml; charset=utf-8')
+                ->post($this->consultaEndpoint);
+
+            if ($response->successful()) {
+                return [
+                    'success' => true,
+                    'data' => $response->body()
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => "AEAT Query Error ({$response->status()}): " . $response->body()
+            ];
+
+        } catch (\Exception $e) {
+            Log::error("Verifactu Query Error: " . $e->getMessage());
             return [
                 'success' => false,
                 'error' => $e->getMessage()
