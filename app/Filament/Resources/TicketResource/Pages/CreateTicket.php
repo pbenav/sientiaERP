@@ -737,7 +737,13 @@ class CreateTicket extends Page
 
     public function updatedPaymentMethod($value)
     {
-        if ($value === 'mixed') {
+        if ($value === 'cash') {
+            $this->pago_efectivo = (float)$this->total;
+            $this->pago_tarjeta = 0;
+        } elseif ($value === 'card') {
+            $this->pago_tarjeta = (float)$this->total;
+            $this->pago_efectivo = 0;
+        } elseif ($value === 'mixed') {
             $this->initMixedPayment();
         }
     }
