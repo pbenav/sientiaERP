@@ -338,9 +338,9 @@
                 </p>
             </div>
             <div style="float: right; width: 15%; text-align: right;">
-                <img src="data:image/png;base64, {!! base64_encode(
-                    SimpleSoftwareIO\QrCode\Facades\QrCode::format('png')->size(90)->margin(0)->generate($doc->verifactu_qr_url),
-                ) !!} " style="width: 80px; height: 80px;">
+                <img src="data:image/svg+xml;base64,{!! base64_encode(
+                    SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(90)->margin(0)->generate($doc->verifactu_qr_url),
+                ) !!}" style="width: 80px; height: 80px;">
             </div>
             <div class="clear"></div>
         </div>

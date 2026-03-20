@@ -30,6 +30,13 @@
             const zoomLabel = document.getElementById('global-zoom-label');
 
             window.applyZoom = function(val) {
+                // Si estamos en el TPV, ignoramos el zoom global para evitar doble escalado
+                // el TPV ya tiene su propio control de zoom independiente
+                if (document.getElementById('tpv-main-container')) {
+                    document.body.style.zoom = 1.0;
+                    return;
+                }
+
                 document.body.style.zoom = val;
                 if (zoomLabel) {
                     zoomLabel.innerText = Math.round(val * 100) + '%';
