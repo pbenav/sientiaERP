@@ -143,8 +143,17 @@
 
             {{-- Fila Única de Entrada --}}
             <div class="flex items-center space-x-1 bg-white p-2 rounded border border-gray-200 shadow-xs shrink-0"
-                x-data="{ focusNext(nextId) { setTimeout(() => { let el = document.getElementById(nextId); if (el) { el.focus();
-                                el.select(); } }, 50); } }" @focus-cantidad.window="focusNext('pos-cantidad')"
+                x-data="{
+                    focusNext(nextId) {
+                        setTimeout(() => {
+                            let el = document.getElementById(nextId);
+                            if (el) {
+                                el.focus();
+                                el.select();
+                            }
+                        }, 100);
+                    }
+                }" @focus-cantidad.window="focusNext('pos-cantidad')"
                 @focus-precio.window="focusNext('pos-precio')" @focus-descuento.window="focusNext('pos-descuento')"
                 @focus-codigo.window="focusNext('pos-codigo')">
                 <div class="w-32" wire:key="container-codigo">
@@ -179,7 +188,7 @@
                 <div class="w-20">
                     <label
                         class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Cant</label>
-                    <input type="number" wire:model.blur="nuevoCantidad"
+                    <input type="number" wire:model.live="nuevoCantidad"
                         x-on:keydown.enter.prevent="$wire.anotarLinea()" id="pos-cantidad" onfocus="this.select()"
                         class="pos-input w-full h-9 border-gray-300 rounded-none px-2 text-right font-bold text-gray-800 focus:ring-primary-500 focus:border-primary-500" />
                 </div>
@@ -187,7 +196,7 @@
                 <div class="w-24">
                     <label
                         class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Precio</label>
-                    <input type="number" wire:model.blur="nuevoPrecio"
+                    <input type="number" wire:model.live="nuevoPrecio"
                         x-on:keydown.enter.prevent="document.getElementById('pos-descuento').focus()" step="0.01"
                         id="pos-precio" onfocus="this.select()"
                         class="pos-input w-full h-9 border-gray-300 rounded-none px-2 text-right text-sm focus:ring-primary-500 focus:border-primary-500" />
@@ -196,7 +205,7 @@
                 <div class="w-16">
                     <label
                         class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none text-right">Dto%</label>
-                    <input type="number" wire:model.blur="nuevoDescuento"
+                    <input type="number" wire:model.live="nuevoDescuento"
                         x-on:keydown.enter.prevent="$wire.anotarLinea()"
                         x-on:keydown.tab.prevent="$wire.anotarLinea()" step="0.01" id="pos-descuento"
                         onfocus="this.select()"
@@ -205,7 +214,7 @@
 
                 <div class="w-32 bg-gray-50 rounded p-1 flex flex-col items-end justify-center border border-gray-200 h-10 px-6 mt-4"
                     style="margin-top: 20px;">
-                    <span
+                    <span wire:key="pos-nuevo-importe-{{ time() }}"
                         class="font-bold text-lg leading-none text-primary-600">{{ number_format($nuevoImporte, 2) }}</span>
                 </div>
 
@@ -250,7 +259,7 @@
                         <tbody class="text-sm">
                             @forelse($lineas as $idx => $linea)
                                 <tr class="border-b hover:bg-gray-50 bg-white"
-                                    wire:key="ticket-line-{{ $idx }}-{{ $linea['product_id'] }}">
+                                    wire:key="ticket-line-row-{{ $linea['id'] ?? 'temp-' . $idx }}">
                                     <td class="px-2 py-1 text-right text-gray-600 font-medium">{{ $idx + 1 }}
                                     </td>
                                     <td class="px-2 py-1 font-mono text-xs">{{ $linea['codigo'] }}</td>
@@ -267,7 +276,7 @@
                                                 title="Editar">
                                                 <x-heroicon-o-pencil class="w-4 h-4" />
                                             </button>
-                                            <button wire:click="eliminarLinea({{ $idx }})"
+                                            <button wire:click="eliminarLinea({{ $linea['id'] ?? -1 }})"
                                                 class="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"
                                                 title="Eliminar">
                                                 <x-heroicon-o-trash class="w-4 h-4" />
@@ -383,20 +392,23 @@
                             {{ $isPendingV ? 'FALTAN' : 'CAMBIO' }}
                         </span>
                         <div class="flex items-baseline gap-1 {{ $isPendingV ? 'text-red-900' : 'text-green-900' }}">
-                            <span class="font-black text-3xl leading-none">{{ number_format(abs($balVal), 2) }}</span>
-                            <span class="text-xs font-black">€</span>
+                            <span class="font-black text-xl leading-none">{{ number_format(abs($balVal), 2) }}</span>
+                            <span class="text-[10px] font-black uppercase">€</span>
                         </div>
                     </div>
 
-                    {{-- TOTAL A PAGAR --}}
-                    <div
-                        class="flex flex-col items-end justify-center rounded-none bg-amber-400 px-8 border-4 border-amber-600 shadow-2xl min-w-[200px] h-[72px]">
-                        <span
-                            class="text-[11px] uppercase font-black text-amber-900 tracking-widest leading-none mb-1">PAGAR
-                            TOTAL</span>
-                        <div class="flex items-baseline gap-1.5 text-black">
-                            <span class="font-black text-5xl leading-none">{{ number_format($total ?? 0, 2) }}</span>
-                            <span class="font-black text-2xl text-amber-900">€</span>
+                    {{-- TOTAL A PAGAR (ULTRA DESTACADO) --}}
+                    {{-- TOTAL A PAGAR (ULTRA DESTACADO) --}}
+                    <div style="background-color: #0f172a !important; border: 4px solid #f59e0b !important;"
+                        class="flex flex-row items-center gap-6 rounded-none px-6 shadow-2xl min-w-[320px] h-[80px] hover:scale-[1.02] transition-transform duration-200">
+                        <div class="flex flex-col items-start leading-none gap-1">
+                            <span class="text-[12px] uppercase font-black text-[#f59e0b] tracking-[0.2em]">PAGAR</span>
+                            <span class="text-[12px] uppercase font-black text-white tracking-[0.2em]">TOTAL</span>
+                        </div>
+                        <div class="flex items-baseline gap-2 flex-1 justify-end">
+                            <span
+                                class="font-black text-6xl text-[#fbbf24] tabular-nums">{{ number_format($total ?? 0, 2) }}</span>
+                            <span class="font-black text-3xl text-[#f59e0b]">€</span>
                         </div>
                     </div>
                 </div>

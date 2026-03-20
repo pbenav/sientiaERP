@@ -547,12 +547,13 @@ class CreateTicket extends Page
         // Forzar carga fresca de la relación para evitar caché de Eloquent en memoria
         $this->lineas = $this->ticket->items()->with('product')->get()->map(function($item) {
             return [
+                'id' => $item->id,
                 'product_id' => $item->product_id,
                 'codigo' => $item->product?->sku ?? '---',
                 'nombre' => $item->product?->name ?? '---',
                 'cantidad' => (float)$item->quantity,
                 'precio' => (float)$item->unit_price,
-                'descuento' => 0,
+                'descuento' => (float)($item->discount_percentage ?? 0),
                 'importe' => (float)$item->total,
             ];
         })->toArray();
@@ -619,17 +620,24 @@ class CreateTicket extends Page
         }
     }
     
-    public function eliminarLinea($index)
+    public function eliminarLinea($id)
     {
-        unset($this->lineas[$index]);
-        $this->lineas = array_values($this->lineas);
-        
-        $this->ticket->items()->delete();
-        foreach($this->lineas as $l) {
-            $this->persistirLinea($l);
+        if ($id <= 0) return;
+
+        if ($this->ticket) {
+            $this->ticket->items()->where('id', $id)->delete();
+            $this->ticket->unsetRelation('items'); // Limpiar relación cargada
+            $this->ticket->recalculateTotals();
+            $this->ticket->refresh();
         }
         
+        $this->recargarLineas();
         $this->recalcularTotales();
+        
+        Notification::make()
+            ->title('Línea eliminada')
+            ->success()
+            ->send();
     }
     /**
      * Añadir producto por SKU rápido (para Bolsa, Varios, etc)
@@ -1121,8 +1129,10 @@ class CreateTicket extends Page
         $this->nuevoDescuento = $linea['descuento'];
         $this->calcularImporteLinea();
         
-        // Eliminar la línea del array (se volverá a añadir al confirmar)
-        $this->eliminarLinea($index);
+        // Eliminar la línea de la base de datos (se volverá a añadir al confirmar tras editar)
+        if (isset($linea['id'])) {
+            $this->eliminarLinea($linea['id']);
+        }
         
         // Enfocar cantidad para modificar
         $this->dispatch('focus-cantidad');
