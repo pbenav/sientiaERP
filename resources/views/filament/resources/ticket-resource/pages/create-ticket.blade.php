@@ -340,7 +340,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="px-2 py-2 text-center text-gray-400 text-xs italic">
+                                    <td colspan="8" class="px-6 py-4 text-center text-xs text-gray-400 italic">
                                         No hay artículos añadidos
                                     </td>
                                 </tr>
@@ -433,35 +433,35 @@
                         </div>
                     </div>
 
-                    {{-- Dinámica de Cambio / Pendiente --}}
+                    {{-- Dinámica de Cambio / Pendiente (AHORA DISCRETO) --}}
                     @php
                         $receivedTotal = (float) ($pago_efectivo ?? 0) + (float) ($pago_tarjeta ?? 0);
                         $balVal = $receivedTotal - (float) ($total ?? 0);
                         $isPendingV = $balVal < -0.01;
                     @endphp
                     <div
-                        class="flex flex-col items-end p-3 px-6 rounded-none w-44 border-2 shadow-lg transition-all duration-300 {{ $isPendingV ? 'bg-red-100 border-red-500' : 'bg-green-100 border-green-500' }}">
+                        class="w-32 flex flex-col items-center justify-center bg-gray-50 border border-gray-200 p-2 shadow-inner">
                         <span
-                            class="text-[10px] uppercase font-black {{ $isPendingV ? 'text-red-700' : 'text-green-800' }} leading-none mb-1">
+                            class="text-[9px] font-black {{ $isPendingV ? 'text-red-500' : 'text-gray-500' }} uppercase leading-none mb-1">
                             {{ $isPendingV ? 'FALTAN' : 'CAMBIO' }}
                         </span>
-                        <div class="flex items-baseline gap-1 {{ $isPendingV ? 'text-red-900' : 'text-green-900' }}">
-                            <span class="font-black text-xl leading-none">{{ number_format(abs($balVal), 2) }}</span>
-                            <span class="text-[10px] font-black uppercase">€</span>
-                        </div>
+                        <span
+                            class="text-lg font-black {{ $isPendingV ? 'text-red-700' : 'text-gray-700' }} leading-none">
+                            {{ number_format(abs($balVal), 2) }} <small class="text-[10px]">€</small>
+                        </span>
                     </div>
 
-                    {{-- TOTAL A PAGAR (SOBRIO) --}}
+                    {{-- TOTAL A PAGAR (AHORA DESTACADO CON ESTILO DEL ANTERIOR CAMBIO) --}}
                     <div
-                        class="flex flex-row items-center gap-6 rounded-none bg-white px-8 border-2 border-gray-400 shadow-sm min-w-[280px] h-[72px]">
+                        class="flex flex-row items-center gap-4 bg-green-50 rounded shadow-md px-6 border border-green-200 min-w-[240px] h-[72px] hover:scale-[1.01] transition-transform">
                         <div class="flex flex-col items-start leading-none gap-0.5">
-                            <span class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">TOTAL</span>
-                            <span class="text-[10px] uppercase font-black text-gray-900 tracking-wider">PAGAR</span>
+                            <span class="text-[10px] uppercase font-bold text-green-500 tracking-wider">TOTAL</span>
+                            <span class="text-[10px] uppercase font-black text-green-800 tracking-wider">PAGAR</span>
                         </div>
                         <div class="flex items-baseline gap-2 flex-1 justify-end">
                             <span
-                                class="font-black text-5xl text-gray-900 tabular-nums">{{ number_format($total ?? 0, 2) }}</span>
-                            <span class="font-black text-2xl text-gray-500">€</span>
+                                class="font-black text-5xl text-green-800 tabular-nums">{{ number_format($total ?? 0, 2) }}</span>
+                            <span class="font-black text-2xl text-green-600">€</span>
                         </div>
                     </div>
                 </div>
