@@ -29,6 +29,12 @@ class InitVerifactu extends Command
      */
     public function handle(VerifactuService $service)
     {
+        if (!\App\Models\Setting::get('verifactu_active', false)) {
+            $this->error("Veri*Factu está DESACTIVADO en la configuración global.");
+            $this->line("Para inicializar el encadenamiento, actívalo primero en el panel de Configuración.");
+            return;
+        }
+
         $dateStr = $this->option('date') ?? now()->startOfMonth()->format('Y-m-d');
         $send = $this->option('send');
         $date = Carbon::parse($dateStr);
