@@ -52,7 +52,7 @@ class TicketResource extends Resource
         }
 
         return [
-            \Filament\Navigation\NavigationItem::make('TPV (Ctrl-F2)')
+            \Filament\Navigation\NavigationItem::make('TPV (F2)')
                 ->icon('heroicon-o-computer-desktop')
                 ->activeIcon('heroicon-s-computer-desktop')
                 ->isActiveWhen(fn () => request()->routeIs('filament.admin.resources.tickets.create'))
