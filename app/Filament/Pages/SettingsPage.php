@@ -177,20 +177,10 @@ class SettingsPage extends Page
         $oldMethod = Setting::get('profit_calculation_method', 'from_purchase');
         $data = $this->form->getState();
 
-        foreach ($data['SettingsTabs'] as $tabKey => $tabData) {
-             // En Filament V3 con Tabs, el state puede venir anidado o plano dependiendo de si Tabs tiene statePath.
-             // Aquí lo manejamos asumiendo que el statePath de Page es 'data'.
-        }
-        
-        // Re-mapeamos datos planos si vinieron así
-        $flatData = \Illuminate\Support\Arr::dot($data);
         foreach ($data as $key => $value) {
-            if (is_array($value)) continue; // Evitar pasar el array del tab si Filament lo anida
-            Setting::set($key, $value);
+            $valToSave = is_array($value) ? (count($value) > 0 ? reset($value) : null) : $value;
+            Setting::set($key, $valToSave);
         }
-        
-        // Si el tab anida los datos, los extraemos
-        // En este caso, al no poner statePath en Tabs, vienen en el nivel raíz de $data.
         
         if ($oldMethod !== ($data['profit_calculation_method'] ?? $oldMethod)) {
             \App\Models\Product::all()->each(function($product) {
