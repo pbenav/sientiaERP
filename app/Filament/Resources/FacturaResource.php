@@ -116,13 +116,37 @@ class FacturaResource extends Resource
                     ->visibleOn('edit')
                     ->collapsible(),
 
-                Forms\Components\Section::make('Observaciones')
-                    ->schema([
-                        Forms\Components\Textarea::make('observaciones')
-                            ->label('Observaciones (visibles en el documento)')
-                            ->rows(3)
-                            ->columnSpanFull(),
-                    ]),
+                        Forms\Components\Section::make('Observaciones')
+                            ->schema([
+                                Forms\Components\Textarea::make('observaciones')
+                                    ->label('Observaciones (visibles en el documento)')
+                                    ->rows(3)
+                                    ->columnSpanFull(),
+                            ]),
+                        Forms\Components\Section::make('Veri*Factu (Digital Signature)')
+                            ->icon('heroicon-o-shield-check')
+                            ->collapsible()
+                            ->collapsed()
+                            ->schema([
+                                Forms\Components\Grid::make(3)
+                                    ->schema([
+                                        Forms\Components\TextInput::make('verifactu_status')
+                                            ->label('Estado AEAT')
+                                            ->disabled(),
+                                        Forms\Components\TextInput::make('verifactu_aeat_id')
+                                            ->label('ID Traza AEAT')
+                                            ->disabled(),
+                                        Forms\Components\TextInput::make('verifactu_huella')
+                                            ->label('Huella Digital (Hash)')
+                                            ->disabled()
+                                            ->columnSpan(2),
+                                        Forms\Components\TextInput::make('verifactu_huella_anterior')
+                                            ->label('Huella Anterior (Chain)')
+                                            ->disabled()
+                                            ->columnSpan(2),
+                                    ])
+                            ])
+                            ->visible(fn($record) => $record && !empty($record->verifactu_huella)),
             ]);
     }
 
@@ -166,6 +190,20 @@ class FacturaResource extends Resource
                         'primary' => 'cobrado',
                         'danger' => 'anulado',
                     ]),
+                Tables\Columns\IconColumn::make('verifactu_status')
+                    ->label('VF')
+                    ->options([
+                        'heroicon-s-check-circle' => 'accepted',
+                        'heroicon-s-x-circle' => 'error',
+                        'heroicon-s-clock' => 'pending',
+                    ])
+                    ->colors([
+                        'success' => 'accepted',
+                        'danger' => 'error',
+                        'warning' => 'pending',
+                    ])
+                    ->tooltip(fn($record) => $record->verifactu_aeat_id ? "AEAT ID: {$record->verifactu_aeat_id}" : "Veri*Factu: {$record->verifactu_status}")
+                    ->visible(fn() => \App\Models\Setting::get('verifactu_active', false)),
                 
                 Tables\Columns\TextColumn::make('recibos_count')
                     ->label('Recibos')

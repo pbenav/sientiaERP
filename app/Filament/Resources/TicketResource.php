@@ -100,6 +100,30 @@ class TicketResource extends Resource
                         'cancelled' => 'Cancelado',
                     ])
                     ->required(),
+                Forms\Components\Section::make('Veri*Factu (Digital Signature)')
+                    ->icon('heroicon-o-shield-check')
+                    ->collapsible()
+                    ->collapsed()
+                    ->schema([
+                        Forms\Components\Grid::make(3)
+                            ->schema([
+                                Forms\Components\TextInput::make('verifactu_status')
+                                    ->label('Estado AEAT')
+                                    ->disabled(),
+                                Forms\Components\TextInput::make('verifactu_aeat_id')
+                                    ->label('ID Traza AEAT')
+                                    ->disabled(),
+                                Forms\Components\TextInput::make('verifactu_huella')
+                                    ->label('Huella Digital (Hash)')
+                                    ->disabled()
+                                    ->columnSpan(2),
+                                Forms\Components\TextInput::make('verifactu_huella_anterior')
+                                    ->label('Huella Anterior (Chain)')
+                                    ->disabled()
+                                    ->columnSpan(2),
+                            ])
+                    ])
+                    ->visible(fn($record) => $record && !empty($record->verifactu_huella)),
             ]);
     }
 
@@ -169,6 +193,20 @@ class TicketResource extends Resource
                         'completed' => 'Completado',
                         'cancelled' => 'Cancelado',
                     ]),
+                Tables\Columns\IconColumn::make('verifactu_status')
+                    ->label('VF')
+                    ->options([
+                        'heroicon-s-check-circle' => 'accepted',
+                        'heroicon-s-x-circle' => 'error',
+                        'heroicon-s-clock' => 'pending',
+                    ])
+                    ->colors([
+                        'success' => 'accepted',
+                        'danger' => 'error',
+                        'warning' => 'pending',
+                    ])
+                    ->tooltip(fn($record) => $record->verifactu_aeat_id ? "AEAT ID: {$record->verifactu_aeat_id}" : "Veri*Factu: {$record->verifactu_status}")
+                    ->visible(fn() => \App\Models\Setting::get('verifactu_active', false)),
                 
                 Tables\Filters\SelectFilter::make('user')
                     ->label('Operador')
