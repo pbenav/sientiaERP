@@ -13,7 +13,8 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'sienteERP'),
+    'name' => env('APP_NAME', 'sienteERP'),    
+    'version' => env('APP_VERSION', '0.3.0'),
 
     /*
     |--------------------------------------------------------------------------

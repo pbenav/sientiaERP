@@ -266,16 +266,16 @@
                         class="pos-input w-full h-9 border-gray-300 rounded-none px-2 text-right text-sm focus:ring-primary-500 focus:border-primary-500" />
                 </div>
 
-                <div class="w-32 bg-gray-50 rounded p-1 flex flex-col items-end justify-center border border-gray-200 h-10 px-6 mt-4"
-                    style="margin-top: 20px;">
+                <div class="w-32 bg-gray-50 rounded p-1 flex flex-col items-end justify-center border border-gray-200 h-9 px-4 mt-4"
+                    style="margin-top: 18px;">
                     <span wire:key="pos-nuevo-importe-{{ time() }}"
                         class="font-bold text-lg leading-none text-primary-600">{{ number_format($nuevoImporte, 2) }}</span>
                 </div>
 
                 <button wire:click="anotarLinea" wire:keydown.enter="anotarLinea" id="btn-anadir-producto"
                     tabindex="0"
-                    class="pos-action mt-3 h-8 w-10 bg-primary-600 hover:bg-primary-500 text-white rounded-none shadow-sm flex items-center justify-center transition focus:ring-2 focus:ring-offset-1 focus:ring-primary-600"
-                    style="margin-top: 15px;">
+                    class="pos-action h-9 w-10 bg-primary-600 hover:bg-primary-500 text-white rounded-none shadow-sm flex items-center justify-center transition focus:ring-2 focus:ring-offset-1 focus:ring-primary-600"
+                    style="margin-top: 18px;">
                     <x-heroicon-m-plus class="w-5 h-5" />
                 </button>
             </div>
@@ -295,7 +295,7 @@
 
             {{-- Grid --}}
             <div
-                class="border border-gray-200 rounded-none bg-white shadow-sm flex flex-col h-[65vh] md:h-[calc(100vh-280px)] overflow-hidden shrink-0">
+                class="border border-gray-200 rounded-none bg-white shadow-sm flex flex-col md:h-[calc(100vh-320px)] overflow-hidden shrink-0">
                 <div class="overflow-y-auto w-full h-full">
                     <table class="w-full text-sm text-left">
                         <thead class="bg-gray-200 text-gray-700 text-xs uppercase sticky top-0">
@@ -346,10 +346,9 @@
                                 </tr>
                             @endforelse
 
-                            {{-- Filas placeholder para mantener altura fija (10 líneas) --}}
-                            @for ($i = count($lineas); $i < 10; $i++)
+                            @for ($i = count($lineas); $i < 3; $i++)
                                 <tr class="border-b">
-                                    <td colspan="8" class="px-2 py-2">&nbsp;</td>
+                                    <td colspan="8" class="px-2 py-1.5 opacity-0">&nbsp;</td>
                                 </tr>
                             @endfor
                         </tbody>
@@ -383,7 +382,10 @@
 
                     {{-- Vendedor --}}
                     <div class="flex flex-col items-end">
-                        <span class="text-[9px] uppercase font-black text-gray-400 mb-0.5">Vendedor</span>
+                        <div class="flex items-center gap-2 mb-0.5">
+                            <span class="text-[8px] font-bold text-gray-300">v{{ config('app.version') }}</span>
+                            <span class="text-[9px] uppercase font-black text-gray-400">Vendedor</span>
+                        </div>
                         <div
                             class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-none border border-gray-200">
                             <x-heroicon-s-user class="w-3.5 h-3.5 text-gray-400" />
@@ -440,15 +442,15 @@
                         $isPendingV = $balVal < -0.01;
                     @endphp
                     <div
-                        class="w-32 flex flex-col items-center justify-center bg-gray-50 border border-gray-200 p-2 shadow-inner">
+                        class="w-32 flex flex-col gap-1 bg-gray-50 p-3 rounded-none border border-gray-200 shadow-inner">
                         <span
-                            class="text-[9px] font-black {{ $isPendingV ? 'text-red-500' : 'text-gray-500' }} uppercase leading-none mb-1">
+                            class="text-[9px] font-black {{ $isPendingV ? 'text-red-500' : 'text-gray-500' }} uppercase leading-none">
                             {{ $isPendingV ? 'FALTAN' : 'CAMBIO' }}
                         </span>
-                        <span
-                            class="text-lg font-black {{ $isPendingV ? 'text-red-700' : 'text-gray-700' }} leading-none">
-                            {{ number_format(abs($balVal), 2) }} <small class="text-[10px]">€</small>
-                        </span>
+                        <div
+                            class="h-9 w-full flex items-center justify-end px-2 border border-gray-300 bg-white font-bold text-base {{ $isPendingV ? 'text-red-700' : 'text-gray-700' }}">
+                            {{ number_format(abs($balVal), 2) }}
+                        </div>
                     </div>
 
                     {{-- TOTAL A PAGAR (AHORA DESTACADO CON ESTILO DEL ANTERIOR CAMBIO) --}}
