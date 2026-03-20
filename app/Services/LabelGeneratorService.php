@@ -32,7 +32,7 @@ class LabelGeneratorService
         }
 
         $barcodeType = Setting::get('barcode_type', 'code128');
-        $showPrice = Setting::get('show_price_on_label', 'true') === 'true';
+        $showPrice = filter_var(Setting::get('show_price_on_label', 'true'), FILTER_VALIDATE_BOOLEAN);
         $displayUppercase = Setting::get('display_uppercase', 'false') === 'true';
 
         $labels = [];

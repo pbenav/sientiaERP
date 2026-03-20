@@ -66,7 +66,7 @@ class SettingsPage extends Page
             'barcode_type' => Setting::get('barcode_type', 'code128'),
             'default_commercial_margin' => Setting::get('default_commercial_margin', 30),
             'presupuesto_validez_dias' => Setting::get('presupuesto_validez_dias', 15),
-            'show_price_on_label' => Setting::get('show_price_on_label', 'true') === 'true',
+            'show_price_on_label' => filter_var(Setting::get('show_price_on_label', 'true'), FILTER_VALIDATE_BOOLEAN),
             'default_supplier_id' => Setting::get('default_supplier_id'),
             'google_location' => Setting::get('google_location', 'eu'),
             'google_project_id' => Setting::get('google_project_id'),
@@ -91,7 +91,9 @@ class SettingsPage extends Page
             'verifactu_mode' => Setting::get('verifactu_mode', 'test'),
             'verifactu_cert_path' => Setting::get('verifactu_cert_path'),
             'verifactu_cert_password' => Setting::get('verifactu_cert_password'),
-            'verifactu_active' => (bool) Setting::get('verifactu_active', false),
+            'verifactu_active' => filter_var(Setting::get('verifactu_active', false), FILTER_VALIDATE_BOOLEAN),
+            'verifactu_endpoint_test' => Setting::get('verifactu_endpoint_test', config('verifactu.endpoints.test')),
+            'verifactu_endpoint_production' => Setting::get('verifactu_endpoint_production', config('verifactu.endpoints.production')),
         ]);
     }
 
@@ -313,6 +315,13 @@ class SettingsPage extends Page
                                         FileUpload::make('verifactu_cert_path')->label('Certificado (.p12)')->directory('certs')->visibility('private'),
                                         TextInput::make('verifactu_cert_password')->label('Pass Certificado')->password()->revealable(),
                                     ])->columns(2),
+                                Section::make('Endpoints AEAT')
+                                    ->description('Direcciones web oficiales de la Agencia Tributaria')
+                                    ->collapsed()
+                                    ->schema([
+                                        TextInput::make('verifactu_endpoint_test')->label('URL Pruebas')->columnSpanFull(),
+                                        TextInput::make('verifactu_endpoint_production')->label('URL Producción (Oficial)')->columnSpanFull(),
+                                    ]),
                             ]),
                     ])->columnSpanFull()
             ])
@@ -326,6 +335,10 @@ class SettingsPage extends Page
 
         foreach ($data as $key => $value) {
             $valToSave = is_array($value) ? (count($value) > 0 ? reset($value) : null) : $value;
+            // Normalize boolean values to 'true'/'false' strings for consistency
+            if (is_bool($valToSave)) {
+                $valToSave = $valToSave ? 'true' : 'false';
+            }
             Setting::set($key, $valToSave);
         }
         

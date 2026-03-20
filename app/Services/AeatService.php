@@ -26,9 +26,11 @@ class AeatService
         $this->certPassword = \App\Models\Setting::get('verifactu_cert_password', config('verifactu.cert_password', ''));
         
         $mode = \App\Models\Setting::get('verifactu_mode', config('verifactu.mode', 'test'));
-        $this->endpoint = ($mode === 'production') 
-            ? config('verifactu.endpoints.production') 
-            : config('verifactu.endpoints.test');
+        if ($mode === 'production') {
+            $this->endpoint = \App\Models\Setting::get('verifactu_endpoint_production', config('verifactu.endpoints.production'));
+        } else {
+            $this->endpoint = \App\Models\Setting::get('verifactu_endpoint_test', config('verifactu.endpoints.test'));
+        }
     }
 
     /**
