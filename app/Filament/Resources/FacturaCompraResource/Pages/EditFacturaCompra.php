@@ -4,6 +4,7 @@ namespace App\Filament\Resources\FacturaCompraResource\Pages;
 
 use App\Filament\Resources\FacturaCompraResource;
 use Filament\Actions;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 
 class EditFacturaCompra extends EditRecord
@@ -19,10 +20,13 @@ class EditFacturaCompra extends EditRecord
                 ->color('success')
                 ->visible(fn() => $this->record->estado === 'borrador')
                 ->requiresConfirmation()
+                ->modalHeading('Confirmar Factura de Compra')
+                ->modalDescription('Al confirmar la factura se asignará la fecha de hoy (' . now()->format('d/m/Y') . ') para garantizar correlación numérica. ¿Desea continuar?')
                 ->action(function () {
                     try {
+                        $this->record->fecha = now();
                         $this->record->confirmar();
-                        $this->refreshFormData(['estado', 'numero']);
+                        $this->refreshFormData(['estado', 'numero', 'fecha']);
                         Notification::make()->title('Factura confirmada')->success()->send();
                     } catch (\Exception $e) {
                         Notification::make()->title('Error')->body($e->getMessage())->danger()->send();

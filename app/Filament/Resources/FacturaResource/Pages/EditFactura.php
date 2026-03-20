@@ -23,11 +23,12 @@ class EditFactura extends EditRecord
                 ->visible(fn() => $this->record->estado === 'borrador')
                 ->requiresConfirmation()
                 ->modalHeading('Confirmar Factura')
-                ->modalDescription('Al confirmar la factura se le asignará un número definitivo y ya no podrá ser editada ni eliminada. ¿Desea continuar?')
+                ->modalDescription('Al confirmar la factura se asignará la fecha de hoy (' . now()->format('d/m/Y') . ') para garantizar la correlación numérica de la serie. ¿Desea continuar?')
                 ->action(function () {
                     try {
+                        $this->record->fecha = now();
                         $this->record->confirmar();
-                        $this->refreshFormData(['numero', 'estado']);
+                        $this->refreshFormData(['numero', 'estado', 'fecha']);
                         
                         Notification::make()
                             ->title('Factura confirmada')
@@ -54,12 +55,13 @@ class EditFactura extends EditRecord
                 ->modalDescription('Esta factura está confirmada pero sin número asignado. Se le asignará un número automático.')
                 ->action(function () {
                     try {
+                        $this->record->fecha = now();
                         $this->record->numero = \App\Models\NumeracionDocumento::generarNumero(
                             $this->record->tipo,
                             $this->record->serie ?? 'A'
                         );
                         $this->record->save();
-                        $this->refreshFormData(['numero']);
+                        $this->refreshFormData(['numero', 'fecha']);
                         
                         Notification::make()
                             ->title('Número asignado')
