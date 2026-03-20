@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('impuestos', function (Blueprint $table) {
-            $table->decimal('recargo', 5, 2)->default(0)->nullable()->change();
-            $table->boolean('es_predeterminado')->default(false)->nullable()->change();
+            if (Schema::hasColumn('impuestos', 'recargo')) {
+                $table->decimal('recargo', 5, 2)->default(0)->nullable()->change();
+            }
+            if (Schema::hasColumn('impuestos', 'es_predeterminado')) {
+                $table->boolean('es_predeterminado')->default(false)->nullable()->change();
+            }
         });
     }
 

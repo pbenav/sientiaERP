@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('impuestos', function (Blueprint $table) {
-            $table->decimal('recargo', 5, 2)->default(0)->after('valor');
-        });
+        if (!Schema::hasColumn('impuestos', 'recargo')) {
+            Schema::table('impuestos', function (Blueprint $table) {
+                $table->decimal('recargo', 5, 2)->default(0)->after('valor');
+            });
+        }
     }
 
     /**

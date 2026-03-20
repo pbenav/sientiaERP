@@ -43,8 +43,8 @@ class SettingsPage extends Page
             'pdf_footer_text' => Setting::get('pdf_footer_text', 'sienteERP System'),
             'currency_symbol' => Setting::get('currency_symbol', '€'),
             'currency_position' => Setting::get('currency_position', 'suffix'),
-            'decimal_separator' => Setting::get('decimal_separator', ','),
-            'thousands_separator' => Setting::get('thousands_separator', '.'),
+            'decimal_separator' => str_replace(['comma', 'dot'], [',', '.'], Setting::get('decimal_separator', ',')),
+            'thousands_separator' => str_replace(['comma', 'dot'], [',', '.'], Setting::get('thousands_separator', '.')),
             'locale' => Setting::get('locale', 'es'),
             'timezone' => Setting::get('timezone', 'Europe/Madrid'),
             'intermediate_precision' => Setting::get('intermediate_precision', 3),
@@ -130,8 +130,22 @@ class SettingsPage extends Page
                                         Select::make('timezone')->label('Zona Horaria')->options(['Europe/Madrid' => 'Madrid']),
                                         TextInput::make('currency_symbol')->label('Símbolo €'),
                                         Select::make('currency_position')->label('Posición')->options(['suffix' => 'Sufijo', 'prefix' => 'Prefijo']),
-                                        TextInput::make('decimal_separator')->label('Separador Decimal')->default(','),
-                                        TextInput::make('thousands_separator')->label('Separador Miles')->default('.'),
+                                        Select::make('decimal_separator')
+                                            ->label('Separador Decimal')
+                                            ->options([
+                                                ',' => 'Coma (,)',
+                                                '.' => 'Punto (.)',
+                                            ])
+                                            ->required(),
+                                        Select::make('thousands_separator')
+                                            ->label('Separador Miles')
+                                            ->options([
+                                                '.' => 'Punto (.)',
+                                                ',' => 'Coma (,)',
+                                                ' ' => 'Espacio ( )',
+                                                '' => 'Ninguno',
+                                            ])
+                                            ->required(),
                                     ])->columns(2),
                                 Section::make('Finanzas y Precisión')
                                     ->description('Controla el redondeo de los cálculos matemáticos.')
