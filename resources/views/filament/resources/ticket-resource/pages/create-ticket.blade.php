@@ -67,7 +67,7 @@
             }
         }
     }" id="tpv-main-container" :style="'zoom: ' + zoom"
-        class="flex flex-col text-gray-500 bg-white border border-gray-200 shadow-sm font-sans text-sm w-full md:rounded-lg md:min-h-[calc(100vh-140px)]">
+        class="flex flex-col text-gray-500 bg-white border border-gray-200 shadow-sm font-sans text-sm w-full md:rounded-lg">
         {{-- Barra de Navegación Profesional --}}
         <div class="bg-primary-600 text-white px-4 py-2 flex justify-between items-center shrink-0 min-w-max">
             <div class="flex items-center gap-4">
@@ -170,7 +170,7 @@
         </div>
 
         {{-- Área de Trabajo --}}
-        <div class="w-full flex-1 flex flex-col p-1 md:p-2 gap-1 md:gap-2 bg-gray-50/50 relative"
+        <div class="w-full flex flex-col p-1 md:p-2 gap-1 md:gap-2 bg-gray-50/50 relative"
             wire:loading.class="opacity-75 pointer-events-none cursor-wait"
             wire:target="anotarLinea,quickAdd,eliminarLinea">
 
@@ -329,7 +329,7 @@
 
             {{-- Grid --}}
             <div
-                class="border border-gray-200 rounded-none bg-white shadow-sm flex flex-col flex-1 min-h-[300px] overflow-hidden shrink-0">
+                class="border border-gray-200 rounded-none bg-white shadow-sm flex flex-col h-auto md:max-h-[calc(100vh-320px)] overflow-hidden shrink-0">
                 <div class="overflow-y-auto w-full h-full">
                     <table class="w-full text-sm text-left">
                         <thead class="bg-gray-200 text-gray-700 text-xs uppercase sticky top-0">
