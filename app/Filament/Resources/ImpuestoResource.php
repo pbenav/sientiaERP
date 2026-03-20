@@ -35,47 +35,63 @@ class ImpuestoResource extends Resource
 
     protected static ?string $navigationGroup = 'Gestión';
 
-    protected static ?int $navigationSort = 30;
-
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\Section::make('Detalles del Impuesto')
                     ->schema([
-                        Forms\Components\TextInput::make('nombre')
-                            ->required()
-                            ->maxLength(255),
-                        Forms\Components\Select::make('tipo')
-                            ->options([
-                                'iva' => 'IVA',
-                                'irpf' => 'IRPF',
-                                'otros' => 'Otros',
-                            ])
-                            ->required(),
-                        Forms\Components\TextInput::make('valor')
-                            ->type('text')
-                            ->inputMode('decimal')
-                            ->numeric()
-                            ->maxValue(100)
-                            ->required()
-                            ->prefix('%')
-                            ->extraInputAttributes(['style' => 'width: 120px']),
-                        Forms\Components\TextInput::make('recargo')
-                            ->label('Reg. Equivalencia')
-                            ->numeric()
-                            ->postfix('%')
-                            ->visible(fn ($get) => $get('tipo') === 'iva')
-                            ->helperText('Usado si el cliente tiene recargo.'),
-                        Forms\Components\Toggle::make('es_predeterminado')
-                            ->label('Predeterminado')
-                            ->required()
-                            ->default(false),
-                        Forms\Components\Toggle::make('activo')
-                            ->label('Activo')
-                            ->required()
-                            ->default(true),
-                    ])->columns(5)->compact(),
+                        Forms\Components\Grid::make(3)
+                            ->schema([
+                                Forms\Components\TextInput::make('nombre')
+                                    ->label('Nombre del Impuesto')
+                                    ->placeholder('Ej: IVA 21%, IRPF 15%, ...')
+                                    ->required()
+                                    ->maxLength(255),
+                                
+                                Forms\Components\Select::make('tipo')
+                                    ->label('Tipo de Impuesto')
+                                    ->options([
+                                        'iva' => 'IVA',
+                                        'irpf' => 'IRPF',
+                                        'otros' => 'Otros',
+                                    ])
+                                    ->required()
+                                    ->live(),
+
+                                Forms\Components\TextInput::make('valor')
+                                    ->label('Valor Porcentual')
+                                    ->numeric()
+                                    ->prefix('%')
+                                    ->required()
+                                    ->minValue(0)
+                                    ->maxValue(100),
+                            ]),
+
+                        Forms\Components\Grid::make(3)
+                            ->schema([
+                                Forms\Components\TextInput::make('recargo')
+                                    ->label('Recargo de Equivalencia')
+                                    ->numeric()
+                                    ->prefix('%')
+                                    ->default(0)
+                                    ->dehydrateStateUsing(fn ($state) => $state ?? 0)
+                                    ->visible(fn ($get) => $get('tipo') === 'iva')
+                                    ->helperText('Solo para clientes en régimen de RE. Deje en 0 si no aplica.'),
+                                
+                                Forms\Components\Toggle::make('es_predeterminado')
+                                    ->label('Marcar como Predeterminado')
+                                    ->helperText('Se usará por defecto en nuevos productos.')
+                                    ->inline(false)
+                                    ->default(false),
+
+                                Forms\Components\Toggle::make('activo')
+                                    ->label('Estado Activo')
+                                    ->helperText('Si se desactiva, no aparecerá en el TPV.')
+                                    ->inline(false)
+                                    ->default(true),
+                            ]),
+                    ])
             ]);
     }
 
