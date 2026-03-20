@@ -185,8 +185,14 @@ class SettingsPage extends Page
                                                 'false' => 'NO (Normal / Tal cual)',
                                             ]),
                                         Select::make('barcode_type')
-                                            ->label('Tipo Códigos')
-                                            ->options(['code128' => 'Code 128', 'ean13' => 'EAN-13']),
+                                            ->label('Tipo de Códigos')
+                                            ->options([
+                                                'code128' => 'Code 128 (Estándar)',
+                                                'code39' => 'Code 39 (Industrial)',
+                                                'ean13' => 'EAN-13 (Comercial)',
+                                                'ean8' => 'EAN-8 (Compacto)',
+                                                'qrcode' => 'QR Code (Digital)',
+                                            ]),
                                     ])->columns(2),
                                 Section::make('Cálculo de Beneficios y Documentos')
                                     ->schema([

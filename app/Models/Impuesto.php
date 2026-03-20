@@ -14,12 +14,14 @@ class Impuesto extends Model
         'nombre',
         'tipo',
         'valor',
+        'recargo',
         'activo',
         'es_predeterminado',
     ];
 
     protected $casts = [
         'valor' => 'decimal:2',
+        'recargo' => 'decimal:2',
         'activo' => 'boolean',
         'es_predeterminado' => 'boolean',
     ];

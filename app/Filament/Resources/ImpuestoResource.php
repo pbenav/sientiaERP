@@ -61,6 +61,12 @@ class ImpuestoResource extends Resource
                             ->required()
                             ->prefix('%')
                             ->extraInputAttributes(['style' => 'width: 120px']),
+                        Forms\Components\TextInput::make('recargo')
+                            ->label('Reg. Equivalencia')
+                            ->numeric()
+                            ->postfix('%')
+                            ->visible(fn ($get) => $get('tipo') === 'iva')
+                            ->helperText('Usado si el cliente tiene recargo.'),
                         Forms\Components\Toggle::make('es_predeterminado')
                             ->label('Predeterminado')
                             ->required()
@@ -86,6 +92,11 @@ class ImpuestoResource extends Resource
                     ->label('Valor')
                     ->numeric()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('recargo')
+                    ->label('Recargo RE')
+                    ->numeric()
+                    ->suffix('%')
+                    ->toggleable(),
                 Tables\Columns\IconColumn::make('es_predeterminado')
                     ->label('Predeterminado')
                     ->boolean(),
