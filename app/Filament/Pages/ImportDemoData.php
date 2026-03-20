@@ -278,7 +278,9 @@ class ImportDemoData extends Page implements HasForms
             return redirect()->to(request()->header('Referer'));
 
         } catch (\Exception $e) {
-            DB::rollBack();
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
             Schema::enableForeignKeyConstraints();
             Notification::make()
                 ->title('Error al resetear')
