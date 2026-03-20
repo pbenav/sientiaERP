@@ -78,6 +78,10 @@ class AdminPanelProvider extends PanelProvider
                 fn () => new HtmlString(Blade::render("@vite('resources/css/document-lines.css')"))
             )
             ->renderHook(
+                'panels::user-menu.before',
+                fn () => view('filament.hooks.global-zoom')
+            )
+            ->renderHook(
                 'panels::footer',
                 fn () => view('filament.hooks.footer')
             )
