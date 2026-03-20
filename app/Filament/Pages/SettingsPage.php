@@ -47,6 +47,37 @@ class SettingsPage extends Page
             'timezone' => Setting::get('timezone', 'Europe/Madrid'),
             'intermediate_precision' => Setting::get('intermediate_precision', 3),
             'final_precision' => Setting::get('final_precision', 2),
+            
+            // TPV & Precios
+            'pos_default_tercero_id' => Setting::get('pos_default_tercero_id'),
+            'pos_quick_skus' => Setting::get('pos_quick_skus', 'BOLSA,VARIO,GENERICO'),
+            'profit_calculation_method' => Setting::get('profit_calculation_method', 'from_purchase'),
+            'default_profit_percentage' => Setting::get('default_profit_percentage', 60),
+            'default_tax_rate' => Setting::get('default_tax_rate', 21),
+            'display_uppercase' => Setting::get('display_uppercase', 'false'),
+            'barcode_type' => Setting::get('barcode_type', 'code128'),
+            'default_commercial_margin' => Setting::get('default_commercial_margin', 30),
+            'presupuesto_validez_dias' => Setting::get('presupuesto_validez_dias', 15),
+            'show_price_on_label' => Setting::get('show_price_on_label', 'true') === 'true',
+
+            // AI
+            'ai_provider' => Setting::get('ai_provider', 'gemini'),
+            'ai_backup_provider' => Setting::get('ai_backup_provider', 'none'),
+            'google_location' => Setting::get('google_location', 'eu'),
+            'google_project_id' => Setting::get('google_project_id'),
+            'google_processor_id' => Setting::get('google_processor_id'),
+            'google_application_credentials' => Setting::get('google_application_credentials'),
+            'ai_gemini_api_key' => Setting::get('ai_gemini_api_key'),
+            'ai_gemini_model' => Setting::get('ai_gemini_model', 'gemini-1.5-flash'),
+            'ai_openai_api_key' => Setting::get('ai_openai_api_key'),
+            'tesseract_path' => Setting::get('tesseract_path', '/usr/bin/tesseract'),
+
+            // Verifactu
+            'verifactu_nif_emisor' => Setting::get('verifactu_nif_emisor', config('verifactu.nif_emisor')),
+            'verifactu_nombre_emisor' => Setting::get('verifactu_nombre_emisor', config('verifactu.nombre_emisor')),
+            'verifactu_mode' => Setting::get('verifactu_mode', 'test'),
+            'verifactu_cert_path' => Setting::get('verifactu_cert_path'),
+            'verifactu_cert_password' => Setting::get('verifactu_cert_password'),
         ]);
     }
 
@@ -54,71 +85,132 @@ class SettingsPage extends Page
     {
         return $form
             ->schema([
-                Section::make('Identidad de Empresa')
-                    ->description('Configura los datos que aparecerán en tus facturas y documentos.')
-                    ->schema([
-                        Radio::make('pdf_logo_type')
-                            ->label('Tipo de Logo')
-                            ->options(['text' => 'Texto / Nombre', 'image' => 'Logotipo (Imagen)'])
-                            ->live()
-                            ->columnSpanFull(),
-                        TextInput::make('pdf_logo_text')
-                            ->label('Nombre de la Empresa')
-                            ->visible(fn($get) => $get('pdf_logo_type') === 'text')
-                            ->columnSpanFull(),
-                        FileUpload::make('pdf_logo_image')
-                            ->label('Logo para Documentos')
-                            ->image()
-                            ->directory('logos')
-                            ->visible(fn($get) => $get('pdf_logo_type') === 'image')
-                            ->columnSpanFull(),
-                        Textarea::make('pdf_header_html')
-                            ->label('Cabecera Fiscal (HTML)')
-                            ->helperText('Aparece en la parte superior derecha de las facturas.')
-                            ->rows(3)
-                            ->columnSpanFull(),
-                        TextInput::make('pdf_footer_text')
-                            ->label('Texto Legal en Pie de Página')
-                            ->columnSpanFull(),
-                    ])->columns(2),
+                Tabs::make('SettingsTabs')
+                    ->tabs([
+                        Tabs\Tab::make('General')
+                            ->icon('heroicon-o-presentation-chart-bar')
+                            ->schema([
+                                Section::make('Identidad Visual')
+                                    ->schema([
+                                        Radio::make('pdf_logo_type')
+                                            ->label('Tipo de Logo')
+                                            ->options(['text' => 'Texto', 'image' => 'Imagen'])
+                                            ->live()
+                                            ->columnSpanFull(),
+                                        TextInput::make('pdf_logo_text')
+                                            ->label('Texto del Logo')
+                                            ->visible(fn($get) => $get('pdf_logo_type') === 'text')
+                                            ->columnSpanFull(),
+                                        FileUpload::make('pdf_logo_image')
+                                            ->label('Imagen Logo')
+                                            ->image()
+                                            ->directory('logos')
+                                            ->visible(fn($get) => $get('pdf_logo_type') === 'image')
+                                            ->columnSpanFull(),
+                                        Textarea::make('pdf_header_html')->label('Cabecera Fiscal (HTML)')->rows(2)->columnSpanFull(),
+                                        TextInput::make('pdf_footer_text')->label('Pie de Página')->columnSpanFull(),
+                                    ]),
+                                Section::make('Localización y Formato')
+                                    ->schema([
+                                        Select::make('locale')->label('Idioma')->options(['es' => 'Español', 'en' => 'English']),
+                                        Select::make('timezone')->label('Zona Horaria')->options(['Europe/Madrid' => 'Madrid']),
+                                        TextInput::make('currency_symbol')->label('Símbolo €'),
+                                        Select::make('currency_position')->label('Posición')->options(['suffix' => 'Sufijo', 'prefix' => 'Prefijo']),
+                                        TextInput::make('decimal_separator')->label('Separador Decimal')->default(','),
+                                        TextInput::make('thousands_separator')->label('Separador Miles')->default('.'),
+                                    ])->columns(2),
+                                Section::make('Finanzas y Precisión')
+                                    ->description('Controla el redondeo de los cálculos matemáticos.')
+                                    ->schema([
+                                        TextInput::make('intermediate_precision')
+                                            ->label('Decimales Intermedios')
+                                            ->helperText('Usados en cálculos de líneas antes de sumar totales.')
+                                            ->numeric()->default(3),
+                                        TextInput::make('final_precision')
+                                            ->label('Decimales Finales (PVP)')
+                                            ->helperText('Usados para el total final del documento.')
+                                            ->numeric()->default(2),
+                                    ])->columns(2),
+                            ]),
 
-                Section::make('Localización y Formato')
-                    ->description('Ajustes de región, moneda y zona horaria.')
-                    ->schema([
-                        Select::make('locale')
-                            ->label('Idioma del Sistema')
-                            ->options(['es' => 'Español (Castellano)', 'en' => 'English (International)']),
-                        Select::make('timezone')
-                            ->label('Zona Horaria')
-                            ->options(['Europe/Madrid' => 'Madrid (CET)', 'Atlantic/Canary' => 'Canarias (WET)']),
-                        TextInput::make('currency_symbol')->label('Símbolo de Moneda'),
-                        Select::make('currency_position')
-                            ->label('Posición del Símbolo')
-                            ->options(['suffix' => 'Símbolo al final (10,00€)', 'prefix' => 'Símbolo al inicio (€10.00)']),
-                        TextInput::make('decimal_separator')->label('Separador Decimal'),
-                        TextInput::make('thousands_separator')->label('Separador de Miles'),
-                    ])->columns(2),
+                        Tabs\Tab::make('TPV & Precios')
+                            ->icon('heroicon-o-shopping-bag')
+                            ->schema([
+                                Section::make('Operativa TPV')
+                                    ->schema([
+                                        Select::make('pos_default_tercero_id')
+                                            ->label('Cliente por Defecto')
+                                            ->options(fn() => \App\Models\Tercero::pluck('nombre_comercial', 'id'))
+                                            ->searchable(),
+                                        TextInput::make('pos_quick_skus')
+                                            ->label('SKUs Acceso Rápido')
+                                            ->placeholder('BOLSA,VARIO'),
+                                        Toggle::make('display_uppercase')
+                                            ->label('Mostrar Mayúsculas'),
+                                        Select::make('barcode_type')
+                                            ->label('Tipo Códigos')
+                                            ->options(['code128' => 'Code 128', 'ean13' => 'EAN-13']),
+                                    ])->columns(2),
+                                Section::make('Cálculo de Beneficios y Documentos')
+                                    ->schema([
+                                        Select::make('profit_calculation_method')
+                                            ->label('Método de Margen')
+                                            ->options([
+                                                'from_purchase' => 'Sobre Compra',
+                                                'from_sale' => 'Sobre Venta',
+                                            ]),
+                                        TextInput::make('default_profit_percentage')->label('Margen Defecto (%)')->numeric()->suffix('%'),
+                                        TextInput::make('default_tax_rate')->label('IVA Defecto (%)')->numeric()->suffix('%'),
+                                        TextInput::make('default_commercial_margin')->label('Margen OCR (%)')->numeric()->suffix('%'),
+                                        TextInput::make('presupuesto_validez_dias')->label('Validez Presupuesto')->numeric()->suffix('días'),
+                                        Toggle::make('show_price_on_label')->label('Precio en Etiquetas')->default(true),
+                                    ])->columns(3),
+                            ]),
 
-                Section::make('Finanzas y Precisión')
-                    ->description('Controla el redondeo de los cálculos matemáticos.')
-                    ->schema([
-                        TextInput::make('intermediate_precision')
-                            ->label('Decimales Intermedios')
-                            ->helperText('Utilizados para cálculos de líneas antes de sumar totales.')
-                            ->numeric()
-                            ->default(3),
-                        TextInput::make('final_precision')
-                            ->label('Decimales Finales (PVP)')
-                            ->helperText('Utilizados para el total final del documento.')
-                            ->numeric()
-                            ->default(2),
-                    ])->columns(2),
+                        Tabs\Tab::make('Automatización / IA')
+                            ->icon('heroicon-o-sparkles')
+                            ->schema([
+                                Select::make('ai_provider')
+                                    ->label('Proveedor IA')
+                                    ->options([
+                                        'gemini' => 'Google Gemini', 
+                                        'openai' => 'OpenAI', 
+                                        'google_doc_ai' => 'Google Cloud Doc AI'
+                                    ])
+                                    ->live(),
+                                Section::make('Credenciales y Modelos')
+                                    ->schema([
+                                        TextInput::make('ai_gemini_api_key')->label('Gemini Key')->password()->revealable()->visible(fn($get) => $get('ai_provider') === 'gemini'),
+                                        Select::make('ai_gemini_model')
+                                            ->label('Modelo Gemini')
+                                            ->options(['gemini-1.5-flash' => '1.5 Flash', 'gemini-1.5-pro' => '1.5 Pro'])
+                                            ->visible(fn($get) => $get('ai_provider') === 'gemini'),
+                                        TextInput::make('ai_openai_api_key')->label('OpenAI Key')->password()->revealable()->visible(fn($get) => $get('ai_provider') === 'openai'),
+                                        Textarea::make('google_application_credentials')->label('Google JSON')->rows(4)->visible(fn($get) => $get('ai_provider') === 'google_doc_ai'),
+                                    ]),
+                            ]),
+
+                        Tabs\Tab::make('Veri*Factu (Anti-Fraude)')
+                            ->icon('heroicon-o-shield-check')
+                            ->schema([
+                                Section::make('Legal & Envío')
+                                    ->description('Configura la identidad digital para AEAT')
+                                    ->schema([
+                                        TextInput::make('verifactu_nif_emisor')->label('NIF Emisor')->required(),
+                                        TextInput::make('verifactu_nombre_emisor')->label('Nombre Emisor')->required(),
+                                        Select::make('verifactu_mode')->label('Modo')->options(['test' => 'PRUEBAS', 'production' => 'PRODUCCIÓN']),
+                                        FileUpload::make('verifactu_cert_path')->label('Certificado (.p12)')->directory('certs')->visibility('private'),
+                                        TextInput::make('verifactu_cert_password')->label('Pass Certificado')->password()->revealable(),
+                                    ])->columns(2),
+                            ]),
+                    ])->columnSpanFull()
             ])
             ->statePath('data');
     }
 
     public function save(): void
     {
+        $oldMethod = Setting::get('profit_calculation_method', 'from_purchase');
         $data = $this->form->getState();
 
         foreach ($data as $key => $value) {
@@ -126,7 +218,15 @@ class SettingsPage extends Page
             Setting::set($key, $valToSave);
         }
         
-        Notification::make()->title('Configuración general guardada')->success()->send();
+        if ($oldMethod !== ($data['profit_calculation_method'] ?? $oldMethod)) {
+            \App\Models\Product::all()->each(function($product) {
+                $product->recalculateProfitMargin();
+                $product->save();
+            });
+            Notification::make()->title('Márgenes actualizados')->info()->send();
+        }
+
+        Notification::make()->title('Configuración guardada satisfactoriamente')->success()->send();
         
         $this->redirect(static::getUrl());
     }
