@@ -152,8 +152,12 @@ class SettingsPage extends Page
                                         TextInput::make('pos_quick_skus')
                                             ->label('SKUs Acceso Rápido')
                                             ->placeholder('BOLSA,VARIO'),
-                                        Toggle::make('display_uppercase')
-                                            ->label('Mostrar Mayúsculas'),
+                                        Select::make('display_uppercase')
+                                            ->label('Mostrar capitalización')
+                                            ->options([
+                                                'true' => 'SÍ (Todo en Mayúsculas)',
+                                                'false' => 'NO (Normal / Tal cual)',
+                                            ]),
                                         Select::make('barcode_type')
                                             ->label('Tipo Códigos')
                                             ->options(['code128' => 'Code 128', 'ean13' => 'EAN-13']),
