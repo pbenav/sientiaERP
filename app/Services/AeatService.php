@@ -13,7 +13,16 @@ class AeatService
 
     public function __construct()
     {
-        $this->certPath = \App\Models\Setting::get('verifactu_cert_path', config('verifactu.cert_path', storage_path('app/certificates/verifactu.p12')));
+        $storedPath = \App\Models\Setting::get('verifactu_cert_path');
+        
+        // Si el path guardado es relativo (típico de FileUpload), resolverlo en el disco respectivo
+        if ($storedPath && \Illuminate\Support\Facades\Storage::disk('local')->exists($storedPath)) {
+            $this->certPath = \Illuminate\Support\Facades\Storage::disk('local')->path($storedPath);
+        } else {
+            // Default path (config or manual)
+            $this->certPath = config('verifactu.cert_path', storage_path('app/certificates/verifactu.p12'));
+        }
+
         $this->certPassword = \App\Models\Setting::get('verifactu_cert_password', config('verifactu.cert_password', ''));
         
         $mode = \App\Models\Setting::get('verifactu_mode', config('verifactu.mode', 'test'));
@@ -29,12 +38,24 @@ class AeatService
     {
         try {
             // Veri*Factu usa SOAP 1.1 o 1.2 sobre HTTPS con certificado de cliente
-            $response = Http::withOptions([
-                'cert' => [$this->getCertPemPath(), $this->certPassword], // Guzzle soporta PEM o P12 directamente si se indica
+            $options = [
                 'verify' => true,
-            ])
-            ->withBody($this->wrapInSoapEnvelope($xmlContent), 'text/xml; charset=utf-8')
-            ->post($this->endpoint);
+            ];
+
+            // Si es P12, necesitamos opciones específicas de cURL
+            if (str_ends_with(strtolower($this->certPath), '.p12') || str_ends_with(strtolower($this->certPath), '.pfx')) {
+                $options['curl'] = [
+                    CURLOPT_SSLCERT => $this->certPath,
+                    CURLOPT_SSLCERTPASSWD => $this->certPassword,
+                    CURLOPT_SSLCERTTYPE => 'P12',
+                ];
+            } else {
+                $options['cert'] = [$this->certPath, $this->certPassword];
+            }
+
+            $response = Http::withOptions($options)
+                ->withBody($this->wrapInSoapEnvelope($xmlContent), 'text/xml; charset=utf-8')
+                ->post($this->endpoint);
 
             if ($response->successful()) {
                 return [

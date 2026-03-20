@@ -11,12 +11,22 @@ class DocumentoObserver
      */
     public function updated(Documento $documento): void
     {
-        // 1. Si es una factura y ha cambiado a estado 'confirmado' -> Generar recibos
+        // 1. Si es una factura y ha cambiado a estado 'confirmado' -> Generar recibos y Verifactu
         if (in_array($documento->tipo, ['factura', 'factura_compra']) && 
             $documento->isDirty('estado') && 
             $documento->estado === 'confirmado') {
             
             $this->intentarGenerarRecibos($documento);
+
+            // Verifactu: solo si no tiene huella todavía
+            if (empty($documento->verifactu_huella)) {
+                try {
+                    $service = app(\App\Services\VerifactuService::class);
+                    $service->procesarEncadenamiento($documento);
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error("Error Verifactu para Doc {$documento->numero}: " . $e->getMessage());
+                }
+            }
         }
 
         // 2. Si es un recibo y ha cambiado su estado de pago
