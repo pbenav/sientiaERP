@@ -9,6 +9,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
@@ -60,6 +61,11 @@ class SettingsPage extends Page
             'default_commercial_margin' => Setting::get('default_commercial_margin', 30),
             'presupuesto_validez_dias' => Setting::get('presupuesto_validez_dias', 15),
             'show_price_on_label' => Setting::get('show_price_on_label', 'true') === 'true',
+            'default_supplier_id' => Setting::get('default_supplier_id'),
+            'google_location' => Setting::get('google_location', 'eu'),
+            'google_project_id' => Setting::get('google_project_id'),
+            'google_processor_id' => Setting::get('google_processor_id'),
+            'google_application_credentials' => Setting::get('google_application_credentials'),
 
             // AI
             'ai_provider' => Setting::get('ai_provider', 'gemini'),
@@ -171,23 +177,71 @@ class SettingsPage extends Page
                         Tabs\Tab::make('Automatización / IA')
                             ->icon('heroicon-o-sparkles')
                             ->schema([
-                                Select::make('ai_provider')
-                                    ->label('Proveedor IA')
-                                    ->options([
-                                        'gemini' => 'Google Gemini', 
-                                        'openai' => 'OpenAI', 
-                                        'google_doc_ai' => 'Google Cloud Doc AI'
-                                    ])
-                                    ->live(),
+                                Section::make('Proveedores')
+                                    ->schema([
+                                        Select::make('ai_provider')
+                                            ->label('Proveedor Principal')
+                                            ->options([
+                                                'gemini' => 'Google Gemini (Recomendado)', 
+                                                'openai' => 'OpenAI (GPT-4)', 
+                                                'google_doc_ai' => 'Google Cloud Doc AI',
+                                                'local_tesseract' => 'Local (Tesseract OCR)'
+                                            ])
+                                            ->live()
+                                            ->required(),
+                                        Select::make('ai_backup_provider')
+                                            ->label('Proveedor de Respaldo')
+                                            ->options([
+                                                'none' => 'Ninguno',
+                                                'gemini' => 'Gemini',
+                                                'openai' => 'OpenAI',
+                                                'local_tesseract' => 'Tesseract OCR'
+                                            ]),
+                                        Select::make('default_supplier_id')
+                                            ->label('Proveedor por Defecto (OCR)')
+                                            ->options(\App\Models\Tercero::where('es_proveedor', true)->pluck('nombre_comercial', 'id'))
+                                            ->searchable()
+                                            ->helperText('Utilizado cuando el OCR no identifica al emisor.'),
+                                    ])->columns(3),
+
                                 Section::make('Credenciales y Modelos')
                                     ->schema([
-                                        TextInput::make('ai_gemini_api_key')->label('Gemini Key')->password()->revealable()->visible(fn($get) => $get('ai_provider') === 'gemini'),
+                                        // Gemini
+                                        TextInput::make('ai_gemini_api_key')
+                                            ->label('Gemini API Key')
+                                            ->password()->revealable()
+                                            ->visible(fn($get) => $get('ai_provider') === 'gemini' || $get('ai_backup_provider') === 'gemini')
+                                            ->columnSpanFull(),
                                         Select::make('ai_gemini_model')
                                             ->label('Modelo Gemini')
                                             ->options(['gemini-1.5-flash' => '1.5 Flash', 'gemini-1.5-pro' => '1.5 Pro'])
-                                            ->visible(fn($get) => $get('ai_provider') === 'gemini'),
-                                        TextInput::make('ai_openai_api_key')->label('OpenAI Key')->password()->revealable()->visible(fn($get) => $get('ai_provider') === 'openai'),
-                                        Textarea::make('google_application_credentials')->label('Google JSON')->rows(4)->visible(fn($get) => $get('ai_provider') === 'google_doc_ai'),
+                                            ->visible(fn($get) => $get('ai_provider') === 'gemini' || $get('ai_backup_provider') === 'gemini'),
+
+                                        // OpenAI
+                                        TextInput::make('ai_openai_api_key')
+                                            ->label('OpenAI API Key')
+                                            ->password()->revealable()
+                                            ->visible(fn($get) => $get('ai_provider') === 'openai' || $get('ai_backup_provider') === 'openai')
+                                            ->columnSpanFull(),
+
+                                        // Google Doc AI
+                                        Group::make([
+                                            Select::make('google_location')->label('Ubicación')->options(['eu' => 'Europa (EU)', 'us' => 'Estados Unidos (US)']),
+                                            TextInput::make('google_project_id')->label('Google Project ID'),
+                                            TextInput::make('google_processor_id')->label('Processor ID'),
+                                            Textarea::make('google_application_credentials')
+                                                ->label('Service Account JSON')
+                                                ->rows(4)
+                                                ->placeholder('Paste your JSON key here...')
+                                                ->columnSpanFull(),
+                                        ])->columns(3)->visible(fn($get) => $get('ai_provider') === 'google_doc_ai'),
+
+                                        // Tesseract
+                                        TextInput::make('tesseract_path')
+                                            ->label('Ruta Tesseract Binary')
+                                            ->placeholder('/usr/bin/tesseract')
+                                            ->visible(fn($get) => $get('ai_provider') === 'local_tesseract' || $get('ai_backup_provider') === 'local_tesseract')
+                                            ->columnSpanFull(),
                                     ]),
                             ]),
 
