@@ -184,15 +184,6 @@ class TicketResource extends Resource
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->filters([
-                Tables\Filters\SelectFilter::make('status')
-                    ->label('Estado')
-                    ->options([
-                        'open' => 'Abierto',
-                        'completed' => 'Completado',
-                        'cancelled' => 'Cancelado',
-                    ]),
                 Tables\Columns\IconColumn::make('verifactu_status')
                     ->label('VF')
                     ->options([
@@ -207,6 +198,15 @@ class TicketResource extends Resource
                     ])
                     ->tooltip(fn($record) => $record->verifactu_aeat_id ? "AEAT ID: {$record->verifactu_aeat_id}" : "Veri*Factu: {$record->verifactu_status}")
                     ->visible(fn() => \App\Models\Setting::get('verifactu_active', false)),
+            ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('status')
+                    ->label('Estado')
+                    ->options([
+                        'open' => 'Abierto',
+                        'completed' => 'Completado',
+                        'cancelled' => 'Cancelado',
+                    ]),
                 
                 Tables\Filters\SelectFilter::make('user')
                     ->label('Operador')
