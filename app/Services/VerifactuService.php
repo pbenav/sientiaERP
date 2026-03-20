@@ -14,6 +14,10 @@ class VerifactuService
      */
     public function procesarEncadenamiento(Model $model): string
     {
+        if (!\App\Models\Setting::get('verifactu_active', false)) {
+            return '';
+        }
+
         // 1. Obtener el hash del documento anterior en la misma serie
         $hashAnterior = $this->obtenerHashAnterior($model);
         
@@ -76,6 +80,10 @@ class VerifactuService
      */
     public function enviarAEAT(Model $model): bool
     {
+        if (!\App\Models\Setting::get('verifactu_active', false)) {
+            return false;
+        }
+
         // 1. Generar XML
         $xmlBuilder = app(VerifactuXmlService::class);
         $xml = $xmlBuilder->generateAltaXml($model);

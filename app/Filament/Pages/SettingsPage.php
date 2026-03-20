@@ -91,6 +91,7 @@ class SettingsPage extends Page
             'verifactu_mode' => Setting::get('verifactu_mode', 'test'),
             'verifactu_cert_path' => Setting::get('verifactu_cert_path'),
             'verifactu_cert_password' => Setting::get('verifactu_cert_password'),
+            'verifactu_active' => (bool) Setting::get('verifactu_active', false),
         ]);
     }
 
@@ -290,6 +291,10 @@ class SettingsPage extends Page
                                         TextInput::make('verifactu_nif_emisor')->label('NIF Emisor')->required(),
                                         TextInput::make('verifactu_nombre_emisor')->label('Nombre Emisor')->required(),
                                         Select::make('verifactu_mode')->label('Modo')->options(['test' => 'PRUEBAS', 'production' => 'PRODUCCIÓN']),
+                                        Toggle::make('verifactu_active')
+                                            ->label('Activar Veri*Factu')
+                                            ->helperText('Habilita el encadenamiento de facturas y envío a la AEAT.')
+                                            ->default(false),
                                         FileUpload::make('verifactu_cert_path')->label('Certificado (.p12)')->directory('certs')->visibility('private'),
                                         TextInput::make('verifactu_cert_password')->label('Pass Certificado')->password()->revealable(),
                                     ])->columns(2),

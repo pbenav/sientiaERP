@@ -9,20 +9,21 @@
     $labelTercero = $esCompra ? 'COMPRADOR (Nuestra empresa)' : 'CLIENTE';
 
     // Nombre del tipo de documento legible
-    $labelTipo = match($doc->tipo) {
-        'factura'          => 'FACTURA',
-        'factura_compra'   => 'FACTURA DE COMPRA',
-        'albaran'          => 'ALBARÁN',
-        'albaran_compra'   => 'ALBARÁN DE COMPRA',
-        'pedido'           => 'PEDIDO',
-        'pedido_compra'    => 'PEDIDO DE COMPRA',
-        'recibo'           => 'RECIBO',
-        'recibo_compra'    => 'RECIBO DE COMPRA',
-        'presupuesto'      => 'PRESUPUESTO',
-        default            => strtoupper($doc->tipo),
+    $labelTipo = match ($doc->tipo) {
+        'factura' => 'FACTURA',
+        'factura_compra' => 'FACTURA DE COMPRA',
+        'albaran' => 'ALBARÁN',
+        'albaran_compra' => 'ALBARÁN DE COMPRA',
+        'pedido' => 'PEDIDO',
+        'pedido_compra' => 'PEDIDO DE COMPRA',
+        'recibo' => 'RECIBO',
+        'recibo_compra' => 'RECIBO DE COMPRA',
+        'presupuesto' => 'PRESUPUESTO',
+        default => strtoupper($doc->tipo),
     };
 
-    function formatMoney($amount, $symbol, $position) {
+    function formatMoney($amount, $symbol, $position)
+    {
         $formattedAmount = number_format($amount, 2, ',', '.');
         return $position === 'suffix' ? $formattedAmount . ' ' . $symbol : $symbol . ' ' . $formattedAmount;
     }
@@ -30,27 +31,113 @@
 
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8">
     <title>{{ $doc->numero }}</title>
     <style>
-        body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 12px; color: #333; position: relative; }
-        .header { margin-bottom: 30px; }
-        .company-info { float: left; width: 50%; }
-        .doc-info { float: right; width: 40%; text-align: right; }
-        .clear { clear: both; }
-        .billing-info { margin-bottom: 30px; border-top: 2px solid #eee; padding-top: 15px; }
-        .client-info { float: left; width: 45%; }
-        .delivery-info { float: right; width: 45%; }
-        h1 { margin: 0; color: #2563eb; text-transform: uppercase; font-size: 24px; }
-        .table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-        .table th { background: #f8fafc; border-bottom: 2px solid #e2e8f0; padding: 10px; text-align: left; }
-        .table td { border-bottom: 1px solid #e2e8f0; padding: 10px; }
-        .text-right { text-align: right; }
-        .totals { float: right; width: 30%; }
-        .total-row { display: flex; justify-content: space-between; padding: 5px 0; }
-        .grand-total { border-top: 2px solid #2563eb; margin-top: 10px; padding-top: 10px; font-weight: bold; font-size: 16px; color: #2563eb; }
-        .footer { position: fixed; bottom: 0; width: 100%; font-size: 10px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-size: 12px;
+            color: #333;
+            position: relative;
+        }
+
+        .header {
+            margin-bottom: 30px;
+        }
+
+        .company-info {
+            float: left;
+            width: 50%;
+        }
+
+        .doc-info {
+            float: right;
+            width: 40%;
+            text-align: right;
+        }
+
+        .clear {
+            clear: both;
+        }
+
+        .billing-info {
+            margin-bottom: 30px;
+            border-top: 2px solid #eee;
+            padding-top: 15px;
+        }
+
+        .client-info {
+            float: left;
+            width: 45%;
+        }
+
+        .delivery-info {
+            float: right;
+            width: 45%;
+        }
+
+        h1 {
+            margin: 0;
+            color: #2563eb;
+            text-transform: uppercase;
+            font-size: 24px;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        .table th {
+            background: #f8fafc;
+            border-bottom: 2px solid #e2e8f0;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .table td {
+            border-bottom: 1px solid #e2e8f0;
+            padding: 10px;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .totals {
+            float: right;
+            width: 30%;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+        }
+
+        .grand-total {
+            border-top: 2px solid #2563eb;
+            margin-top: 10px;
+            padding-top: 10px;
+            font-weight: bold;
+            font-size: 16px;
+            color: #2563eb;
+        }
+
+        .footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            font-size: 10px;
+            color: #94a3b8;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 10px;
+        }
+
         /* Marca de agua para documentos anulados */
         .watermark {
             position: fixed;
@@ -68,28 +155,31 @@
         }
     </style>
 </head>
+
 <body>
     {{-- Marca de agua para documentos anulados --}}
-    @if($doc->estado === 'anulado')
-    <div class="watermark">ANULADA</div>
+    @if ($doc->estado === 'anulado')
+        <div class="watermark">ANULADA</div>
     @endif
-    
+
     <div class="header">
         <div class="company-info">
-            @if($esCompra)
+            @if ($esCompra)
                 {{-- Documentos de compra: arriba a la izquierda va el PROVEEDOR --}}
                 <h1 style="font-size: 20px; margin: 0 0 8px 0;">{{ $doc->tercero->nombre_comercial }}</h1>
                 <p style="margin: 0; font-size: 11px;">
-                    @if($doc->tercero->razon_social && $doc->tercero->razon_social !== $doc->tercero->nombre_comercial)
+                    @if ($doc->tercero->razon_social && $doc->tercero->razon_social !== $doc->tercero->nombre_comercial)
                         {{ $doc->tercero->razon_social }}<br>
                     @endif
                     NIF/CIF: {{ $doc->tercero->nif_cif }}<br>
-                    @if($doc->tercero->direccion_fiscal)
+                    @if ($doc->tercero->direccion_fiscal)
                         {{ $doc->tercero->direccion_fiscal }}<br>
                     @endif
-                    @if($doc->tercero->codigo_postal_fiscal || $doc->tercero->poblacion_fiscal)
+                    @if ($doc->tercero->codigo_postal_fiscal || $doc->tercero->poblacion_fiscal)
                         {{ $doc->tercero->codigo_postal_fiscal }} {{ $doc->tercero->poblacion_fiscal }}
-                        @if($doc->tercero->provincia_fiscal) ({{ $doc->tercero->provincia_fiscal }})@endif
+                        @if ($doc->tercero->provincia_fiscal)
+                            ({{ $doc->tercero->provincia_fiscal }})
+                        @endif
                     @endif
                 </p>
             @else
@@ -100,27 +190,31 @@
                     $logoImage = App\Models\Setting::get('pdf_logo_image');
                 @endphp
 
-                @if($logoType === 'image' && $logoImage)
-                    <img src="{{ public_path('storage/' . $logoImage) }}"
-                         alt="Logo"
-                         style="max-width: 300px; height: auto; max-height: 80px; margin-bottom: 10px;">
+                @if ($logoType === 'image' && $logoImage)
+                    <img src="{{ public_path('storage/' . $logoImage) }}" alt="Logo"
+                        style="max-width: 300px; height: auto; max-height: 80px; margin-bottom: 10px;">
                 @else
                     <h1>{{ $logoText }}</h1>
                 @endif
 
                 <p>
-                    {!! App\Models\Setting::get('pdf_header_html', '<strong>Sientia SL</strong><br>NIF: B12345678<br>Calle Falsa 123, 28001 Madrid') !!}
+                    {!! App\Models\Setting::get(
+                        'pdf_header_html',
+                        '<strong>Sientia SL</strong><br>NIF: B12345678<br>Calle Falsa 123, 28001 Madrid',
+                    ) !!}
                 </p>
             @endif
         </div>
         <div class="doc-info">
             <h2 style="color: #64748b; margin: 0;">{{ $labelTipo }}</h2>
             <p style="font-size: 18px; font-weight: bold; margin: 5px 0;">{{ $doc->numero }}</p>
-            @if($doc->es_rectificativa && $doc->facturaRectificada)
-                <p style="font-size: 10px; color: #64748b; margin-top: 5px;">Rectifica a: {{ $doc->facturaRectificada->numero }} ({{ $doc->facturaRectificada->fecha->format('d/m/Y') }})</p>
+            @if ($doc->es_rectificativa && $doc->facturaRectificada)
+                <p style="font-size: 10px; color: #64748b; margin-top: 5px;">Rectifica a:
+                    {{ $doc->facturaRectificada->numero }} ({{ $doc->facturaRectificada->fecha->format('d/m/Y') }})
+                </p>
             @endif
             <p>Fecha: {{ $doc->fecha->format('d/m/Y') }}</p>
-            @if($doc->fecha_entrega)
+            @if ($doc->fecha_entrega)
                 <p>Fecha Entrega: {{ $doc->fecha_entrega->format('d/m/Y') }}</p>
             @endif
         </div>
@@ -128,7 +222,7 @@
     </div>
 
     <div class="billing-info">
-        @if($esCompra)
+        @if ($esCompra)
             {{-- Documentos de compra: abajo muestra los datos de nuestra empresa a la derecha (ventana postal) --}}
             <div class="delivery-info">
                 @php
@@ -140,7 +234,7 @@
             </div>
         @else
             {{-- Documentos de venta: abajo muestra al CLIENTE (tercero) --}}
-            @if($doc->tercero->direccion_envio_diferente && $doc->tercero->direccion_envio)
+            @if ($doc->tercero->direccion_envio_diferente && $doc->tercero->direccion_envio)
                 {{-- Datos Fiscales al IZQUIERDO --}}
                 <div class="client-info">
                     <span style="font-size: 10px; color: #64748b; text-transform: uppercase;">Datos Fiscales</span><br>
@@ -154,19 +248,23 @@
                     <strong>{{ $doc->tercero->nombre_comercial }}</strong><br>
                     {{ $doc->tercero->direccion_envio }}<br>
                     {{ $doc->tercero->codigo_postal_envio }} {{ $doc->tercero->poblacion_envio }}
-                    @if($doc->tercero->provincia_envio) ({{ $doc->tercero->provincia_envio }})@endif
+                    @if ($doc->tercero->provincia_envio)
+                        ({{ $doc->tercero->provincia_envio }})
+                    @endif
                 </div>
             @else
                 {{-- Solo datos fiscales a la DERECHA (ventana postal) --}}
                 <div class="delivery-info">
                     <strong>{{ $doc->tercero->nombre_comercial }}</strong><br>
-                    @if($doc->tercero->razon_social && $doc->tercero->razon_social !== $doc->tercero->nombre_comercial)
+                    @if ($doc->tercero->razon_social && $doc->tercero->razon_social !== $doc->tercero->nombre_comercial)
                         {{ $doc->tercero->razon_social }}<br>
                     @endif
                     NIF/CIF: {{ $doc->tercero->nif_cif }}<br>
                     {{ $doc->tercero->direccion_fiscal }}<br>
                     {{ $doc->tercero->codigo_postal_fiscal }} {{ $doc->tercero->poblacion_fiscal }}
-                    @if($doc->tercero->provincia_fiscal) ({{ $doc->tercero->provincia_fiscal }})@endif
+                    @if ($doc->tercero->provincia_fiscal)
+                        ({{ $doc->tercero->provincia_fiscal }})
+                    @endif
                 </div>
             @endif
         @endif
@@ -183,24 +281,25 @@
             </tr>
         </thead>
         <tbody>
-            @foreach($doc->lineas as $linea)
-            <tr>
-                <td>
-                    <strong>{{ $linea->codigo }}</strong> - {{ $linea->descripcion }}
-                </td>
-                <td class="text-right">{{ number_format($linea->cantidad, 2, ',', '.') }}</td>
-                <td class="text-right">{{ formatMoney($linea->precio_unitario, $currencySymbol, $currencyPosition) }}</td>
-                <td class="text-right">{{ formatMoney($linea->total, $currencySymbol, $currencyPosition) }}</td>
-            </tr>
+            @foreach ($doc->lineas as $linea)
+                <tr>
+                    <td>
+                        <strong>{{ $linea->codigo }}</strong> - {{ $linea->descripcion }}
+                    </td>
+                    <td class="text-right">{{ number_format($linea->cantidad, 2, ',', '.') }}</td>
+                    <td class="text-right">
+                        {{ formatMoney($linea->precio_unitario, $currencySymbol, $currencyPosition) }}</td>
+                    <td class="text-right">{{ formatMoney($linea->total, $currencySymbol, $currencyPosition) }}</td>
+                </tr>
             @endforeach
         </tbody>
     </table>
 
     <div style="width: 100%;">
         <div style="float: left; width: 60%;">
-            @if($doc->observaciones)
-            <h4 style="margin-bottom: 5px;">Observaciones:</h4>
-            <p style="font-size: 10px;">{{ $doc->observaciones }}</p>
+            @if ($doc->observaciones)
+                <h4 style="margin-bottom: 5px;">Observaciones:</h4>
+                <p style="font-size: 10px;">{{ $doc->observaciones }}</p>
             @endif
         </div>
         <div class="totals">
@@ -212,11 +311,11 @@
                 <span>IVA:</span>
                 <span class="text-right">{{ formatMoney($doc->iva, $currencySymbol, $currencyPosition) }}</span>
             </div>
-            @if($doc->porcentaje_irpf > 0)
-            <div class="total-row">
-                <span>IRPF ({{ $doc->porcentaje_irpf }}%):</span>
-                <span class="text-right">{{ formatMoney($doc->irpf, $currencySymbol, $currencyPosition) }}</span>
-            </div>
+            @if ($doc->porcentaje_irpf > 0)
+                <div class="total-row">
+                    <span>IRPF ({{ $doc->porcentaje_irpf }}%):</span>
+                    <span class="text-right">{{ formatMoney($doc->irpf, $currencySymbol, $currencyPosition) }}</span>
+                </div>
             @endif
             <div class="grand-total">
                 <span>TOTAL:</span>
@@ -226,8 +325,30 @@
         <div class="clear"></div>
     </div>
 
+    @if ($doc->verifactu_qr_url)
+        <div
+            style="margin-top: 30px; padding: 10px; border: 1px solid #e2e8f0; background-color: #f8fafc; border-radius: 8px;">
+            <div style="float: left; width: 80%;">
+                <h4 style="margin: 0 0 5px 0; font-size: 11px;">Factura verificable en la sede electrónica de la AEAT
+                </h4>
+                <p style="font-size: 10px; margin: 0 0 5px 0; color: #64748b;">Este documento está encadenado y firmado
+                    digitalmente según la normativa Veri*Factu.</p>
+                <p style="font-size: 9px; font-family: monospace; color: #333; word-break: break-all;">
+                    <strong>Huella:</strong> {{ $doc->verifactu_huella }}
+                </p>
+            </div>
+            <div style="float: right; width: 15%; text-align: right;">
+                <img src="data:image/png;base64, {!! base64_encode(
+                    SimpleSoftwareIO\QrCode\Facades\QrCode::format('png')->size(90)->margin(0)->generate($doc->verifactu_qr_url),
+                ) !!} " style="width: 80px; height: 80px;">
+            </div>
+            <div class="clear"></div>
+        </div>
+    @endif
+
     <div class="footer">
         {{ App\Models\Setting::get('pdf_footer_text', 'sienteERP System') }}
     </div>
 </body>
+
 </html>
