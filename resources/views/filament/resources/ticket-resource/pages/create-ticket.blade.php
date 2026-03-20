@@ -144,6 +144,14 @@
             {{-- Fila Única de Entrada --}}
             <div class="flex items-center space-x-1 bg-white p-2 rounded border border-gray-200 shadow-xs shrink-0"
                 x-data="{
+                    openSearch: false,
+                    searchType: 'sku',
+                    selectedIndex: 0,
+                    init() {
+                        this.$watch('openSearch', value => {
+                            if (value) this.selectedIndex = 0;
+                        });
+                    },
                     focusNext(nextId) {
                         setTimeout(() => {
                             let el = document.getElementById(nextId);
@@ -152,37 +160,83 @@
                                 el.select();
                             }
                         }, 100);
+                    },
+                    selectItem(item) {
+                        if (this.searchType === 'sku') {
+                            $wire.set('nuevoCodigo', item);
+                        } else {
+                            $wire.set('nuevoNombre', item);
+                        }
+                        this.openSearch = false;
+                        $wire.anotarLinea();
                     }
                 }" @focus-cantidad.window="focusNext('pos-cantidad')"
                 @focus-precio.window="focusNext('pos-precio')" @focus-descuento.window="focusNext('pos-descuento')"
-                @focus-codigo.window="focusNext('pos-codigo')">
-                <div class="w-32" wire:key="container-codigo">
+                @focus-codigo.window="focusNext('pos-codigo')" @click.away="openSearch = false">
+
+                <div class="w-40 relative" wire:key="container-codigo">
                     <label class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Código</label>
-                    <input type="text" wire:model.live.debounce.500ms="nuevoCodigo"
-                        wire:keydown.enter.prevent="anotarLinea" list="codigos-list" id="pos-codigo" autocomplete="off"
-                        onfocus="this.select()"
+                    <input type="text" wire:model.live.debounce.300ms="nuevoCodigo"
+                        @focus="openSearch = true; searchType = 'sku'"
+                        @keydown.down.prevent="if(openSearch) { selectedIndex = Math.min(selectedIndex + 1, $refs.skuList.children.length - 1) }"
+                        @keydown.up.prevent="if(openSearch) { selectedIndex = Math.max(selectedIndex - 1, 0) }"
+                        @keydown.enter.prevent="if(openSearch && $refs.skuList.children[selectedIndex]) { $refs.skuList.children[selectedIndex].click() } else { $wire.anotarLinea() }"
+                        id="pos-codigo" autocomplete="off" onfocus="this.select()"
                         class="pos-input w-full h-9 border-gray-300 rounded-none px-2 font-mono text-sm focus:ring-primary-500 focus:border-primary-500 uppercase"
                         placeholder="SKU" autofocus />
-                    <datalist id="codigos-list">
-                        @foreach ($resultadosCodigo as $id => $sku)
-                            <option value="{{ $sku }}">
+
+                    {{-- Popover SKU --}}
+                    <div x-show="openSearch && searchType === 'sku' && $wire.resultadosCodigo.length > 0" x-transition
+                        class="absolute z-50 mt-1 w-64 bg-white border border-gray-300 shadow-xl max-h-60 overflow-y-auto"
+                        x-ref="skuList">
+                        @foreach ($resultadosCodigo as $idx => $sku)
+                            <div @click="selectItem('{{ $sku }}')"
+                                :class="{
+                                    'bg-primary-500 text-white': selectedIndex ===
+                                        {{ $idx }},
+                                    'hover:bg-gray-100': selectedIndex !== {{ $idx }}
+                                }"
+                                class="px-3 py-2 cursor-pointer text-xs border-b border-gray-100 transition-colors">
+                                <span class="font-bold">{{ $sku }}</span>
+                            </div>
                         @endforeach
-                    </datalist>
+                    </div>
                 </div>
 
-                <div class="flex-1 min-w-[200px]" wire:key="container-descripcion">
+                <div class="flex-1 min-w-[200px] relative" wire:key="container-descripcion">
                     <label
                         class="block text-[10px] uppercase font-bold text-gray-500 mb-1 leading-none">Descripción</label>
-                    <input type="text" wire:model.live.debounce.500ms="nuevoNombre"
-                        wire:keydown.enter.prevent="anotarLinea" list="productos-list" id="pos-descripcion"
-                        autocomplete="off" onfocus="this.select()"
+                    <input type="text" wire:model.live.debounce.300ms="nuevoNombre"
+                        @focus="openSearch = true; searchType = 'description'"
+                        @keydown.down.prevent="if(openSearch) { selectedIndex = Math.min(selectedIndex + 1, $refs.descList.children.length - 1) }"
+                        @keydown.up.prevent="if(openSearch) { selectedIndex = Math.max(selectedIndex - 1, 0) }"
+                        @keydown.enter.prevent="if(openSearch && $refs.descList.children[selectedIndex]) { $refs.descList.children[selectedIndex].click() } else { $wire.anotarLinea() }"
+                        id="pos-descripcion" autocomplete="off" onfocus="this.select()"
                         class="pos-input w-full h-9 border-gray-300 rounded-none px-2 text-sm focus:ring-primary-500 focus:border-primary-500"
                         placeholder="Escribe para buscar..." />
-                    <datalist id="productos-list">
-                        @foreach ($resultadosNombre as $id => $nombre)
-                            <option value="{{ $nombre }}">
+
+                    {{-- Popover Descripción --}}
+                    <div x-show="openSearch && searchType === 'description' && Object.keys($wire.resultadosNombre).length > 0"
+                        x-transition
+                        class="absolute z-50 mt-1 w-full bg-white border border-gray-300 shadow-xl max-h-60 overflow-y-auto"
+                        x-ref="descList">
+                        @php
+                            $names = $resultadosNombre;
+                            $count = 0;
+                        @endphp
+                        @foreach ($names as $id => $nombre)
+                            <div @click="selectItem('{{ $nombre }}')"
+                                :class="{
+                                    'bg-primary-500 text-white': selectedIndex ===
+                                        {{ $count }},
+                                    'hover:bg-gray-100': selectedIndex !== {{ $count }}
+                                }"
+                                class="px-3 py-2 cursor-pointer text-xs border-b border-gray-100 transition-colors">
+                                <span class="font-bold">{{ $nombre }}</span>
+                            </div>
+                            @php $count++; @endphp
                         @endforeach
-                    </datalist>
+                    </div>
                 </div>
 
                 <div class="w-20">
@@ -311,7 +365,7 @@
                 {{-- Fila 1: Botonera de Acciones --}}
                 <div class="flex flex-row gap-2 items-center justify-between border-b border-gray-100 pb-3">
                     <div class="flex gap-2 items-center">
-                        @foreach ([['Grabar', 'heroicon-o-check', 'background-color: #16a34a; color: white;', 'scale-105 !px-12 mx-2 font-black text-xl shadow-green-200'], ['Anular', 'heroicon-o-trash', 'background-color: #fef2f2; color: #dc2626;', 'font-bold'], ['Imprimir', 'heroicon-o-printer', 'background-color: #f3f4f6; color: #374151;', 'font-bold'], ['Regalo', 'heroicon-o-gift', 'background-color: #f3f4f6; color: #7e22ce;', 'font-bold'], ['Nueva', 'heroicon-o-plus', 'background-color: #f59e0b; color: white;', 'font-bold'], ['Salir', 'heroicon-o-arrow-right-on-rectangle', 'background-color: #f3f4f6; color: #b45309;', 'font-bold']] as $btn)
+                        @foreach ([['Grabar', 'heroicon-o-check', 'background-color: #ffffff; color: #16a34a; border-color: #16a34a;', 'font-bold'], ['Anular', 'heroicon-o-trash', 'background-color: #ffffff; color: #dc2626; border-color: #dc2626;', 'font-bold'], ['Imprimir', 'heroicon-o-printer', 'background-color: #ffffff; color: #374151; border-color: #374151;', 'font-bold'], ['Regalo', 'heroicon-o-gift', 'background-color: #ffffff; color: #7e22ce; border-color: #7e22ce;', 'font-bold'], ['Nueva', 'heroicon-o-plus', 'background-color: #ffffff; color: #f59e0b; border-color: #f59e0b;', 'font-bold'], ['Salir', 'heroicon-o-arrow-right-on-rectangle', 'background-color: #ffffff; color: #b45309; border-color: #b45309;', 'font-bold']] as $btn)
                             <button
                                 @if ($btn[0] === 'Grabar') wire:click="grabarTicket" wire:loading.attr="disabled"
                                 @elseif($btn[0] === 'Imprimir') wire:click="imprimirTicket"
@@ -320,9 +374,9 @@
                                 @elseif($btn[0] === 'Regalo') wire:click="imprimirTicketRegalo"
                                 @elseif($btn[0] === 'Salir') wire:click="salirPos" @endif
                                 type="button" style="{{ $btn[2] }}"
-                                class="flex items-center gap-3 px-6 h-14 rounded-none border border-gray-400 shadow-sm transition-all duration-150 {{ $btn[3] }} active:scale-95 hover:brightness-95">
-                                <x-dynamic-component :component="$btn[1]" class="w-6 h-6" />
-                                <span class="uppercase tracking-wide font-black">{{ $btn[0] }}</span>
+                                class="flex items-center gap-2 px-4 h-12 rounded-none border border-gray-300 shadow-sm transition-all duration-150 {{ $btn[3] }} active:scale-95 hover:brightness-95">
+                                <x-dynamic-component :component="$btn[1]" class="w-5 h-5" />
+                                <span class="uppercase tracking-wide font-bold text-sm">{{ $btn[0] }}</span>
                             </button>
                         @endforeach
                     </div>
@@ -349,7 +403,7 @@
                                 %</label>
                             <input onfocus="this.select()" type="number"
                                 wire:model.live.debounce.500ms="descuento_general_porcentaje" step="0.01"
-                                class="h-9 w-full text-right text-sm border-gray-300 rounded-none font-bold" />
+                                class="h-9 w-full text-right text-base border-gray-300 rounded-none font-bold" />
                         </div>
                         <div class="w-28">
                             <label
@@ -364,18 +418,18 @@
                     {{-- Bloque Pagos --}}
                     <div class="flex-1 flex gap-3 bg-gray-50 p-3 rounded-none border border-gray-200 shadow-inner">
                         <div class="flex flex-col flex-1">
-                            <span class="text-[10px] font-black text-green-700 uppercase leading-none mb-1.5">Efectivo
+                            <span class="text-[9px] font-black text-green-700 uppercase leading-none mb-1">Efectivo
                                 (€)</span>
                             <input onfocus="this.select()" type="number" wire:model.live="pago_efectivo"
                                 @keydown.enter="$wire.grabarTicket()"
-                                class="h-10 w-full text-right text-xl border-green-300 rounded-none bg-white font-black text-green-800 shadow-sm focus:ring-green-500" />
+                                class="h-9 w-full text-right text-base border-gray-300 rounded-none bg-white font-bold text-gray-800 shadow-sm" />
                         </div>
                         <div class="flex flex-col flex-1">
-                            <span class="text-[10px] font-black text-blue-700 uppercase leading-none mb-1.5">Tarjeta
+                            <span class="text-[9px] font-black text-blue-700 uppercase leading-none mb-1">Tarjeta
                                 (€)</span>
                             <input onfocus="this.select()" type="number" wire:model.live="pago_tarjeta"
                                 @keydown.enter="$wire.grabarTicket()"
-                                class="h-10 w-full text-right text-xl border-blue-300 rounded-none bg-white font-black text-blue-800 shadow-sm focus:ring-blue-500" />
+                                class="h-9 w-full text-right text-base border-gray-300 rounded-none bg-white font-bold text-gray-800 shadow-sm" />
                         </div>
                     </div>
 
@@ -397,18 +451,17 @@
                         </div>
                     </div>
 
-                    {{-- TOTAL A PAGAR (ULTRA DESTACADO) --}}
-                    {{-- TOTAL A PAGAR (ULTRA DESTACADO) --}}
-                    <div style="background-color: #0f172a !important; border: 4px solid #f59e0b !important;"
-                        class="flex flex-row items-center gap-6 rounded-none px-6 shadow-2xl min-w-[320px] h-[80px] hover:scale-[1.02] transition-transform duration-200">
-                        <div class="flex flex-col items-start leading-none gap-1">
-                            <span class="text-[12px] uppercase font-black text-[#f59e0b] tracking-[0.2em]">PAGAR</span>
-                            <span class="text-[12px] uppercase font-black text-white tracking-[0.2em]">TOTAL</span>
+                    {{-- TOTAL A PAGAR (SOBRIO) --}}
+                    <div
+                        class="flex flex-row items-center gap-6 rounded-none bg-white px-8 border-2 border-gray-400 shadow-sm min-w-[280px] h-[72px]">
+                        <div class="flex flex-col items-start leading-none gap-0.5">
+                            <span class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">TOTAL</span>
+                            <span class="text-[10px] uppercase font-black text-gray-900 tracking-wider">PAGAR</span>
                         </div>
                         <div class="flex items-baseline gap-2 flex-1 justify-end">
                             <span
-                                class="font-black text-6xl text-[#fbbf24] tabular-nums">{{ number_format($total ?? 0, 2) }}</span>
-                            <span class="font-black text-3xl text-[#f59e0b]">€</span>
+                                class="font-black text-5xl text-gray-900 tabular-nums">{{ number_format($total ?? 0, 2) }}</span>
+                            <span class="font-black text-2xl text-gray-500">€</span>
                         </div>
                     </div>
                 </div>

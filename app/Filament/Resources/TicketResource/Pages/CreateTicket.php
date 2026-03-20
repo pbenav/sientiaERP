@@ -580,15 +580,20 @@ class CreateTicket extends Page
         
         // 1. Persistir en BDD
         $this->persistirLinea($linea);
+
+        // 2. UNA SOLA LLAMADA A TOTALES (Persiste y refresca en un paso)
+        if ($this->ticket) {
+            $this->ticket->recalculateTotals();
+        }
         
-        // 2. RECARGAR TODO DESDE BDD (Crucial para sincronización visual)
+        // 3. RECARGAR TODO DESDE BDD (Crucial para sincronización visual)
         $this->recargarLineas();
         
-        // 3. Totales e Inputs
-        $this->recalcularTotales();
+        // 4. Totales e Inputs
+        $this->recalcularTotales(false); // false = no volver ya a llamar a ticket->recalculateTotals
         $this->limpiarInputs();
         
-        // 4. Forzar que Livewire "vea" que el array ha cambiado de verdad
+        // 5. Forzar que Livewire "vea" que el array ha cambiado de verdad
         $this->lineas = array_values($this->lineas);
     }
     
@@ -598,7 +603,8 @@ class CreateTicket extends Page
         try {
             // Asegurar que el ticket está vinculado a la sesión activa si no lo está
             if (!$this->ticket->cash_session_id && $this->activeSession) {
-                $this->ticket->update(['cash_session_id' => $this->activeSession->id]);
+                $this->ticket->cash_session_id = $this->activeSession->id;
+                // No guardamos aún, lo hará recalculateTotals o al final
             }
 
             $taxRate = (float) ($linea['tax_rate'] ?? ($this->nuevoProducto?->tax_rate ?? 21));
@@ -613,7 +619,7 @@ class CreateTicket extends Page
                 'tax_amount' => round($linea['importe'] - ($linea['importe'] / $divisor), 4),
                 'total' => $linea['importe'],
             ]);
-            $this->ticket->recalculateTotals();
+            // Llamamos una sola vez al final del proceso principal
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('POS Error Save Item: '.$e->getMessage());
             Notification::make()->title('Error guardando línea: ' . $e->getMessage())->danger()->send();
@@ -660,19 +666,20 @@ class CreateTicket extends Page
         }
     }
     
-    public function recalcularTotales()
+    public function recalcularTotales($recalculateModel = true)
     {
         $oldTotal = (float)$this->total;
-        $subtotalLineas = collect($this->lineas)->sum('importe');
         
         // Sincronizar con el modelo Ticket para obtener los impuestos y descuentos aplicados reales
         if ($this->ticket) {
-            $this->ticket->descuento_porcentaje = (float)($this->descuento_general_porcentaje ?: 0);
-            $this->ticket->descuento_importe = (float)($this->descuento_general_importe ?: 0);
-            $this->ticket->recalculateTotals();
+            if ($recalculateModel) {
+                $this->ticket->descuento_porcentaje = (float)($this->descuento_general_porcentaje ?: 0);
+                $this->ticket->descuento_importe = (float)($this->descuento_general_importe ?: 0);
+                $this->ticket->recalculateTotals();
+            }
             $this->total = (float)$this->ticket->total;
         } else {
-            $this->total = (float)$subtotalLineas;
+            $this->total = collect($this->lineas)->sum('importe');
         }
 
         // Si el total es 0 pero hay líneas, forzar recalculo del modelo (evitar glitch de carga inicial)
