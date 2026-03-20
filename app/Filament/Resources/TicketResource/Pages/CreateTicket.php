@@ -1067,6 +1067,15 @@ class CreateTicket extends Page
             return;
         }
 
+        // Notificar al usuario si hay un ticket en curso que no ha sido guardado
+        if (count($this->lineas) > 0) {
+            Notification::make()
+                ->title('Imprimiendo COPIA')
+                ->body('Atenci&oacute;n: El ticket actual no se ha guardado todavía. Est&aacute;s imprimiendo una copia del TICKET ANTERIOR (' . $ticketAPrimir->numero . ').')
+                ->info()
+                ->send();
+        }
+
         $this->printUrl = route('pos.ticket', $ticketAPrimir) . '?t=' . time();
         $this->showPrintModal = true;
     }
@@ -1076,8 +1085,6 @@ class CreateTicket extends Page
      */
     public function imprimirTicketRegalo()
     {
-        // El botón Regalo imprime el último ticket sin precios.
-        
         $ticketAPrimir = Ticket::where('user_id', auth()->id())
             ->where('status', 'completed')
             ->orderBy('completed_at', 'desc')
@@ -1086,13 +1093,22 @@ class CreateTicket extends Page
         if (!$ticketAPrimir) {
             Notification::make()
                 ->title('TPV Vacío')
-                ->body('No hay ningún ticket reciente para generar el ticket regalo.')
+                ->body('No hay ningún ticket reciente para imprimir ticket regalo.')
                 ->warning()
                 ->send();
             return;
         }
 
-        $this->printUrl = route('pos.ticket.regalo', $ticketAPrimir);
+        // Notificar al usuario si hay un ticket en curso que no ha sido guardado
+        if (count($this->lineas) > 0) {
+            Notification::make()
+                ->title('Imprimiendo COPIA REGALO')
+                ->body('Atenci&oacute;n: El ticket actual no se ha guardado todavía. Est&aacute;s imprimiendo una copia de REGALO del TICKET ANTERIOR (' . $ticketAPrimir->numero . ').')
+                ->info()
+                ->send();
+        }
+
+        $this->printUrl = route('pos.ticket', $ticketAPrimir) . '?regalo=1&t=' . time();
         $this->showPrintModal = true;
     }
     protected function cargarTicketExistente($ticket)
