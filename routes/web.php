@@ -20,6 +20,10 @@ Route::get('/pos/ticket/{record}', [PdfController::class, 'ticketPos'])
     ->name('pos.ticket')
     ->middleware(['auth']);
 
+Route::get('/pos/ticket-raw/{record}', [PdfController::class, 'ticketPosRaw'])
+    ->name('pos.ticket.raw')
+    ->middleware(['auth']);
+
 Route::get('/pos/ticket-regalo/{record}', [PdfController::class, 'ticketRegalo'])
     ->name('pos.ticket.regalo')
     ->middleware(['auth']);

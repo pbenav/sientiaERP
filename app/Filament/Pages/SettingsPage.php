@@ -59,6 +59,8 @@ class SettingsPage extends Page
             // TPV & Precios
             'pos_default_tercero_id' => Setting::get('pos_default_tercero_id'),
             'pos_quick_skus' => Setting::get('pos_quick_skus', 'BOLSA,VARIO,GENERICO'),
+            'pos_printer_type' => Setting::get('pos_printer_type', 'thermal_pdf'),
+            'pos_printer_width' => Setting::get('pos_printer_width', '80mm'),
             'profit_calculation_method' => Setting::get('profit_calculation_method', 'from_purchase'),
             'default_profit_percentage' => Setting::get('default_profit_percentage', 60),
             'default_tax_rate' => Setting::get('default_tax_rate', 21),
@@ -218,6 +220,19 @@ class SettingsPage extends Page
                                                 'ean13' => 'EAN-13 (Comercial)',
                                                 'ean8' => 'EAN-8 (Compacto)',
                                                 'qrcode' => 'QR Code (Digital)',
+                                            ]),
+                                        Select::make('pos_printer_type')
+                                            ->label('Tipo de Impresora')
+                                            ->options([
+                                                'browser' => 'Navegador (Estándar)',
+                                                'thermal_pdf' => 'Térmica (PDF Optimizado)',
+                                                'thermal_escpos' => 'Térmica (Modo Texto ESC/POS - RAW)',
+                                            ]),
+                                        Select::make('pos_printer_width')
+                                            ->label('Ancho de Papel')
+                                            ->options([
+                                                '58mm' => '58 mm (Pequeña)',
+                                                '80mm' => '80 mm (Estándar)',
                                             ]),
                                     ])->columns(2),
                                 Section::make('Cálculo de Beneficios y Documentos')

@@ -957,7 +957,9 @@ class CreateTicket extends Page
         $this->dispatch('focus-codigo');
 
         // MOSTRAR MODAL DE IMPRESIÓN (Acción total)
-        $this->printUrl = route('pos.ticket', $savedTicket);
+        $printerType = Setting::get('pos_printer_type', 'thermal_pdf');
+        $routeName = ($printerType === 'thermal_escpos') ? 'pos.ticket.raw' : 'pos.ticket';
+        $this->printUrl = route($routeName, $savedTicket);
         $this->showPrintModal = true;
 
         return $savedTicket;
@@ -1084,7 +1086,9 @@ class CreateTicket extends Page
                 ->send();
         }
 
-        $this->printUrl = route('pos.ticket', $ticketAPrimir) . '?t=' . time();
+        $printerType = Setting::get('pos_printer_type', 'thermal_pdf');
+        $routeName = ($printerType === 'thermal_escpos') ? 'pos.ticket.raw' : 'pos.ticket';
+        $this->printUrl = route($routeName, $ticketAPrimir) . '?t=' . time();
         $this->showPrintModal = true;
     }
 

@@ -54,12 +54,15 @@ class PdfController extends Controller
     {
         $record->load(['tercero', 'items.product', 'user']);
         
+        $widthSetting = \App\Models\Setting::get('pos_printer_width', '80mm');
+        $widthPt = ($widthSetting === '58mm') ? 164.4 : 226.77;
+        
         $pdf = Pdf::loadView('pdf.ticket_pos', [
             'ticket' => $record,
+            'width' => $widthSetting,
         ]);
 
-        // 80mm = 226.77pt
-        $pdf->setPaper([0, 0, 226.77, 600], 'portrait');
+        $pdf->setPaper([0, 0, $widthPt, 800], 'portrait');
 
         $filename = 'TKT_' . str_replace('/', '_', $record->numero ?? 'BORRADOR') . '.pdf';
 
@@ -79,5 +82,43 @@ class PdfController extends Controller
         $filename = 'REGALO_' . str_replace('/', '_', $record->numero ?? 'BORRADOR') . '.pdf';
 
         return $pdf->stream($filename);
+    }
+
+    public function ticketPosRaw(Ticket $record)
+    {
+        $record->load(['tercero', 'items.product', 'user']);
+        
+        $widthSetting = \App\Models\Setting::get('pos_printer_width', '80mm');
+        $chars = ($widthSetting === '58mm') ? 32 : 42;
+        
+        $content = "";
+        $content .= str_pad(\App\Models\Setting::get('pdf_logo_text', 'sienteERP POS'), $chars, " ", STR_PAD_BOTH) . "\n";
+        $content .= str_repeat("-", $chars) . "\n";
+        
+        $content .= "TICKET: " . str_pad($record->numero ?? 'BORRADOR', $chars - 8, " ", STR_PAD_LEFT) . "\n";
+        $content .= "Fecha:  " . str_pad($record->created_at->format('d/m/Y H:i'), $chars - 8, " ", STR_PAD_LEFT) . "\n";
+        $content .= str_repeat("-", $chars) . "\n";
+        
+        $content .= str_pad("DESCRIPCION", $chars - 12, " ", STR_PAD_RIGHT) . str_pad("TOTAL", 12, " ", STR_PAD_LEFT) . "\n";
+        foreach ($record->items as $item) {
+            $name = substr($item->product ? $item->product->name : 'Producto', 0, $chars - 12);
+            $total = number_format($item->total, 2, ',', '.') . 'E';
+            $content .= str_pad($name, $chars - 12, " ", STR_PAD_RIGHT) . str_pad($total, 12, " ", STR_PAD_LEFT) . "\n";
+        }
+        
+        $content .= str_repeat("-", $chars) . "\n";
+        $content .= "SUBTOTAL:" . str_pad(number_format($record->subtotal, 2, ',', '.') . 'E', $chars - 9, " ", STR_PAD_LEFT) . "\n";
+        $content .= "TOTAL: " . str_pad(number_format($record->total, 2, ',', '.') . 'E', $chars - 7, " ", STR_PAD_LEFT) . "\n";
+        
+        $content .= str_repeat("-", $chars) . "\n";
+        $content .= str_pad(\App\Models\Setting::get('pdf_footer_text', 'Gracias por su confianza!'), $chars, " ", STR_PAD_BOTH) . "\n";
+        
+        $filename = 'TKT_' . str_replace('/', '_', $record->numero ?? 'BORRADOR') . '.txt';
+        
+        return response($content)
+            ->withHeaders([
+                'Content-Type' => 'text/plain',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ]);
     }
 }

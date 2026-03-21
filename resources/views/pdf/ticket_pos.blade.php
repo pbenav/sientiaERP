@@ -11,13 +11,11 @@
 
         body {
             font-family: 'Courier', 'Arial', sans-serif;
-            font-size: 10px;
-            width: 70mm;
-            /* Reducido para asegurar margen derecho en papel de 80mm */
+            font-size: {{ ($width ?? '80mm') === '58mm' ? '8px' : '10px' }};
+            width: {{ ($width ?? '80mm') === '58mm' ? '48mm' : '70mm' }};
             margin: 0;
-            padding: 5mm;
-            /* Igualamos márgenes izquierda y derecha a 5mm */
-            line-height: 1.2;
+            padding: 2mm;
+            line-height: 1.1;
             color: #000;
         }
 
@@ -143,7 +141,7 @@
                 <tr>
                     <td>
                         {{ $item->product ? $item->product->name : 'Producto' }}
-                        <div style="font-size: 8px; color: #666;">IVA: {{ (int) $item->tax_rate }}%</div>
+                        <div style="font-size: 8px; color: #000;">IVA: {{ (int) $item->tax_rate }}%</div>
                     </td>
                     <td class="text-right">{{ (int) $item->quantity }}</td>
                     <td class="text-right">{{ number_format($item->total, 2, ',', '.') }}€</td>
@@ -169,8 +167,8 @@
             @endphp
             @if ($rateAmount > 0)
                 <tr>
-                    <td style="font-size: 8px; color: #666; padding-left: 5px;">IVA {{ (int) $rate }}%:</td>
-                    <td class="text-right" style="font-size: 8px; color: #666;">
+                    <td style="font-size: 8px; color: #000; padding-left: 5px;">IVA {{ (int) $rate }}%:</td>
+                    <td class="text-right" style="font-size: 8px; color: #000;">
                         {{ number_format($rateAmount, 2, ',', '.') }}€</td>
                 </tr>
             @endif
@@ -200,7 +198,7 @@
         </tr>
     </table>
 
-    <div style="margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 5px;">
+    <div style="margin-top: 10px; border-top: 1px dashed #000; padding-top: 5px;">
         <table class="info-table" style="font-size: 9px;">
             <tr>
                 <td>Pagado ({{ strtoupper($ticket->payment_method) }}):</td>
@@ -240,7 +238,7 @@
                 <img src="data:image/svg+xml;base64,{!! base64_encode(
                     SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(100)->generate($ticket->verifactu_qr_url),
                 ) !!}">
-                <div style="font-size: 7px; margin-top: 5px; font-family: monospace; color: #333;">Huella:
+                <div style="font-size: 7px; margin-top: 5px; font-family: monospace; color: #000;">Huella:
                     {{ substr($ticket->verifactu_huella, 0, 20) }}...</div>
             </div>
         @endif
