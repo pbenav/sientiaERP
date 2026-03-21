@@ -252,8 +252,8 @@ class FacturaeXmlService
             $objKey->loadKey($privateKey);
 
             // 3. BLOQUE XAdES-EPES: QualifyingProperties
-            // Este bloque es IMPORTANTE para Facturae
-            $this->addXadesProperties($doc, $objDSig, $publicCert);
+            // Este bloque es CRUCIAL para Facturae (XAdES-EPES)
+            $this->addXadesProperties($doc, $objDSig, $publicCert, $signatureId);
             
             // Firmar
             $objDSig->sign($objKey);
@@ -272,10 +272,85 @@ class FacturaeXmlService
         }
     }
 
-    protected function addXadesProperties(DOMDocument $doc, XMLSecurityDSig $objDSig, string $publicCert): void
+    protected function addXadesProperties(DOMDocument $doc, XMLSecurityDSig $objDSig, string $publicCert, string $signatureId): void
     {
-        // En una implementación real, aquí añadiríamos los nodos xades:QualifyingProperties
-        // usando DOMElement y asociándolos a un ds:Object.
-        // Por ahora, para esta versión proactiva, nos aseguramos de que el XML sea válido para descarga.
+        $signingTime = gmdate("Y-m-d\TH:i:s\Z");
+        
+        // Extraer hash del certificado (SHA-256 es preferible hoy en día)
+        $certData = openssl_x509_parse($publicCert);
+        $certBase64 = base64_encode(sha1($this->getCertContent($publicCert), true)); // v1 usaba sha1, v2 usa sha256
+        $certHash256 = base64_encode(hash('sha256', $this->getCertContent($publicCert), true));
+
+        // Crear contenedor ds:Object
+        $object = $doc->createElementNS('http://www.w3.org/2000/09/xmldsig#', 'ds:Object');
+        
+        $qualProperties = $doc->createElementNS('http://uri.etsi.org/01903/v1.3.2#', 'xades:QualifyingProperties');
+        $qualProperties->setAttribute('Target', '#' . $signatureId);
+        
+        $signedProps = $doc->createElement('xades:SignedProperties');
+        $signedPropsId = 'SignedProperties-' . $signatureId;
+        $signedProps->setAttribute('Id', $signedPropsId);
+        
+        $signedSigProps = $doc->createElement('xades:SignedSignatureProperties');
+        
+        // 1. SigningTime
+        $signedSigProps->appendChild($doc->createElement('xades:SigningTime', $signingTime));
+        
+        // 2. SigningCertificateV2 (Recomendado versión de Facturae 3.2.2+)
+        $signingCert = $doc->createElement('xades:SigningCertificate');
+        $cert = $doc->createElement('xades:Cert');
+        $certDigest = $doc->createElement('xades:CertDigest');
+        $digestMethod = $doc->createElement('ds:DigestMethod');
+        $digestMethod->setAttribute('Algorithm', 'http://www.w3.org/2000/09/xmldsig#sha1');
+        $certDigest->appendChild($digestMethod);
+        $certDigest->appendChild($doc->createElement('ds:DigestValue', $certBase64));
+        
+        $issuerSerial = $doc->createElement('xades:IssuerSerial');
+        $issuerSerial->appendChild($doc->createElement('ds:X509IssuerName', $this->getIssuerName($certData)));
+        $issuerSerial->appendChild($doc->createElement('ds:X509SerialNumber', $certData['serialNumber']));
+        
+        $cert->appendChild($certDigest);
+        $cert->appendChild($issuerSerial);
+        $signingCert->appendChild($cert);
+        $signedSigProps->appendChild($signingCert);
+        
+        // 3. SignaturePolicyIdentifier (Política de firma Facturae)
+        $policy = $doc->createElement('xades:SignaturePolicyIdentifier');
+        $id = $doc->createElement('xades:SignaturePolicyId');
+        $id->appendChild($doc->createElement('xades:SigPolicyId'))->appendChild($doc->createElement('xades:Identifier', 'http://www.facturae.es/politica_de_firma_formato_facturae/politica_de_firma_formato_facturae_v3_1.pdf'));
+        $id->appendChild($doc->createElement('xades:SigPolicyHash'))->appendChild($doc->createElement('ds:DigestMethod'))->setAttribute('Algorithm', 'http://www.w3.org/2000/09/xmldsig#sha1');
+        $id->getElementsByTagName('xades:SigPolicyHash')->item(0)->appendChild($doc->createElement('ds:DigestValue', 'Ohixl6upD6av8N7pEvDABhEL6hM=')); // Hash fijo de la política v3.1
+        $policy->appendChild($id);
+        $signedSigProps->appendChild($policy);
+        
+        $signedProps->appendChild($signedSigProps);
+        $qualProperties->appendChild($signedProps);
+        $object->appendChild($qualProperties);
+        
+        $doc->documentElement->appendChild($object);
+        
+        // Referenciar SignedProperties para que sean firmadas también
+        $objDSig->addReference(
+            $signedProps,
+            XMLSecurityDSig::SHA1,
+            null,
+            ['type' => 'http://uri.etsi.org/01903#SignedProperties', 'force_uri' => true]
+        );
+    }
+
+    private function getCertContent(string $cert): string
+    {
+        $cert = str_replace(['-----BEGIN CERTIFICATE-----', '-----END CERTIFICATE-----', "\r", "\n"], '', $cert);
+        return base64_decode($cert);
+    }
+
+    private function getIssuerName(array $certData): string
+    {
+        $parts = [];
+        foreach ($certData['issuer'] as $key => $value) {
+            if (is_array($value)) $value = implode(', ', $value);
+            $parts[] = "$key=$value";
+        }
+        return implode(', ', array_reverse($parts));
     }
 }
