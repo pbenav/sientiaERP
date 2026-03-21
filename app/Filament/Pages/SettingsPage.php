@@ -96,6 +96,12 @@ class SettingsPage extends Page
             'verifactu_endpoint_test_query' => Setting::get('verifactu_endpoint_test_query', config('verifactu.endpoints.test_query')),
             'verifactu_endpoint_production' => Setting::get('verifactu_endpoint_production', config('verifactu.endpoints.production')),
             'verifactu_endpoint_production_query' => Setting::get('verifactu_endpoint_production_query', config('verifactu.endpoints.production_query')),
+            
+            // Facturae
+            'facturae_active' => filter_var(Setting::get('facturae_active', false), FILTER_VALIDATE_BOOLEAN),
+            'facturae_mode' => Setting::get('facturae_mode', 'test'),
+            'facturae_endpoint_test' => Setting::get('facturae_endpoint_test', config('facturae.endpoints.test')),
+            'facturae_endpoint_production' => Setting::get('facturae_endpoint_production', config('facturae.endpoints.production')),
         ]);
     }
 
@@ -325,6 +331,30 @@ class SettingsPage extends Page
                                         TextInput::make('verifactu_endpoint_test_query')->label('URL Consulta (Pruebas)')->columnSpanFull(),
                                         TextInput::make('verifactu_endpoint_production')->label('URL Alta (Producción)')->columnSpanFull(),
                                         TextInput::make('verifactu_endpoint_production_query')->label('URL Consulta (Producción)')->columnSpanFull(),
+                                    ]),
+                            ]),
+                        
+                        Tabs\Tab::make('Facturae (e-Factura)')
+                            ->icon('heroicon-o-document-duplicate')
+                            ->schema([
+                                Section::make('Configuración General')
+                                    ->description('Facturación electrónica para Administraciones Públicas (FACe)')
+                                    ->schema([
+                                        Toggle::make('facturae_active')
+                                            ->label('Activar Facturae')
+                                            ->helperText('Habilita la exportación de facturas en formato XML v3.2.2.')
+                                            ->default(false),
+                                        Select::make('facturae_mode')
+                                            ->label('Modo de Trabajo')
+                                            ->options(['test' => 'PRUEBAS', 'production' => 'PRODUCCIÓN'])
+                                            ->default('test'),
+                                    ])->columns(2),
+                                Section::make('Endpoints FACe / Portales')
+                                    ->description('Direcciones web para el envío automático si se implementa el WS')
+                                    ->collapsed()
+                                    ->schema([
+                                        TextInput::make('facturae_endpoint_test')->label('URL Pruebas (Staging)')->columnSpanFull(),
+                                        TextInput::make('facturae_endpoint_production')->label('URL Producción (Oficial)')->columnSpanFull(),
                                     ]),
                             ]),
                     ])->columnSpanFull()

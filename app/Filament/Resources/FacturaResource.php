@@ -252,7 +252,7 @@ class FacturaResource extends Resource
                     ->icon('heroicon-o-code-bracket')
                     ->color('warning')
                     ->url(fn($record) => route('facturae.download', $record))
-                    ->visible(fn($record) => $record->estado === 'confirmado' && !empty($record->numero)),
+                    ->visible(fn($record) => \App\Models\Setting::get('facturae_active', false) && $record->estado === 'confirmado' && !empty($record->numero)),
                 
                  Tables\Actions\Action::make('ver_recibos')
                      ->label('')
