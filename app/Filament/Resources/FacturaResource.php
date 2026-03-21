@@ -245,6 +245,14 @@ class FacturaResource extends Resource
                     ->color('info')
                     ->url(fn($record) => route('documentos.pdf', $record))
                     ->openUrlInNewTab(),
+
+                Tables\Actions\Action::make('facturae')
+                    ->label('')
+                    ->tooltip('Descargar Facturae (XML)')
+                    ->icon('heroicon-o-code-bracket')
+                    ->color('warning')
+                    ->url(fn($record) => route('facturae.download', $record))
+                    ->visible(fn($record) => $record->estado === 'confirmado' && !empty($record->numero)),
                 
                  Tables\Actions\Action::make('ver_recibos')
                      ->label('')

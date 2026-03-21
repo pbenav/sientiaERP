@@ -28,3 +28,7 @@ Route::get('/etiquetas/{record}/pdf', [\App\Http\Controllers\LabelController::cl
     ->name('etiquetas.pdf')
     ->middleware(['auth']);
 
+Route::get('/facturae/{record}/download', [\App\Http\Controllers\FacturaeController::class, 'download'])
+    ->name('facturae.download')
+    ->middleware(['auth']);
+
