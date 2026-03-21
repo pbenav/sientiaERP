@@ -253,6 +253,27 @@ class FacturaResource extends Resource
                     ->color('warning')
                     ->url(fn($record) => route('facturae.download', $record))
                     ->visible(fn($record) => \App\Models\Setting::get('facturae_active', false) && $record->estado === 'confirmado' && !empty($record->numero)),
+
+                Tables\Actions\Action::make('send_face')
+                    ->label('')
+                    ->tooltip('Enviar a FACe')
+                    ->icon('heroicon-o-paper-airplane')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Enviar a FACe')
+                    ->modalDescription('¿Está seguro de que desea enviar esta factura directamente al portal FACe de la Administración Pública?')
+                    ->visible(fn($record) => \App\Models\Setting::get('facturae_active', false) && $record->estado === 'confirmado' && empty($record->facturae_face_id))
+                    ->action(function ($record) {
+                        $service = app(\App\Services\FaceService::class);
+                        $result = $service->enviarFactura($record);
+                        
+                        if ($result['success']) {
+                            Notification::make()->title('Factura enviada a FACe')->success()->body($result['message'])->send();
+                        } else {
+                            Notification::make()->title('Error en envío a FACe')->danger()->body($result['error'])->send();
+                            $record->update(['facturae_last_error' => $result['error']]);
+                        }
+                    }),
                 
                  Tables\Actions\Action::make('ver_recibos')
                      ->label('')
