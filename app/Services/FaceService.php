@@ -18,8 +18,15 @@ class FaceService
     {
         $storedPath = Setting::get('verifactu_cert_path');
         
-        if ($storedPath && Storage::disk('local')->exists($storedPath)) {
-            $this->certPath = Storage::disk('local')->path($storedPath);
+        if ($storedPath) {
+            if (Storage::disk('local')->exists($storedPath)) {
+                $this->certPath = Storage::disk('local')->path($storedPath);
+            } elseif (Storage::disk('public')->exists($storedPath)) {
+                $this->certPath = Storage::disk('public')->path($storedPath);
+            } else {
+                // Si no existe en ningún disco estándar, probamos trayectoria relativa directa (por compatibilidad)
+                $this->certPath = storage_path('app/private/' . $storedPath);
+            }
         } else {
             $this->certPath = config('verifactu.cert_path', storage_path('app/certificates/verifactu.p12'));
         }
