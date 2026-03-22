@@ -142,12 +142,12 @@ class DetailsActions
 
     private function renderDetailContent(int $width, int $height, array $doc): void
     {
-        $green = "\033[32m";
-        $cyan = "\033[36m";
-        $yellow = "\033[33m";
-        $white = "\033[37m";
-        $red = "\033[31m";
-        $reset = "\033[0m";
+        $green = $this->screen->color('success');
+        $cyan = $this->screen->color('label');
+        $yellow = $this->screen->color('value');
+        $white = $this->screen->color('text');
+        $red = $this->screen->color('error');
+        $reset = $this->screen->reset();
         
         // Cabecera del documento
         $fechaLimpia = substr($doc['fecha'] ?? '', 0, 10);
@@ -259,7 +259,10 @@ class DetailsActions
     private function renderError(string $message): void
     {
         $this->screen->clear();
-        echo "\033[31m\n\n  ❌ Error: {$message}\033[0m\n\n";
+        $errorCol = $this->screen->color('error');
+        $reset = $this->screen->reset();
+        
+        echo "{$errorCol}\n\n  ❌ Error: {$message}{$reset}\n\n";
         echo "  Presione cualquier tecla para continuar...";
         
         $this->keyHandler->clearStdin();

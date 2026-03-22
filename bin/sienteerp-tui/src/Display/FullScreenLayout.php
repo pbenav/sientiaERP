@@ -49,7 +49,9 @@ class FullScreenLayout
      */
     private function renderTopBorder(): void
     {
-        echo "\033[36m╔" . str_repeat("═", $this->width - 2) . "╗\033[0m\n";
+        $color = $this->screen->color('border');
+        $reset = $this->screen->reset();
+        echo "{$color}╔" . str_repeat("═", $this->width - 2) . "╗{$reset}\n";
     }
 
     /**
@@ -59,37 +61,24 @@ class FullScreenLayout
     {
         $date = date('d/m/Y H:i');
         
-        // Calcular longitudes visuales (usando mb_strwidth)
         $compLen = mb_strwidth($this->companyName);
         $title = mb_strtoupper($this->currentTitle);
         $titleLen = mb_strwidth($title);
         $dateLen = mb_strwidth($date);
         
-        // Espacio interior disponible (ancho - 4 por los bordes '║ ' y ' ║')
         $innerSpace = $this->width - 4;
-        
-        // Calcular espacios para centrar el título
-        // Posición ideal de inicio del título
         $startTitle = (int) floor(($innerSpace - $titleLen) / 2);
         
-        // Espacios desde el final de la empresa hasta el inicio del título
         $spaces1 = $startTitle - $compLen;
-        
-        // Asegurar mínimo 1 espacio de separación
         if ($spaces1 < 1) $spaces1 = 1;
         
-        // Espacios desde el final del título hasta el inicio de la fecha
         $currentPos = $compLen + $spaces1 + $titleLen;
         $datePos = $innerSpace - $dateLen;
         $spaces2 = $datePos - $currentPos;
-        
-        // Asegurar mínimo 1 espacio
         if ($spaces2 < 1) $spaces2 = 1;
 
-        // Verificar si nos pasamos del ancho (puede pasar en terminales muy estrechas)
         $totalLen = $compLen + $spaces1 + $titleLen + $spaces2 + $dateLen;
         if ($totalLen > $innerSpace) {
-            // Si nos pasamos, reducimos espacios
             $excess = $totalLen - $innerSpace;
             if ($spaces2 > $excess + 1) {
                 $spaces2 -= $excess;
@@ -98,14 +87,22 @@ class FullScreenLayout
             }
         }
 
-        // Renderizar línea única
-        echo "\033[36m║\033[0m ";
-        echo "\033[1;36m" . $this->companyName . "\033[0m";
+        // Colores del tema
+        $borderCol = $this->screen->color('border');
+        $headerBg = $this->screen->color('header_bg');
+        $headerFg = $this->screen->color('header_fg');
+        $reset = $this->screen->reset();
+
+        // Renderizar línea con fondo
+        echo "{$borderCol}║{$reset} ";
+        echo "{$headerBg}{$headerFg} "; // Espacio inicial fondo
+        echo $this->companyName;
         echo str_repeat(" ", (int)$spaces1);
-        echo "\033[1;33m" . $title . "\033[0m";
+        echo $title;
         echo str_repeat(" ", (int)$spaces2);
-        echo "\033[1;37m" . $date . "\033[0m";
-        echo " \033[36m║\033[0m\n";
+        echo $date;
+        echo " {$reset} "; // Espacio final fondo + reset
+        echo "{$borderCol}║{$reset}\n";
     }
     
     /**
@@ -113,7 +110,9 @@ class FullScreenLayout
      */
     private function renderSeparator(): void
     {
-        echo "\033[36m╠" . str_repeat("═", $this->width - 2) . "╣\033[0m\n";
+        $color = $this->screen->color('border');
+        $reset = $this->screen->reset();
+        echo "{$color}╠" . str_repeat("═", $this->width - 2) . "╣{$reset}\n";
     }
 
     /**
@@ -222,38 +221,35 @@ class FullScreenLayout
      */
     private function renderMenu(): void
     {
-        echo "\033[36m║\033[0m ";
+        $borderCol = $this->screen->color('border');
+        $reset = $this->screen->reset();
+        $menuSelectedCol = $this->screen->color('menu_selected');
+        $menuNormalCol = $this->screen->color('menu_normal');
+
+        echo "{$borderCol}║{$reset} ";
         
         $menuText = '';
         $menuVisualLength = 0;
         
         foreach ($this->menuItems as $index => $item) {
             $isSelected = ($index === $this->selectedMenuItem);
+            $label = mb_strtoupper($item);
             
             if ($isSelected) {
-                // Destacado: ► (width 2? often 1, but let's be safe visually)
-                // Usamos mb_strwidth para contar ancho visual real
-                $label = mb_strtoupper($item);
-                $arrow = "►"; 
-                // NOTA: Algunos terminales renderizan ► como 1 char, otros como 2. 
-                // mb_strwidth('►') suele devolver 1, pero si visualmente ocupa más...
-                // Asumiremos que los símbolos y texto están bien medidos por mb_strwidth.
-                
-                $menuText .= "\033[1;33m{$arrow} {$label} \033[0m  ";
-                $menuVisualLength += mb_strwidth($arrow) + 1 + mb_strwidth($label) + 3; // +espacio + espacio + espacio
+                $menuText .= "{$menuSelectedCol} {$label} {$reset}  ";
+                $menuVisualLength += mb_strwidth($label) + 4; 
             } else {
-                $menuText .= "\033[37m  " . $item . " \033[0m  ";
-                $menuVisualLength += 2 + mb_strwidth($item) + 3; // espacios + espacios
+                $menuText .= "{$menuNormalCol}  " . $item . " {$reset}  ";
+                $menuVisualLength += 2 + mb_strwidth($item) + 3;
             }
         }
         
-        // Rellenar
         $availableSpace = $this->width - 4;
         $padding = $availableSpace - $menuVisualLength;
         
         echo $menuText;
-        echo str_repeat(" ", max(0, $padding));
-        echo " \033[36m║\033[0m\n";
+        echo str_repeat(" ", max(0, (int)$padding));
+        echo " {$borderCol}║{$reset}\n";
     }
 
     /**
@@ -261,33 +257,35 @@ class FullScreenLayout
      */
     private function renderSubMenu(): void
     {
-        echo "\033[36m║\033[0m "; // Indentación visual para submenú
+        $borderCol = $this->screen->color('border');
+        $reset = $this->screen->reset();
+        $selectedCol = $this->screen->color('selected');
+        $infoCol = $this->screen->color('info');
+
+        echo "{$borderCol}║{$reset}   "; 
         
         $menuText = '';
-        $menuVisualLength = 0;
+        $menuVisualLength = 1; // Por el espacio extra inicial
         
         foreach ($this->subMenuItems as $index => $item) {
-            // Manejamos claves de array si es asociativo o numérico
             $label = is_array($item) ? ($item['label'] ?? $item) : $item;
             $isSelected = ($index === $this->selectedSubMenuItem);
             
             if ($isSelected) {
-                // [ Label ]
-                $menuText .= "\033[1;36m[\033[1;37m " . $label . " \033[1;36m]\033[0m ";
-                $menuVisualLength += 1 + 1 + mb_strwidth($label) + 1 + 1 + 1; // [ + space + label + space + ] + space 
+                $menuText .= "{$selectedCol} " . $label . " {$reset} ";
+                $menuVisualLength += mb_strwidth($label) + 3; 
             } else {
-                //  Label 
-                $menuText .= "\033[36m " . $label . " \033[0m ";
-                $menuVisualLength += 1 + mb_strwidth($label) + 1 + 1; // space + label + space + space
+                $menuText .= "{$infoCol} " . $label . " {$reset} ";
+                $menuVisualLength += mb_strwidth($label) + 3;
             }
         }
         
-        $availableSpace = $this->width - 4;
+        $availableSpace = $this->width - 4 - 2;
         $padding = $availableSpace - $menuVisualLength;
         
         echo $menuText;
-        echo str_repeat(" ", max(0, $padding));
-        echo " \033[36m║\033[0m\n";
+        echo str_repeat(" ", max(0, (int)$padding));
+        echo " {$borderCol}║{$reset}\n";
     }
 
     /**
@@ -295,17 +293,17 @@ class FullScreenLayout
      */
     private function renderWorkArea(callable $contentRenderer, int $height): void
     {
-        // Renderizar contenido
+        $borderCol = $this->screen->color('border');
+        $reset = $this->screen->reset();
+        
         ob_start();
         call_user_func($contentRenderer, $this->width - 2, $height);
         $content = ob_get_clean();
         
-        // Dividir en líneas
         $lines = explode("\n", $content);
         
-        // Renderizar cada línea con bordes, asegurando el ancho exacto
         for ($i = 0; $i < $height; $i++) {
-            echo "\033[36m║\033[0m";
+            echo "{$borderCol}║{$reset}";
             
             if (isset($lines[$i])) {
                 $line = $lines[$i];
@@ -313,23 +311,19 @@ class FullScreenLayout
                 $maxWidth = $this->width - 2;
                 
                 if ($lineLength > $maxWidth) {
-                    // Línea muy larga: truncar
                     $truncated = $this->truncateWithAnsi($line, $maxWidth);
                     echo $truncated;
                 } elseif ($lineLength < $maxWidth) {
-                    // Línea corta: rellenar con espacios
                     echo $line;
                     echo str_repeat(" ", $maxWidth - $lineLength);
                 } else {
-                    // Línea exacta
                     echo $line;
                 }
             } else {
-                // Línea vacía: rellenar completamente
                 echo str_repeat(" ", $this->width - 2);
             }
             
-            echo "\033[36m║\033[0m\n";
+            echo "{$borderCol}║{$reset}\n";
         }
     }
     
@@ -381,20 +375,25 @@ class FullScreenLayout
      */
     private function renderStatusBar(): void
     {
-        echo "\033[36m╠" . str_repeat("═", $this->width - 2) . "╣\033[0m\n";
-        echo "\033[36m║\033[0m ";
+        $borderCol = $this->screen->color('border');
+        $reset = $this->screen->reset();
+        $fKeyCol = $this->screen->color('function_key');
+        $textCol = $this->screen->color('text');
+
+        echo "{$borderCol}╠" . str_repeat("═", $this->width - 2) . "╣{$reset}\n";
+        echo "{$borderCol}║{$reset} ";
         
-        $statusText = "\033[32mF1\033[0m=Ayuda  " .
-                     "\033[32mF12\033[0m=Salir  " .
-                     "\033[37m←→\033[0m=Menú  " .
-                     "\033[37m↑↓\033[0m=Navegar";
+        $statusText = "{$fKeyCol}F1{$reset}={$textCol}Ayuda  " .
+                     "{$fKeyCol}F12{$reset}={$textCol}Salir  " .
+                     "{$fKeyCol}←→{$reset}={$textCol}Menú   " .
+                     "{$fKeyCol}↑↓{$reset}={$textCol}Navegar";
         
-        $statusVisualLength = mb_strwidth("F1=Ayuda  F12=Salir  ←→=Menú  ↑↓=Navegar");
+        $statusVisualLength = mb_strwidth("F1=Ayuda  F12=Salir  ←→=Menú   ↑↓=Navegar");
         $padding = $this->width - 4 - $statusVisualLength;
         
         echo $statusText;
-        echo str_repeat(" ", max(0, $padding));
-        echo " \033[36m║\033[0m\n";
+        echo str_repeat(" ", max(0, (int)$padding));
+        echo " {$borderCol}║{$reset}\n";
     }
 
     /**
@@ -402,17 +401,16 @@ class FullScreenLayout
      */
     private function renderBottomBorder(): void
     {
-        // Sin salto de línea al final para evitar scroll en la última línea de la terminal
-        echo "\033[36m╚" . str_repeat("═", $this->width - 2) . "╝\033[0m";
+        $color = $this->screen->color('border');
+        $reset = $this->screen->reset();
+        echo "{$color}╚" . str_repeat("═", $this->width - 2) . "╝{$reset}";
     }
 
-    /**
-     * Calcula longitud sin códigos ANSI
-     */
     private function stripAnsiLength(string $text): int
     {
-        // NO USADO para layout visual, usar mb_strwidth sobre el texto limpio
         $clean = preg_replace('/\033\[[0-9;]*m/', '', $text);
+        // También limpiar códigos 38;5;Xm y 48;5;Xm (256 colores)
+        $clean = preg_replace('/\033\[[0-9;:]*[mK]/', '', $clean);
         return mb_strwidth($clean);
     }
     

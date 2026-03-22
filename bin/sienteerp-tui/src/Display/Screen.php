@@ -14,17 +14,32 @@ class Screen
     public const BOLD = "\033[1m";
     public const RESET = "\033[0m";
 
-    private array $colors;
+    private ColorTheme $theme;
 
-    public function __construct(array $colors = [])
+    public function __construct(?ColorTheme $theme = null)
     {
-        $this->colors = $colors;
+        $this->theme = $theme ?? new ColorTheme('vibrant');
+    }
+
+    public function getTheme(): ColorTheme
+    {
+        return $this->theme;
+    }
+
+    public function color(string $key): string
+    {
+        return $this->theme->get($key);
+    }
+
+    public function reset(): string
+    {
+        return $this->theme->get('reset');
     }
 
     public function clear(): void
     {
-        // Usamos Home + Clear Down en lugar de Clear Screen total para reducir parpadeo
-        echo "\033[H\033[J"; 
+        // Limpiar pantalla y posicionar cursor en 1,1
+        echo "\033[2J\033[H";
     }
 
     public function render(string $content): void
@@ -35,12 +50,12 @@ class Screen
     public function showMessage(string $message, string $type = 'info'): void
     {
         $color = match($type) {
-            'success' => $this->colors['fg_green'] ?? "\033[32m",
-            'error' => $this->colors['fg_red'] ?? "\033[31m",
-            'warning' => $this->colors['fg_yellow'] ?? "\033[33m",
-            default => $this->colors['fg_white'] ?? "\033[37m",
+            'success' => $this->color('success'),
+            'error' => $this->color('error'),
+            'warning' => $this->color('warning'),
+            default => $this->color('info'),
         };
-        $reset = $this->colors['reset'] ?? "\033[0m";
+        $reset = $this->reset();
         
         echo "{$color}  {$message}{$reset}\n";
     }

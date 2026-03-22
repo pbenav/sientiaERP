@@ -76,29 +76,31 @@ class ColorTheme
                 'separator' => "\033[33m",     // Amarillo para separadores
                 'reset' => "\033[0m",
             ],
-            self::MODERN => [
-                // Tema moderno con paleta completa
-                'border' => "\033[36m",        // Cyan para bordes
-                'title' => "\033[1;33m",       // Amarillo brillante para títulos
-                'text' => "\033[37m",          // Blanco para texto normal
-                'highlight' => "\033[1;37m",   // Blanco brillante para resaltado
-                'selected' => "\033[1;33m",    // Amarillo brillante para selección
-                'company' => "\033[1;37m",     // Blanco brillante para empresa
-                'datetime' => "\033[37m",      // Blanco para fecha/hora
-                'menu_selected' => "\033[1;33m", // Amarillo brillante para menú seleccionado
-                'menu_normal' => "\033[37m",   // Blanco para menú normal
-                'function_key' => "\033[32m",  // Verde para teclas de función
-                'error' => "\033[1;31m",       // Rojo brillante para errores
-                'success' => "\033[1;32m",     // Verde brillante para éxito
-                'warning' => "\033[1;33m",     // Amarillo brillante para advertencias
-                'info' => "\033[1;36m",        // Cyan brillante para información
-                'data' => "\033[37m",          // Blanco para datos
-                'label' => "\033[36m",         // Cyan para etiquetas
-                'value' => "\033[1;37m",       // Blanco brillante para valores
-                'separator' => "\033[36m",     // Cyan para separadores
+/* --- VIBRANT THEME --- */
+            'vibrant' => [
+                'border' => "\033[38;5;93m",        // Púrpura intenso
+                'title' => "\033[1;38;5;51m",      // Cyan eléctrico brillante
+                'text' => "\033[38;5;15m",         // Blanco puro
+                'highlight' => "\033[1;38;5;208m",   // Naranja vibrante
+                'selected' => "\033[48;5;93m\033[38;5;255m", // Fondo púrpura, texto blanco
+                'company' => "\033[1;38;5;51m",      // Cyan eléctrico para empresa
+                'datetime' => "\033[38;5;129m",     // Violeta suave
+                'header_bg' => "\033[48;5;93m",     // Fondo púrpura para cabecera
+                'header_fg' => "\033[1;38;5;255m",   // Blanco brillante sobre fondo púrpura
+                'menu_selected' => "\033[48;5;51m\033[38;5;232m", // Fondo cyan, texto casi negro
+                'menu_normal' => "\033[38;5;93m",     // Púrpura para menú
+                'function_key' => "\033[1;38;5;45m",  // Turquesa para teclas de función
+                'error' => "\033[1;38;5;196m",       // Rojo intenso
+                'success' => "\033[1;38;5;46m",      // Verde lima brillante
+                'warning' => "\033[1;38;5;226m",     // Amarillo puro
+                'info' => "\033[1;38;5;51m",         // Cyan brillante
+                'data' => "\033[38;5;253m",          // Gris muy claro para datos
+                'label' => "\033[38;5;45m",          // Turquesa para etiquetas
+                'value' => "\033[1;38;5;208m",       // Naranja para valores
+                'separator' => "\033[38;5;93m",      // Púrpura para separadores
                 'reset' => "\033[0m",
             ],
-            default => $this->loadTheme(self::MODERN),
+            default => $this->loadTheme('vibrant'),
         };
     }
     

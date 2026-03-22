@@ -25,13 +25,12 @@ class MainMenu
     public function __construct(
         KeyHandler $keyHandler,
         Screen $screen,
-        array $menuStructure,
-        string $themeName = ColorTheme::IBM_GREEN
+        array $menuStructure
     ) {
         $this->keyHandler = $keyHandler;
         $this->screen = $screen;
         $this->menuStructure = $menuStructure;
-        $this->theme = new ColorTheme($themeName);
+        $this->theme = $screen->getTheme();
         $this->layout = new FullScreenLayout($screen);
     }
     

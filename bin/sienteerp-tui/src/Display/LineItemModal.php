@@ -16,9 +16,9 @@ class LineItemModal
     private Screen $screen;
     private AutocompleteField $autocomplete;
     private array $fields = [];
-    private int $currentFieldIndex = 0;
-    private ?array $selectedProduct = null;
+    private int $selectedProductIndex = 0;
     private int $width;
+    private bool $isEditing = false;
     
     public function __construct(KeyHandler $keyHandler, Screen $screen, int $width = 80)
     {
@@ -60,28 +60,57 @@ class LineItemModal
             $this->render();
             
             $rawKey = $this->keyHandler->waitForKey();
-            $key = FunctionKeyMapper::mapKey($rawKey);
+            $key = \App\SienteErpTui\Input\FunctionKeyMapper::mapKey($rawKey);
             
-            $currentField = &$this->fields[$this->currentFieldIndex];  // IMPORTANTE: Usar referencia
-            
-            // Navegación
-            if ($key === 'TAB' || $key === 'ENTER') {
+            $currentField = &$this->fields[$this->currentFieldIndex];
+
+            // --- MODO EDICIÓN ---
+            if ($this->isEditing) {
+                if ($key === 'ENTER') {
+                    $this->isEditing = false;
+                } elseif ($key === 'BACKSPACE' || $key === 'DELETE') {
+                    if (mb_strlen($currentField['value']) > 0) {
+                        $currentField['value'] = mb_substr($currentField['value'], 0, -1);
+                        $this->calculateTotal();
+                    }
+                } elseif (strlen($key) === 1 && (is_numeric($key) || $key === ',' || $key === '.')) {
+                    $currentField['value'] .= $key;
+                    $this->calculateTotal();
+                }
+                continue;
+            }
+
+            // --- MODO NAVEGACIÓN ---
+            if ($key === 'TAB' || $key === 'DOWN') {
                 $this->nextField();
-            } elseif ($key === 'SHIFT_TAB') {
+            } elseif ($key === 'SHIFT_TAB' || $key === 'UP') {
                 $this->previousField();
             }
-            // Guardar
+            elseif ($key === 'ENTER') {
+                if (!$currentField['readonly']) {
+                    if ($currentField['type'] === 'autocomplete') {
+                        $product = $this->autocomplete->run($searchCallback);
+                        if ($product) {
+                            $this->selectedProduct = $product;
+                            $this->fields[0]['value'] = $product['name'];
+                            $this->fields[2]['value'] = number_format($product['price'], 2, ',', '.');
+                            $this->calculateTotal();
+                            $this->nextField();
+                        }
+                    } else {
+                        $this->isEditing = true;
+                    }
+                }
+            }
             elseif ($key === 'F10') {
                 if ($this->validate()) {
                     return $this->getLineData();
                 }
             }
-            // Cancelar
             elseif ($key === 'F12' || $key === 'ESC') {
                 return null;
             }
-            // Autocompletado de producto
-            elseif ($currentField['type'] === 'autocomplete' && ($key === 'F5' || (strlen($key) === 1 && ord($key) >= 32))) {
+            elseif ($currentField['type'] === 'autocomplete' && $key === 'F5') {
                 $product = $this->autocomplete->run($searchCallback);
                 if ($product) {
                     $this->selectedProduct = $product;
@@ -89,20 +118,6 @@ class LineItemModal
                     $this->fields[2]['value'] = number_format($product['price'], 2, ',', '.');
                     $this->calculateTotal();
                     $this->nextField();
-                }
-            }
-            // Editar campo numérico
-            elseif (!$currentField['readonly'] && $currentField['type'] !== 'autocomplete') {
-                if ($key === 'BACKSPACE' || $key === 'DELETE') {
-                    $currentValue = $this->fields[$this->currentFieldIndex]['value'];
-                    if (mb_strlen($currentValue) > 0) {
-                        $newValue = mb_substr($currentValue, 0, -1);
-                        $this->fields[$this->currentFieldIndex]['value'] = $newValue;
-                        $this->calculateTotal();
-                    }
-                } elseif (strlen($key) === 1 && (is_numeric($key) || $key === ',' || $key === '.')) {
-                    $this->fields[$this->currentFieldIndex]['value'] .= $key;
-                    $this->calculateTotal();
                 }
             }
         }
@@ -115,9 +130,14 @@ class LineItemModal
     {
         $this->screen->clear();
         
+        $borderCol = $this->screen->color('border');
+        $titleCol = $this->screen->color('title');
+        $textCol = $this->screen->color('text');
+        $highlightCol = $this->screen->color('highlight');
+        $reset = $this->screen->reset();
+
         // Borde superior
-        echo "\033[36m";
-        echo "╔" . str_repeat("═", $this->width - 2) . "╗\n";
+        echo "{$borderCol}╔" . str_repeat("═", $this->width - 2) . "╗\n";
         
         // Título
         $title = "AÑADIR LÍNEA AL DOCUMENTO";
@@ -128,31 +148,30 @@ class LineItemModal
         $rightPadding = (int)ceil($totalPadding / 2) + 1;
         
         echo "║" . str_repeat(" ", $leftPadding);
-        echo "\033[1;37m" . $title . "\033[36m";
+        echo "{$titleCol}" . $title . "{$borderCol}";
         echo str_repeat(" ", $rightPadding) . "║\n";
         
-        echo "╠" . str_repeat("═", $this->width - 2) . "╣\033[0m\n\n";
+        echo "╠" . str_repeat("═", $this->width - 2) . "╣{$reset}\n\n";
         
         // Campos
         foreach ($this->fields as $index => $field) {
             $isCurrent = ($index === $this->currentFieldIndex);
             $indicator = $isCurrent ? "►" : " ";
-            $labelColor = $isCurrent ? "\033[1;33m" : "\033[37m";
-            $valueColor = $isCurrent ? "\033[1;33m" : "\033[33m";
+            $labelColor = $isCurrent ? $highlightCol : $textCol;
+            $valueColor = $isCurrent ? $this->screen->color('value') : $textCol;
+            $editingCol = $this->screen->color('selected');
             
-            echo "  {$indicator} {$labelColor}" . str_pad($field['label'] . ":", 20) . "\033[0m";
+            echo "  {$indicator} {$labelColor}" . str_pad($field['label'] . ":", 20) . "{$reset}";
             
             $displayValue = $field['value'];
-            if ($field['readonly']) {
-                echo "{$valueColor}{$displayValue}\033[0m";
+            if ($isCurrent && $this->isEditing) {
+                echo "{$editingCol} {$displayValue} _ {$reset}";
             } else {
-                $cursor = $isCurrent ? "_" : "";
-                echo "{$valueColor}{$displayValue}{$cursor}\033[0m";
+                echo "{$valueColor}{$displayValue}{$reset}";
             }
             
-            // Ayuda contextual
             if ($isCurrent && $field['type'] === 'autocomplete' && empty($field['value'])) {
-                echo "  \033[90m(F5 o escribe para buscar)\033[0m";
+                echo "  {$this->screen->color('info')}(ENTER o F5 para buscar){$reset}";
             }
             
             echo "\n";
@@ -161,23 +180,26 @@ class LineItemModal
         echo "\n";
         
         // Barra de funciones
-        echo "\033[36m";
-        echo "╠" . str_repeat("═", $this->width - 2) . "╣\n";
-        echo "║ \033[0m";
+        echo "{$borderCol}╠" . str_repeat("═", $this->width - 2) . "╣\n";
+        echo "║ {$reset}";
         
+        $modeStr = $this->isEditing ? "{$this->screen->color('selected')}MODO EDICIÓN{$reset}" : "{$this->screen->color('info')}MODO NAVEGACIÓN{$reset}";
+        $fKey = $this->screen->color('function_key');
+
         $functions = [
-            "\033[32mF5\033[0m=Buscar Producto",
-            "\033[32mF10\033[0m=Añadir",
-            "\033[32mF12\033[0m=Cancelar",
-            "\033[37mTAB\033[0m=Siguiente"
+            "{$fKey}F5{$reset}={$textCol}Buscar",
+            "{$fKey}F10{$reset}={$textCol}Añadir",
+            "{$fKey}F12{$reset}={$textCol}Salir",
+            $modeStr
         ];
         
         $functionText = implode("  ", $functions);
-        $padding = $this->width - 4 - $this->stripAnsiLength($functionText);
+        $cleanText = preg_replace('/\033\[[0-9;:]*[mK]/', '', $functionText);
+        $padding = $this->width - 4 - mb_strwidth($cleanText);
         
-        echo $functionText . str_repeat(" ", max(0, $padding));
-        echo "\033[36m ║\n";
-        echo "╚" . str_repeat("═", $this->width - 2) . "╝\033[0m\n";
+        echo $functionText . str_repeat(" ", max(0, (int)$padding));
+        echo " {$borderCol}║{$reset}\n";
+        echo "{$borderCol}╚" . str_repeat("═", $this->width - 2) . "╝{$reset}\n";
     }
     
     /**

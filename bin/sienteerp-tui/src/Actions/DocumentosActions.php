@@ -125,20 +125,42 @@ class DocumentosActions
             $fecha = $fechaFormateada;
             $lineas = $doc['lineas'] ?? [];
             $selectedLineIndex = 0;
+            $isEditing = false;
             
             while (true) {
                 // Renderizar pantalla completa
-                $this->renderDocumentoEditor($doc, $fecha, $lineas, $editandoCabecera, $selectedLineIndex);
+                $this->renderDocumentoEditor($doc, $fecha, $lineas, $editandoCabecera, $selectedLineIndex, $isEditing);
                 
                 $rawKey = $this->keyHandler->waitForKey();
                 $key = \App\SienteErpTui\Input\FunctionKeyMapper::mapKey($rawKey);
                 
+                // MODO EDICIÓN (Cabecera - Fecha)
+                if ($isEditing && $editandoCabecera) {
+                    if ($key === 'ENTER') {
+                        $isEditing = false;
+                    } elseif ($key === 'BACKSPACE' || $key === 'DELETE') {
+                        if (mb_strlen($fecha) > 0) {
+                            $fecha = mb_substr($fecha, 0, -1);
+                        }
+                    } elseif (strlen($key) === 1 && (is_numeric($key) || $key === '-')) {
+                        if (mb_strlen($fecha) < 10) {
+                            $fecha .= $key;
+                        }
+                    }
+                    continue;
+                }
+
                 // Cambiar entre cabecera y líneas
                 if ($key === 'TAB') {
                     $editandoCabecera = !$editandoCabecera;
+                    $isEditing = false; 
                     if (!$editandoCabecera && empty($lineas)) {
-                        $selectedLineIndex = -1; // Modo "añadir primera línea"
+                        $selectedLineIndex = -1;
                     }
+                }
+                // Cambiar a modo edición
+                elseif ($key === 'ENTER' && $editandoCabecera) {
+                    $isEditing = true;
                 }
                 // Guardar
                 elseif ($key === 'F10') {
@@ -163,18 +185,6 @@ class DocumentosActions
                 // Cancelar
                 elseif ($key === 'F12' || $key === 'ESC') {
                     return;
-                }
-                // Editar cabecera
-                elseif ($editandoCabecera) {
-                    if ($key === 'BACKSPACE' || $key === 'DELETE') {
-                        if (mb_strlen($fecha) > 0) {
-                            $fecha = mb_substr($fecha, 0, -1);
-                        }
-                    } elseif (strlen($key) === 1 && (is_numeric($key) || $key === '-')) {
-                        if (mb_strlen($fecha) < 10) {
-                            $fecha .= $key;
-                        }
-                    }
                 }
                 // Editar líneas
                 else {
@@ -232,63 +242,75 @@ class DocumentosActions
     /**
      * Renderiza el editor de documento completo
      */
-    private function renderDocumentoEditor(array $doc, string $fecha, array $lineas, bool $editandoCabecera, int $selectedLineIndex): void
+    private function renderDocumentoEditor(array $doc, string $fecha, array $lineas, bool $editandoCabecera, int $selectedLineIndex, bool $isEditing = false): void
     {
         $this->screen->clear();
         $width = 80;
         $innerW = $width - 2;
         
+        $borderCol = $this->screen->color('border');
+        $titleCol = $this->screen->color('title');
+        $textCol = $this->screen->color('text');
+        $highlightCol = $this->screen->color('highlight');
+        $reset = $this->screen->reset();
+        
         // --- 1. HEADER ---
-        echo "\033[36m╔" . str_repeat("═", $innerW) . "╗\n";
+        echo "{$borderCol}╔" . str_repeat("═", $innerW) . "╗\n";
         
         $title = "EDITAR DOCUMENTO";
         $titleLen = mb_strlen($title);
         $padLeft = (int)floor(($innerW - $titleLen) / 2);
         $padRight = $innerW - $titleLen - $padLeft;
         
-        echo "║" . str_repeat(" ", $padLeft) . "\033[1;37m" . $title . "\033[36m" . str_repeat(" ", $padRight) . "║\n";
-        echo "╠" . str_repeat("═", $innerW) . "╣\033[0m\n";
+        echo "║" . str_repeat(" ", $padLeft) . "{$titleCol}" . $title . "{$borderCol}" . str_repeat(" ", $padRight) . "║\n";
+        echo "╠" . str_repeat("═", $innerW) . "╣{$reset}\n";
         
         // --- 2. BODY (Buffered) ---
-        $lines = [];
+        $linesArr = [];
         
         // CABECERA SECCIÓN
-        $cabeceraColor = $editandoCabecera ? "\033[1;33m" : "\033[37m";
-        $lines[] = "  {$cabeceraColor}CABECERA:\033[0m";
-        $lines[] = "  \033[36m" . str_repeat("─", $innerW - 4) . "\033[0m";
+        $cabeceraColor = $editandoCabecera ? $highlightCol : $textCol;
+        $linesArr[] = "  {$cabeceraColor}CABECERA:{$reset}";
+        $linesArr[] = "  {$borderCol}" . str_repeat("─", $innerW - 4) . "{$reset}";
         
-        $lines[] = "  \033[37mNúmero:\033[0m {$doc['numero']}";
-        $lines[] = "  {$cabeceraColor}Fecha:\033[0m {$fecha}" . ($editandoCabecera ? "_" : "");
-        $lineas[] = "  \033[37mCliente:\033[0m {$doc['tercero']['nombre_comercial']}"; 
-        $lines[] = "  \033[37mCliente:\033[0m {$doc['tercero']['nombre_comercial']}"; // Corregir typo variable
-        $lines[count($lines)-1] = "  \033[37mCliente:\033[0m " . ($doc['tercero']['nombre_comercial'] ?? '');
+        $linesArr[] = "  {$textCol}Número:{$reset} {$doc['numero']}";
+        
+        $fechaStr = $fecha;
+        if ($editandoCabecera && $isEditing) {
+            $fechaStr = "{$this->screen->color('selected')} {$fecha} _ {$reset}";
+        } elseif ($editandoCabecera) {
+            $fechaStr = "{$highlightCol}{$fecha}{$reset}";
+        }
+        
+        $linesArr[] = "  {$textCol}Fecha:{$reset} {$fechaStr}";
+        $linesArr[] = "  {$textCol}Cliente:{$reset} " . ($doc['tercero']['nombre_comercial'] ?? '');
 
-        $lines[] = "  \033[37mEstado:\033[0m " . ucfirst($doc['estado'] ?? 'borrador');
-        $lines[] = ""; 
+        $linesArr[] = "  {$textCol}Estado:{$reset} " . ucfirst($doc['estado'] ?? 'borrador');
+        $linesArr[] = ""; 
         
         // LÍNEAS SECCIÓN
-        $lineasColor = !$editandoCabecera ? "\033[1;33m" : "\033[37m";
-        $lines[] = "  {$lineasColor}LÍNEAS:\033[0m";
-        $lines[] = "  \033[36m" . str_repeat("─", $innerW - 4) . "\033[0m";
+        $lineasColor = !$editandoCabecera ? $highlightCol : $textCol;
+        $linesArr[] = "  {$lineasColor}LÍNEAS:{$reset}";
+        $linesArr[] = "  {$borderCol}" . str_repeat("─", $innerW - 4) . "{$reset}";
         
         if (empty($lineas)) {
-            $lines[] = "  \033[33mNo hay líneas. Presione F5 para añadir.\033[0m";
-            $lines[] = "";
+            $linesArr[] = "  {$highlightCol}No hay líneas. Presione F5 para añadir.{$reset}";
+            $linesArr[] = "";
         } else {
             // Cabecera tabla
-            $headerStr = "  \033[36m" .
+            $headerStr = "  {$borderCol}" .
                 str_pad("Producto", 38) .
                 str_pad("Cant.", 12, " ", STR_PAD_LEFT) .
                 str_pad("Precio", 14, " ", STR_PAD_LEFT) .
-                str_pad("Total", 12, " ", STR_PAD_LEFT) . // Adjusted to fit width if needed, or 14? innerW=78. 2+38+12+14+12=78. Perfect.
-                "\033[0m";
-            $lines[] = $headerStr;
+                str_pad("Total", 12, " ", STR_PAD_LEFT) .
+                "{$reset}";
+            $linesArr[] = $headerStr;
              
             $totalGeneral = 0;
             foreach ($lineas as $index => $linea) {
                 $isSelected = (!$editandoCabecera && $index === $selectedLineIndex);
-                $prefix = $isSelected ? "\033[1;33m► " : "  ";
-                $color = $isSelected ? "\033[1;33m" : "\033[37m";
+                $prefix = $isSelected ? "{$highlightCol}► " : "  ";
+                $color = $isSelected ? $highlightCol : $textCol;
                 
                 $cantidad = $linea['cantidad'] ?? 0;
                 $precio = $linea['precio_unitario'] ?? 0;
@@ -305,56 +327,50 @@ class DocumentosActions
                     str_pad($cantidadStr, 12, " ", STR_PAD_LEFT) .
                     $precioStr .
                     $totalStr .
-                    "\033[0m";
-                $lines[] = $lineStr;
+                    "{$reset}";
+                $linesArr[] = $lineStr;
             }
             
-            $lines[] = "  \033[36m" . str_repeat("─", $innerW - 4) . "\033[0m";
+            $linesArr[] = "  {$borderCol}" . str_repeat("─", $innerW - 4) . "{$reset}";
             
             $totalGeneralNum = number_format($totalGeneral, 2, ',', '.');
             $totalGeneralStr = str_pad($totalGeneralNum . ' €', 12, " ", STR_PAD_LEFT);
-            // "  TOTAL:" + spaces + totalStr
-            // 2 spaces padding left.
-            // alignment: Total value aligned with Total column?
-            // Total column width 12.
             $label = "TOTAL:";
-            $paddingLen = $innerW - 4 - mb_strlen($label) - 12; // 12 is total column
+            $paddingLen = $innerW - 4 - mb_strlen($label) - 12;
             
-            $lines[] = "  \033[1;32m" . $label . str_repeat(" ", max(0, $paddingLen)) . $totalGeneralStr . "\033[0m";
+            $linesArr[] = "  {$this->screen->color('success')}" . $label . str_repeat(" ", max(0, $paddingLen)) . $totalGeneralStr . "{$reset}";
         }
         
-        $lines[] = ""; // Spacer
-
-        // Fill remaining height? Not strictly necessary if frame closes, but looks better if min height.
-        while (count($lines) < 15) {
-            $lines[] = "";
+        while (count($linesArr) < 15) {
+            $linesArr[] = "";
         }
 
-        // Render Lines wrapped
-        foreach ($lines as $line) {
-             // Strip ansi
-             $clean = preg_replace('/\033\[[0-9;]*m/', '', $line);
-             $visibleLen = mb_strlen($clean);
+        foreach ($linesArr as $l) {
+             $clean = preg_replace('/\033\[[0-9;:]*[mK]/', '', $l);
+             $visibleLen = mb_strwidth($clean);
              $padding = max(0, $innerW - $visibleLen);
-             
-             echo "\033[36m║\033[0m" . $line . str_repeat(" ", $padding) . "\033[36m║\033[0m\n";
+             echo "{$borderCol}║{$reset}" . $l . str_repeat(" ", $padding) . "{$borderCol}║{$reset}\n";
         }
         
         // --- 3. FOOTER ---
-        echo "\033[36m╠" . str_repeat("═", $innerW) . "╣\033[0m\n";
+        echo "{$borderCol}╠" . str_repeat("═", $innerW) . "╣{$reset}\n";
+        
+        $fKey = $this->screen->color('function_key');
+        $modeStr = $isEditing ? "{$this->screen->color('selected')}MODO EDICIÓN{$reset}" : "{$this->screen->color('info')}MODO NAVEGACIÓN{$reset}";
         
         if ($editandoCabecera) {
-             $helpText = "\033[32mTAB\033[0m=Ir a Líneas  \033[32mF10\033[0m=Guardar  \033[32mF12\033[0m=Cancelar";
+             $enterAction = $isEditing ? "Confirmar" : "Editar Fecha";
+             $helpText = "{$fKey}ENTER{$reset}={$textCol}{$enterAction}  {$fKey}TAB{$reset}={$textCol}A Líneas  {$fKey}F10{$reset}={$textCol}Guardar  {$modeStr}";
         } else {
-             $helpText = "\033[32mF5\033[0m=Añadir  \033[32mF2\033[0m=Editar  \033[32mF8\033[0m=Eliminar  \033[32mTAB\033[0m=Cabecera  \033[32mF10\033[0m=Guardar  \033[32mF12\033[0m=Cancelar";
+             $helpText = "{$fKey}F5{$reset}={$textCol}Añadir  {$fKey}F2{$reset}={$textCol}Editar  {$fKey}F8{$reset}={$textCol}Eliminar  {$fKey}TAB{$reset}={$textCol}A Cabecera  {$fKey}F10{$reset}={$textCol}Guardar";
         }
         
-        $helpClean = preg_replace('/\033\[[0-9;]*m/', '', $helpText);
-        $helpLen = mb_strlen($helpClean);
-        $helpPad = max(0, $innerW - 1 - $helpLen); // -1 for left padding space
+        $helpClean = preg_replace('/\033\[[0-9;:]*[mK]/', '', $helpText);
+        $helpLen = mb_strwidth($helpClean);
+        $helpPad = max(0, $innerW - 1 - $helpLen);
         
-        echo "\033[36m║ \033[0m" . $helpText . str_repeat(" ", $helpPad) . "\033[36m║\033[0m\n";
-        echo "\033[36m╚" . str_repeat("═", $innerW) . "╝\033[0m\n";
+        echo "{$borderCol}║ {$reset}" . $helpText . str_repeat(" ", (int)$helpPad) . "{$borderCol}║{$reset}\n";
+        echo "{$borderCol}╚" . str_repeat("═", $innerW) . "╝{$reset}\n";
     }
 
     public function crear(string $tipo): void
@@ -503,34 +519,40 @@ class DocumentosActions
         $this->screen->clear();
         $width = 80;
         $innerW = $width - 2;
+        
+        $borderCol = $this->screen->color('border');
+        $titleCol = $this->screen->color('title');
+        $textCol = $this->screen->color('text');
+        $highlightCol = $this->screen->color('highlight');
+        $reset = $this->screen->reset();
 
         // HEADER
-        echo "\033[36m╔" . str_repeat("═", $innerW) . "╗\n";
+        echo "{$borderCol}╔" . str_repeat("═", $innerW) . "╗\n";
         
         $title = "NUEVO $tipoLabel - LÍNEAS";
         $titleLen = mb_strlen($title);
         $padLeft = (int)floor(($innerW - $titleLen) / 2);
         $padRight = $innerW - $titleLen - $padLeft;
         
-        echo "║" . str_repeat(" ", $padLeft) . "\033[1;37m" . $title . "\033[36m" . str_repeat(" ", $padRight) . "║\n";
-        echo "╠" . str_repeat("═", $innerW) . "╣\033[0m\n";
+        echo "║" . str_repeat(" ", $padLeft) . "{$titleCol}" . $title . "{$borderCol}" . str_repeat(" ", $padRight) . "║\n";
+        echo "╠" . str_repeat("═", $innerW) . "╣{$reset}\n";
         
         // BODY
-        $lines = [];
+        $linesArr = [];
         
         if (empty($lineas)) {
-            $lines[] = "";
-            $lines[] = "  \033[33mNo hay líneas añadidas todavía\033[0m";
-            $lines[] = "";
+            $linesArr[] = "";
+            $linesArr[] = "  {$highlightCol}No hay líneas añadidas todavía{$reset}";
+            $linesArr[] = "";
         } else {
             // Header table
-            $lines[] = "  \033[36m" .
+            $linesArr[] = "  {$borderCol}" .
                 str_pad("Producto", 40) .
                 str_pad("Cant.", 10, " ", STR_PAD_LEFT) .
                 str_pad("Precio", 12, " ", STR_PAD_LEFT) .
                 str_pad("Total", 12, " ", STR_PAD_LEFT) .
-                "\033[0m";
-            $lines[] = "  \033[36m" . str_repeat("─", $innerW - 4) . "\033[0m";
+                "{$reset}";
+            $linesArr[] = "  {$borderCol}" . str_repeat("─", $innerW - 4) . "{$reset}";
             
             $totalGeneral = 0;
             
@@ -545,44 +567,45 @@ class DocumentosActions
                 $precioStr = number_format($linea['precio_unitario'], 2, ',', '.') . ' €';
                 $totalStr = number_format($total, 2, ',', '.') . ' €';
                 
-                $lines[] = "  \033[37m" .
+                $linesArr[] = "  {$textCol}" .
                     str_pad(substr($linea['descripcion'], 0, 38), 40) .
                     str_pad($cantidadStr, 10, " ", STR_PAD_LEFT) .
                     str_pad($precioStr, 12, " ", STR_PAD_LEFT) .
                     str_pad($totalStr, 12, " ", STR_PAD_LEFT) .
-                    "\033[0m";
+                    "{$reset}";
             }
             
-            $lines[] = "  \033[36m" . str_repeat("─", $innerW - 4) . "\033[0m";
+            $linesArr[] = "  {$borderCol}" . str_repeat("─", $innerW - 4) . "{$reset}";
             
             $totalLabel = "TOTAL:";
             $totalVal = number_format($totalGeneral, 2, ',', '.') . ' €';
-            $padLen = $innerW - 4 - mb_strlen($totalLabel) - 12; // 12 for total column
+            $padLen = $innerW - 4 - mb_strlen($totalLabel) - 12; 
             
-            $lines[] = "  \033[1;32m" . $totalLabel . str_repeat(" ", max(0, $padLen)) . str_pad($totalVal, 12, " ", STR_PAD_LEFT) . "\033[0m";
+            $linesArr[] = "  {$this->screen->color('success')}" . $totalLabel . str_repeat(" ", max(0, $padLen)) . str_pad($totalVal, 12, " ", STR_PAD_LEFT) . "{$reset}";
         }
         
-        while(count($lines) < 15) {
-            $lines[] = "";
+        while(count($linesArr) < 15) {
+            $linesArr[] = "";
         }
         
         // Render Body
-        foreach ($lines as $line) {
-             $clean = preg_replace('/\033\[[0-9;]*m/', '', $line);
-             $visibleLen = mb_strlen($clean);
+        foreach ($linesArr as $l) {
+             $clean = preg_replace('/\033\[[0-9;:]*[mK]/', '', $l);
+             $visibleLen = mb_strwidth($clean);
              $padding = max(0, $innerW - $visibleLen);
-             echo "\033[36m║\033[0m" . $line . str_repeat(" ", $padding) . "\033[36m║\033[0m\n";
+             echo "{$borderCol}║{$reset}" . $l . str_repeat(" ", $padding) . "{$borderCol}║{$reset}\n";
         }
         
         // FOOTER
-        echo "\033[36m╠" . str_repeat("═", $innerW) . "╣\033[0m\n";
-        $helpText = "\033[32mF5\033[0m=Añadir  \033[32mF10\033[0m=Terminar  \033[32mF12\033[0m=Cancelar";
-        $helpClean = preg_replace('/\033\[[0-9;]*m/', '', $helpText);
-        $helpLen = mb_strlen($helpClean);
+        echo "{$borderCol}╠" . str_repeat("═", $innerW) . "╣{$reset}\n";
+        $fKey = $this->screen->color('function_key');
+        $helpText = "{$fKey}F5{$reset}={$textCol}Añadir  {$fKey}F10{$reset}={$textCol}Terminar  {$fKey}F12{$reset}={$textCol}Cancelar";
+        $helpClean = preg_replace('/\033\[[0-9;:]*[mK]/', '', $helpText);
+        $helpLen = mb_strwidth($helpClean);
         $helpPad = max(0, $innerW - 1 - $helpLen);
         
-        echo "\033[36m║ \033[0m" . $helpText . str_repeat(" ", $helpPad) . "\033[36m║\033[0m\n";
-        echo "\033[36m╚" . str_repeat("═", $innerW) . "╝\033[0m\n";
+        echo "{$borderCol}║ {$reset}" . $helpText . str_repeat(" ", (int)$helpPad) . "{$borderCol}║{$reset}\n";
+        echo "{$borderCol}╚" . str_repeat("═", $innerW) . "╝{$reset}\n";
     }
 
     /**

@@ -188,25 +188,9 @@ class TercerosActions
     private function showMessage(string $message, string $type = 'info'): void
     {
         $this->screen->clear();
-        
-        $color = match($type) {
-            'success' => "\033[32m",
-            'error' => "\033[31m",
-            'warning' => "\033[33m",
-            default => "\033[37m"
-        };
-        
-        $icon = match($type) {
-            'success' => '✓',
-            'error' => '✗',
-            'warning' => '⚠',
-            default => 'ℹ'
-        };
-        
         echo "\n\n";
-        echo "  {$color}{$icon} {$message}\033[0m\n\n";
-        echo "  Presione cualquier tecla para continuar...";
-        
+        $this->screen->showMessage($message, $type);
+        echo "\n  Presione cualquier tecla para continuar...";
         $this->keyHandler->waitForKey();
     }
 

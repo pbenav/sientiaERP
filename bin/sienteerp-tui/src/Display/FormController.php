@@ -24,6 +24,7 @@ class FormController
     // Estados del formulario
     private bool $isRunning = true;
     private ?string $action = null; // 'save', 'cancel', etc.
+    private bool $isEditing = false;
     
     public function __construct(KeyHandler $keyHandler, Screen $screen, string $title, int $width = 80)
     {
@@ -122,15 +123,16 @@ class FormController
         $fieldsOutput = ob_get_clean();
         
         $lines = explode("\n", $fieldsOutput);
+        $borderCol = $this->screen->color('border');
+        $reset = $this->screen->reset();
+        
         foreach ($lines as $line) {
-            // Ignorar líneas vacías finales si hay muchas
             if ($line === '' && $index === count($lines)-1) continue; 
             
-            // Calcular padding para llegar al borde derecho
             $visibleLen = $this->stripAnsiLength($line);
             $padding = max(0, $this->width - 2 - $visibleLen);
             
-            echo "\033[36m║\033[0m" . $line . str_repeat(" ", $padding) . "\033[36m║\033[0m\n";
+            echo "{$borderCol}║{$reset}" . $line . str_repeat(" ", (int)$padding) . "{$borderCol}║{$reset}\n";
         }
         
         // Barra de funciones
@@ -145,37 +147,32 @@ class FormController
         $isCurrent = ($index === $this->currentFieldIndex);
         $required = $field['required'] ? '*' : ' ';
         
-        // Color según estado
-        $labelColor = $isCurrent ? "\033[1;33m" : "\033[37m"; // Amarillo brillante si es actual
-        $valueColor = $isCurrent ? "\033[1;33m" : "\033[33m";
+        $labelCol = $isCurrent ? $this->screen->color('highlight') : $this->screen->color('text');
+        $valueCol = $isCurrent ? $this->screen->color('value') : $this->screen->color('text');
+        $editingCol = $this->screen->color('selected');
+        $reset = $this->screen->reset();
         
-        // Indicador de campo actual
         $indicator = $isCurrent ? "►" : " ";
         
-        // Label
-        echo "  {$indicator} {$labelColor}{$required} " . str_pad($field['label'] . ":", 25) . "\033[0m";
+        echo "  {$indicator} {$labelCol}{$required} " . str_pad($field['label'] . ":", 25) . "{$reset}";
         
-        // Valor
         $value = $field['value'];
         if ($field['type'] === 'password') {
-            $value = str_repeat('*', strlen($value));
+            $value = str_repeat('*', mb_strlen($value));
         }
         
-        // Si es el campo actual y está en modo edición, mostrar cursor
-        if ($isCurrent && !$field['readonly']) {
-            echo "{$valueColor}{$value}_\033[0m";
+        if ($isCurrent && $this->isEditing) {
+            echo "{$editingCol} {$value} _ {$reset}";
         } else {
-            echo "{$valueColor}{$value}\033[0m";
+            echo "{$valueCol}{$value}{$reset}";
         }
         
         echo "\n";
         
-        // Mostrar error si existe
         if ($field['error']) {
-            echo "     \033[31m⚠ {$field['error']}\033[0m\n";
+            echo "     {$this->screen->color('error')}⚠ {$field['error']}{$reset}\n";
         }
         
-        // Espacio adicional cada 3 campos
         if (($index + 1) % 3 == 0) {
             echo "\n";
         }
@@ -186,24 +183,31 @@ class FormController
      */
     private function renderFunctionBar(): void
     {
-        echo "\033[36m";
-        echo "╠" . str_repeat("═", $this->width - 2) . "╣\n";
-        echo "║ \033[0m";
+        $borderCol = $this->screen->color('border');
+        $fKeyCol = $this->screen->color('function_key');
+        $textCol = $this->screen->color('text');
+        $reset = $this->screen->reset();
+
+        echo "{$borderCol}╠" . str_repeat("═", $this->width - 2) . "╣\n";
+        echo "║ {$reset}";
         
+        $modeStr = $this->isEditing ? "{$this->screen->color('selected')}MODO EDICIÓN{$reset}" : "{$this->screen->color('info')}MODO NAVEGACIÓN{$reset}";
+
         $functions = [
-            "\033[32mF1\033[0m=Ayuda",
-            "\033[32mF10\033[0m=Guardar",
-            "\033[32mF12\033[0m=Cancelar",
-            "\033[37mTAB\033[0m=Siguiente",
-            "\033[37mShift+TAB\033[0m=Anterior"
+            "{$fKeyCol}F10{$reset}={$textCol}Guardar",
+            "{$fKeyCol}F12{$reset}={$textCol}Cancelar",
+            "{$fKeyCol}ENTER{$reset}=" . ($this->isEditing ? "{$textCol}Confirmar" : "{$textCol}Editar"),
+            $modeStr
         ];
         
         $functionText = implode("  ", $functions);
-        $padding = $this->width - 4 - $this->stripAnsiLength($functionText);
+        $visibleText = strip_tags(str_replace(['{', '}'], '', $functionText)); // Simplified clean check
+        $cleanText = preg_replace('/\033\[[0-9;:]*[mK]/', '', $functionText);
+        $padding = $this->width - 4 - mb_strwidth($cleanText);
         
-        echo $functionText . str_repeat(" ", max(0, $padding));
-        echo "\033[36m ║\n";
-        echo "╚" . str_repeat("═", $this->width - 2) . "╝\033[0m\n";
+        echo $functionText . str_repeat(" ", max(0, (int)$padding));
+        echo " {$borderCol}║{$reset}\n";
+        echo "{$borderCol}╚" . str_repeat("═", $this->width - 2) . "╝{$reset}\n";
     }
     
     /**
@@ -212,35 +216,44 @@ class FormController
     private function handleInput(): void
     {
         $rawKey = $this->keyHandler->waitForKey();
-        $key = FunctionKeyMapper::mapKey($rawKey);
+        $key = \App\SienteErpTui\Input\FunctionKeyMapper::mapKey($rawKey);
         
-        // Teclas de función
+        // Acciones globales (siempre disponibles)
         if ($key === 'F10') {
-            // Guardar
             if ($this->validate()) {
                 $this->action = 'save';
                 $this->isRunning = false;
             }
+            return;
         } elseif ($key === 'F12' || $key === 'ESC') {
-            // Cancelar
             $this->action = 'cancel';
             $this->isRunning = false;
-        } elseif ($key === 'F1') {
-            // Ayuda (por implementar)
-            $this->showHelp();
+            return;
         }
-        // Navegación entre campos
-        elseif ($key === 'TAB' || $key === 'ENTER') {
+
+        // --- MODO EDICIÓN ---
+        if ($this->isEditing) {
+            if ($key === 'ENTER') {
+                $this->isEditing = false;
+            } elseif ($key === 'BACKSPACE' || $key === 'DELETE') {
+                $this->deleteChar();
+            } elseif (strlen($key) === 1 && ord($key) >= 32 && ord($key) <= 255) {
+                // Soportar caracteres extendidos/especiales
+                $this->addChar($key);
+            }
+            return;
+        }
+
+        // --- MODO NAVEGACIÓN ---
+        if ($key === 'ENTER') {
+            $field = $this->fields[$this->currentFieldIndex];
+            if (!$field['readonly']) {
+                $this->isEditing = true;
+            }
+        } elseif ($key === 'TAB' || $key === 'DOWN') {
             $this->nextField();
-        } elseif ($key === 'SHIFT_TAB') {
+        } elseif ($key === 'SHIFT_TAB' || $key === 'UP') {
             $this->previousField();
-        }
-        // Edición del campo actual
-        elseif ($key === 'BACKSPACE' || $key === 'DELETE') {
-            $this->deleteChar();
-        } elseif (strlen($key) === 1 && ord($key) >= 32 && ord($key) <= 126) {
-            // Carácter imprimible
-            $this->addChar($key);
         }
     }
     

@@ -32,23 +32,16 @@ if (file_exists($tuiEnvPath)) {
 $dotenv = \Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
 $dotenv->safeLoad();
 
-// Configuración
+// -------------------------------------------------------------------------
+// 0. CONFIGURACIÓN DE TEMA Y COLORES
+// -------------------------------------------------------------------------
+$theme = new \App\SienteErpTui\Display\ColorTheme('vibrant');
 $config = [
     'api_url' => $_ENV['ERP_API_URL'] ?? getenv('ERP_API_URL') ?: ($_ENV['APP_URL'] ?? getenv('APP_URL') ?: 'http://localhost:8000'),
-    'colors' => [
-        'bg' => "\033[40m",
-        'fg_white' => "\033[37m",
-        'fg_green' => "\033[32m",
-        'fg_blue' => "\033[34m",
-        'fg_cyan' => "\033[36m",
-        'fg_red' => "\033[31m",
-        'fg_yellow' => "\033[33m",
-        'reset' => "\033[0m",
-    ],
 ];
 
 // Inicializar componentes básicos
-$screen = new Screen($config['colors']);
+$screen = new Screen($theme);
 $keyHandler = new KeyHandler();
 
 // MODO DESARROLLO: false para ver login y ASCII art
@@ -78,7 +71,7 @@ try {
         }
     } else {
         // Pantalla de bienvenida con ASCII Art
-        echo $config['colors']['fg_cyan'];
+        echo $screen->color('title');
         echo "  ╔═══════════════════════════════════════════════════════════════════════════╗\n";
         echo "  ║                                                                           ║\n";
         echo "  ║    ███╗   ██╗███████╗██╗  ██╗███████╗██████╗ ██████╗                      ║\n";
@@ -91,7 +84,7 @@ try {
         echo "  ║                    Sistema de Gestión Empresarial                         ║\n";
         echo "  ║                                                                           ║\n";
         echo "  ╚═══════════════════════════════════════════════════════════════════════════╝\n";
-        echo $config['colors']['reset'];
+        echo $screen->reset();
         
         echo "\n\n";
         echo "  ╔═══════════════════════════════════════╗\n";
@@ -188,7 +181,8 @@ try {
     // -------------------------------------------------------------------------
     
     // Crear objeto MainMenu
-    $menu = new MainMenu($keyHandler, $screen, $menuStructure, \App\SienteErpTui\Display\ColorTheme::IBM_GREEN);
+    // Crear objeto MainMenu pasándole el nombre del tema
+    $menu = new MainMenu($keyHandler, $screen, $menuStructure);
     
     $running = true;
     while ($running) {
