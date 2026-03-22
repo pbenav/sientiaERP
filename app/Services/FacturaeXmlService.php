@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Documento;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use SimpleXMLElement;
 use RobRichards\XMLSecLibs\XMLSecurityDSig;
 use RobRichards\XMLSecLibs\XMLSecurityKey;
