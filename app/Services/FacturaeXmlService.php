@@ -34,8 +34,8 @@ class FacturaeXmlService
             throw new \Exception('La factura debe estar confirmada y tener número asignado.');
         }
 
-        // Crear elemento raíz con los namespaces necesarios
-        $xml = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><fe:Facturae xmlns:fe="http://www.facturae.gob.es/formato/versiones/facturaev3_2_2.xml" xmlns:ds="http://www.w3.org/2000/09/xmldsig#"></fe:Facturae>');
+        // Crear elemento raíz con el namespace por defecto para Facturae
+        $xml = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><Facturae xmlns="http://www.facturae.gob.es/formato/versiones/facturaev3_2_2.xml" xmlns:ds="http://www.w3.org/2000/09/xmldsig#"></Facturae>');
 
         $this->addFileHeader($xml, $documento);
         $this->addParties($xml, $documento);
@@ -229,8 +229,7 @@ class FacturaeXmlService
             return $xmlContent;
         }
 
-        try {
-            // Obtener trayectoria real según el disco (igual que en FaceService)
+        // Obtener trayectoria real según el disco (igual que en FaceService)
             $realPath = '';
             if (Storage::disk('local')->exists($certPath)) {
                 $realPath = Storage::disk('local')->path($certPath);
@@ -245,9 +244,8 @@ class FacturaeXmlService
                 return $xmlContent;
             }
 
-            // Usar el nuevo CertificateService para cargar el P12
+        try {
             $certs = $this->certService->loadP12($realPath, $certPass);
-
             $privateKey = $certs['pkey'];
             $publicCert = $certs['cert'];
 
@@ -267,14 +265,13 @@ class FacturaeXmlService
                 ['http://www.w3.org/2000/09/xmldsig#enveloped-signature'],
                 ['force_uri' => true, 'id_name' => 'SignatureID']
             );
-            $objDSig->id_name = 'Id';
 
             // 2. Crear clave RSA para la firma (SHA-256)
             $objKey = new XMLSecurityKey(XMLSecurityKey::RSA_SHA256, ['type' => 'private']);
             $objKey->loadKey($privateKey);
 
-            // 3. BLOQUE XAdES-BES: QualifyingProperties
-            $this->addXadesProperties($doc, $objDSig, $publicCert, $signatureId);
+            // 3. BLOQUE XAdES-BES: QualifyingProperties (Lo creamos pero no lo insertamos aún)
+            $xadesObject = $this->addXadesProperties($doc, $objDSig, $publicCert, $signatureId);
             
             // Firmar
             $objDSig->sign($objKey);
@@ -284,6 +281,19 @@ class FacturaeXmlService
 
             // 5. Insertar firma en el documento
             $objDSig->insertSignature($doc->documentElement);
+            
+            // 6. ASIGNAR ID A LA FIRMA Y REUBICAR EL OBJETO XAdES
+            // Buscamos la firma dentro del documento principal (no usamos sigNode directamente si es de otro doc)
+            $sigNodes = $doc->getElementsByTagNameNS('http://www.w3.org/2000/09/xmldsig#', 'Signature');
+            if ($sigNodes->length > 0) {
+                $actualSigNode = $sigNodes->item(0);
+                $actualSigNode->setAttribute('Id', $signatureId);
+                
+                if (isset($xadesObject)) {
+                    $importedObject = $doc->importNode($xadesObject, true);
+                    $actualSigNode->appendChild($importedObject);
+                }
+            }
 
             return $doc->saveXML();
 
@@ -293,7 +303,7 @@ class FacturaeXmlService
         }
     }
 
-    protected function addXadesProperties(DOMDocument $doc, XMLSecurityDSig $objDSig, string $publicCert, string $signatureId): void
+    protected function addXadesProperties(DOMDocument $doc, XMLSecurityDSig $objDSig, string $publicCert, string $signatureId): \DOMElement
     {
         $signingTime = gmdate("Y-m-d\TH:i:s\Z");
         
@@ -349,8 +359,6 @@ class FacturaeXmlService
         $qualProperties->appendChild($signedProps);
         $object->appendChild($qualProperties);
         
-        $doc->documentElement->appendChild($object);
-        
         // Referenciar SignedProperties para que sean firmadas también
         $objDSig->addReference(
             $signedProps,
@@ -358,6 +366,8 @@ class FacturaeXmlService
             null,
             ['type' => 'http://uri.etsi.org/01903#SignedProperties', 'force_uri' => true]
         );
+
+        return $object;
     }
 
     private function getCertContent(string $cert): string
