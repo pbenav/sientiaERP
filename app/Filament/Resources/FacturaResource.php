@@ -10,6 +10,7 @@ use App\Models\FormaPago;
 use App\Models\Tercero;
 use App\Models\Product;
 use App\Services\RecibosService;
+use Illuminate\Support\HtmlString;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -283,8 +284,7 @@ class FacturaResource extends Resource
                             Notification::make()
                                 ->title('Error en envío a FACe')
                                 ->danger()
-                                ->body($body)
-                                ->html()
+                                ->body(new HtmlString($body))
                                 ->persistent()
                                 ->send();
 
