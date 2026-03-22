@@ -119,14 +119,16 @@ XML;
 
             return [
                 'success' => false,
-                'error' => "Error de conexión con FACe ({$response->status()}): " . $response->body()
+                'error' => "Error de conexión con FACe ({$response->status()}): " . $response->body(),
+                'raw_body' => $response->body()
             ];
 
         } catch (\Exception $e) {
             Log::error("Face Submission Error: " . $e->getMessage());
             return [
                 'success' => false,
-                'error' => "Error en envío a FACe: " . $e->getMessage()
+                'error' => "Error en envío a FACe: " . $e->getMessage(),
+                'raw_body' => $e->raw_body ?? null
             ];
         } finally {
             // Limpiar archivos temporales
@@ -152,7 +154,9 @@ XML;
         // Si la respuesta contiene <html> o no empieza por < (es probablemente un error con ng-cloak)
         if (stripos($xmlResponse, '<html') !== false || !str_starts_with(trim($xmlResponse), '<')) {
             Log::error("Face Response is HTML: " . substr($xmlResponse, 0, 1000));
-            throw new \Exception("La respuesta de FACe es una página HTML en lugar de XML (posible bloqueo por firewall o error de sesión).");
+            $error = new \Exception("La respuesta de FACe es una página HTML en lugar de XML (posible bloqueo por firewall o error de sesión).");
+            $error->raw_body = $xmlResponse;
+            throw $error;
         }
 
         // Evitar que libxml genere warnings que Laravel capture como excepciones

@@ -268,9 +268,26 @@ class FacturaResource extends Resource
                         $result = $service->enviarFactura($record);
                         
                         if ($result['success']) {
-                            Notification::make()->title('Factura enviada a FACe')->success()->body($result['message'])->send();
+                            Notification::make()
+                                ->title('Factura enviada a FACe')
+                                ->success()
+                                ->body($result['message'])
+                                ->send();
                         } else {
-                            Notification::make()->title('Error en envío a FACe')->danger()->body($result['error'])->send();
+                            $body = $result['error'];
+                            if (!empty($result['raw_body'])) {
+                                $cleanBody = e(substr($result['raw_body'], 0, 2000));
+                                $body .= "<br><br><div style='max-height: 200px; overflow-y: auto; background: #333; color: #fff; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 10px; line-height: 1.2;'>{$cleanBody}</div>";
+                            }
+
+                            Notification::make()
+                                ->title('Error en envío a FACe')
+                                ->danger()
+                                ->body($body)
+                                ->html()
+                                ->persistent()
+                                ->send();
+
                             $record->update(['facturae_last_error' => $result['error']]);
                         }
                     }),
