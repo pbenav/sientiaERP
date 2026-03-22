@@ -102,6 +102,8 @@ class SettingsPage extends Page
             // Facturae
             'facturae_active' => filter_var(Setting::get('facturae_active', false), FILTER_VALIDATE_BOOLEAN),
             'facturae_mode' => Setting::get('facturae_mode', 'test'),
+            'facturae_cert_path' => Setting::get('facturae_cert_path'),
+            'facturae_cert_password' => Setting::get('facturae_cert_password'),
             'facturae_endpoint_test' => Setting::get('facturae_endpoint_test', config('facturae.endpoints.test')),
             'facturae_endpoint_production' => Setting::get('facturae_endpoint_production', config('facturae.endpoints.production')),
         ]);
@@ -363,6 +365,16 @@ class SettingsPage extends Page
                                             ->label('Modo de Trabajo')
                                             ->options(['test' => 'PRUEBAS', 'production' => 'PRODUCCIÓN'])
                                             ->default('test'),
+                                        FileUpload::make('facturae_cert_path')
+                                            ->label('Certificado (.p12)')
+                                            ->directory('certs')
+                                            ->visibility('private')
+                                            ->helperText('Si se deja vacío, se intentará usar el certificado de Veri*Factu por defecto.'),
+                                        TextInput::make('facturae_cert_password')
+                                            ->label('Contraseña Certificado')
+                                            ->password()
+                                            ->revealable()
+                                            ->helperText('Solo necesario si es distinto al de Veri*Factu.'),
                                     ])->columns(2),
                                 Section::make('Endpoints FACe / Portales')
                                     ->description('Direcciones web para el envío automático si se implementa el WS')
