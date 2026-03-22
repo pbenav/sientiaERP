@@ -37,7 +37,7 @@ class FacturaeXmlService
         // Crear elemento raíz con los namespaces necesarios
         $xml = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><fe:Facturae xmlns:fe="http://www.facturae.gob.es/formato/versiones/facturaev3_2_2.xml" xmlns:ds="http://www.w3.org/2000/09/xmldsig#"></fe:Facturae>');
 
-        $this->addFileHeader($xml);
+        $this->addFileHeader($xml, $documento);
         $this->addParties($xml, $documento);
         $this->addInvoices($xml, $documento);
 
@@ -55,7 +55,7 @@ class FacturaeXmlService
     /**
      * Añadir cabecera del fichero.
      */
-    protected function addFileHeader(SimpleXMLElement $xml): void
+    protected function addFileHeader(SimpleXMLElement $xml, Documento $documento): void
     {
         $header = $xml->addChild('FileHeader');
         $header->addChild('SchemaVersion', self::SCHEMA_VERSION);
@@ -63,12 +63,13 @@ class FacturaeXmlService
         $header->addChild('InvoiceIssuerType', 'EM'); // EM = Emisor (Proveedor)
         
         $batch = $header->addChild('Batch');
-        $batch->addChild('BatchIdentifier', 'FACT' . now()->format('YmdHis'));
+        $batch->addChild('BatchIdentifier', 'FACT' . $documento->numero . '-' . now()->format('YmdHis'));
         $batch->addChild('InvoicesCount', '1');
         
-        // Totales del lote (en este caso solo una factura)
-        // Estos se calculan más adelante normalmente, o se ponen aquí
-        // Nota: Facturae requiere importes con precisión específica
+        $batch->addChild('TotalInvoicesAmount')->addChild('TotalAmount', number_format($documento->total, 2, '.', ''));
+        $batch->addChild('TotalOutstandingAmount')->addChild('TotalAmount', number_format($documento->total, 2, '.', ''));
+        $batch->addChild('TotalExecutableAmount')->addChild('TotalAmount', number_format($documento->total, 2, '.', ''));
+        $batch->addChild('BatchCurrency', 'EUR');
     }
 
     /**
@@ -152,26 +153,14 @@ class FacturaeXmlService
         $totals->addChild('TotalTaxOutputs', number_format($documento->iva, 2, '.', ''));
         $totals->addChild('TotalInvoiceAmount', number_format($documento->total, 2, '.', ''));
         
-        // Formas de pago (PaymentDetails)
-        if ($documento->formaPago && $documento->formaPago->tipo === 'transferencia' && $documento->tercero->iban) {
-            $paymentDetails = $invoice->addChild('PaymentDetails');
-            $installment = $paymentDetails->addChild('Installment');
-            $installment->addChild('InstallmentDueDate', $documento->fecha_vencimiento ? $documento->fecha_vencimiento->format('Y-m-d') : $documento->fecha->format('Y-m-d'));
-            $installment->addChild('InstallmentAmount', number_format($documento->total, 2, '.', ''));
-            $installment->addChild('PaymentMeans', '04'); // 04 = Transferencia
-            
-            $account = $installment->addChild('AccountToBeCredited');
-            $account->addChild('IBAN', str_replace(' ', '', $documento->tercero->iban));
-        }
-
-        // Líneas
+        // Líneas (items) - DEBEN ir antes de PaymentDetails
         $items = $invoice->addChild('Items');
         foreach ($documento->lineas as $linea) {
             $item = $items->addChild('InvoiceLine');
             $item->addChild('ItemDescription', substr($linea->descripcion, 0, 2500));
             $item->addChild('Quantity', number_format($linea->cantidad, 2, '.', ''));
             $item->addChild('UnitOfMeasure', '01'); // 01 = Unidades
-            $item->addChild('UnitPriceWithoutTax', number_format($linea->precio_unitario, 2, '.', ''));
+            $item->addChild('UnitPriceWithoutTax', number_format($linea->precio_unitario, 6, '.', ''));
             $item->addChild('TotalCost', number_format($linea->subtotal, 2, '.', ''));
             $item->addChild('GrossAmount', number_format($linea->subtotal, 2, '.', ''));
             
@@ -181,6 +170,18 @@ class FacturaeXmlService
             $tax->addChild('TaxRate', number_format($linea->iva, 2, '.', ''));
             $tax->addChild('TaxableBase')->addChild('TotalAmount', number_format($linea->subtotal, 2, '.', ''));
             $tax->addChild('TaxAmount')->addChild('TotalAmount', number_format($linea->importe_iva, 2, '.', ''));
+        }
+
+        // Formas de pago (PaymentDetails) - DEBEN ir después de Items
+        if ($documento->formaPago && $documento->formaPago->tipo === 'transferencia' && $documento->tercero->iban) {
+            $paymentDetails = $invoice->addChild('PaymentDetails');
+            $installment = $paymentDetails->addChild('Installment');
+            $installment->addChild('InstallmentDueDate', $documento->fecha_vencimiento ? $documento->fecha_vencimiento->format('Y-m-d') : $documento->fecha->format('Y-m-d'));
+            $installment->addChild('InstallmentAmount', number_format($documento->total, 2, '.', ''));
+            $installment->addChild('PaymentMeans', '04'); // 04 = Transferencia
+            
+            $account = $installment->addChild('AccountToBeCredited');
+            $account->addChild('IBAN', str_replace(' ', '', $documento->tercero->iban));
         }
     }
 
