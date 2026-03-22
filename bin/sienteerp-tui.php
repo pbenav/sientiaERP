@@ -70,23 +70,44 @@ try {
             $userName = $authData['user']['name'] ?? 'Admin';
         }
     } else {
-        // Pantalla de bienvenida con ASCII Art (sientiaERP) - Más aire
-        $logoWidth = 80; // Volver a un ancho más estándar pero con márgenes internos
-        $innerW = $logoWidth - 4;
+        // Pantalla de bienvenida con ASCII Art (sientiaERP) - Más aire y centro perfecto
+        $logoLines = [
+            "  ███████╗██╗███████╗███╗   ██╗████████╗██╗ █████╗ ███████╗██████╗ ██████╗  ",
+            "  ██╔════╝██║██╔════╝████╗  ██║╚══██╔══╝██║██╔══██╗██╔════╝██╔══██╗██╔══██╗ ",
+            "  ███████╗██║█████╗  ██╔██╗ ██║   ██║   ██║███████║█████╗  ██████╔╝██████╔╝ ",
+            "  ╚════██║██║██╔══╝  ██║╚██╗██║   ██║   ██║██╔══██║██╔══╝  ██╔══██╗██╔═══╝  ",
+            "  ███████║██║███████╗██║ ╚████║   ██║   ██║██║  ██║███████╗██║  ██║██║      ",
+            "  ╚══════╝╚═╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝      "
+        ];
+        
+        // Calcular el ancho visual real del logo (usando el motor strWidth)
+        $maxVisualWidth = 0;
+        foreach ($logoLines as $line) {
+            $maxVisualWidth = max($maxVisualWidth, $screen->strWidth($line));
+        }
+        
+        // Añadir 4 espacios de "aire" a cada lado (8 total)
+        $innerW = $maxVisualWidth + 10;
         $borderC = $screen->color('border');
         $reset = $screen->reset();
         
         echo $screen->color('title');
         echo "  {$borderC}╔" . str_repeat("═", $innerW) . "╗\n";
         echo "  ║" . str_repeat(" ", $innerW) . "║\n";
-        echo "  ║   ███████╗██╗███████╗███╗   ██╗████████╗██╗ █████╗ ███████╗██████╗ ██████╗ ║\n";
-        echo "  ║   ██╔════╝██║██╔════╝████╗  ██║╚══██╔══╝██║██╔══██╗██╔════╝██╔══██╗██╔══██╗║\n";
-        echo "  ║   ███████╗██║█████╗  ██╔██╗ ██║   ██║   ██║███████║█████╗  ██████╔╝██████╔╝║\n";
-        echo "  ║   ╚════██║██║██╔══╝  ██║╚██╗██║   ██║   ██║██╔══██║██╔══╝  ██╔══██╗██╔═══╝ ║\n";
-        echo "  ║   ███████║██║███████╗██║ ╚████║   ██║   ██║██║  ██║███████╗██║  ██║██║     ║\n";
-        echo "  ║   ╚══════╝╚═╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ║\n";
+        
+        foreach ($logoLines as $line) {
+            $lineW = $screen->strWidth($line);
+            $padding = $innerW - $lineW;
+            $padLeft = (int)floor($padding / 2);
+            $padRight = $padding - $padLeft;
+            echo "  ║" . str_repeat(" ", $padLeft) . $line . str_repeat(" ", $padRight) . "║\n";
+        }
+        
         echo "  ║" . str_repeat(" ", $innerW) . "║\n";
-        echo "  ║" . str_pad("Sistema de Gestión Empresarial", $innerW, " ", STR_PAD_BOTH) . "║\n";
+        $subtitle = "Sistema de Gestión Empresarial";
+        $subW = $screen->strWidth($subtitle);
+        $subPad = $innerW - $subW;
+        echo "  ║" . str_repeat(" ", (int)floor($subPad/2)) . $subtitle . str_repeat(" ", (int)ceil($subPad/2)) . "║\n";
         echo "  ║" . str_repeat(" ", $innerW) . "║\n";
         echo "  ╚" . str_repeat("═", $innerW) . "╝{$reset}\n";
         echo $screen->reset();
