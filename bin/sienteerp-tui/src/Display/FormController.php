@@ -25,6 +25,7 @@ class FormController
     private bool $isRunning = true;
     private ?string $action = null; // 'save', 'cancel', etc.
     private bool $isEditing = false;
+    private bool $allSelected = false; 
     
     public function __construct(KeyHandler $keyHandler, Screen $screen, string $title, int $width = 80)
     {
@@ -85,11 +86,13 @@ class FormController
      */
     private function render(): void
     {
-        $this->screen->clear();
+        $this->screen->clear('form_bg');
+        
+        $borderCol = $this->screen->color('border');
+        $reset = $this->screen->reset('form_bg');
         
         // Borde superior
-        echo "\033[36m"; // Cyan
-        echo "╔" . str_repeat("═", $this->width - 2) . "╗\n";
+        echo "{$borderCol}╔" . str_repeat("═", $this->width - 2) . "╗\n";
         
         // Título centrado con padding dinámico
         $titleLength = mb_strlen($this->title);
@@ -106,12 +109,12 @@ class FormController
             $rightPadding = (int)ceil($totalPadding / 2);
         }
         
-        echo "║" . str_repeat(" ", $leftPadding);
-        echo "\033[1;37m" . $displayTitle . "\033[36m";
-        echo str_repeat(" ", $rightPadding) . "║\n";
+        echo "{$borderCol}║{$reset}" . str_repeat(" ", $leftPadding);
+        echo $displayTitle;
+        echo str_repeat(" ", $rightPadding) . "{$borderCol}║{$reset}\n";
         
         // Separador
-        echo "╠" . str_repeat("═", $this->width - 2) . "╣\033[0m\n";
+        echo "{$borderCol}╠" . str_repeat("═", $this->width - 2) . "╣{$reset}\n";
         
         // Campos (Bufferizar output para envolver en marco)
         ob_start();
@@ -236,6 +239,9 @@ class FormController
                 $this->isEditing = false;
             } elseif ($key === 'BACKSPACE' || $key === 'DELETE') {
                 $this->deleteChar();
+                $this->allSelected = false;
+            } elseif (in_array($key, ['LEFT', 'RIGHT', 'UP', 'DOWN', 'HOME', 'END'])) {
+                $this->allSelected = false;
             } elseif (strlen($key) === 1 && ord($key) >= 32 && ord($key) <= 255) {
                 // Soportar caracteres extendidos/especiales
                 $this->addChar($key);
@@ -248,6 +254,7 @@ class FormController
             $field = $this->fields[$this->currentFieldIndex];
             if (!$field['readonly']) {
                 $this->isEditing = true;
+                $this->allSelected = true; // Marcar para sobreescribir al empezar a escribir
             }
         } elseif ($key === 'TAB' || $key === 'DOWN') {
             $this->nextField();
@@ -290,7 +297,14 @@ class FormController
             return;
         }
         
-        $field['value'] .= $char;
+        // Si todo está seleccionado, el primer carácter sobreescribe
+        if ($this->allSelected) {
+            $field['value'] = $char;
+            $this->allSelected = false;
+        } else {
+            $field['value'] .= $char;
+        }
+        
         $this->values[$field['name']] = $field['value'];
         $field['error'] = null; // Limpiar error al editar
     }

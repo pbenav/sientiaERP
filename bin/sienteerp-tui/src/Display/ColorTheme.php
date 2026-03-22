@@ -78,28 +78,30 @@ class ColorTheme
             ],
 /* --- VIBRANT THEME --- */
             'vibrant' => [
-                'main_bg' => "\033[48;5;17m",       // Fondo azul oscuro/profundo
-                'border' => "\033[38;5;93m",        // Púrpura intenso
-                'title' => "\033[1;38;5;51m",      // Cyan eléctrico brillante
-                'text' => "\033[38;5;15m",         // Blanco puro
-                'highlight' => "\033[1;38;5;208m",   // Naranja vibrante
+                'main_bg' => "\033[48;5;17m",       // Fondo azul oscuro/profundo base
+                'form_bg' => "\033[48;5;52m",       // Fondo rojo oscuro para edición (alerta)
+                'list_bg' => "\033[48;5;22m",       // Fondo verde oscuro para listas (tranquilidad)
+                'border' => "\033[1;37m",           // Blanco brillante para bordes
+                'title' => "\033[1;38;5;51m",       // Cyan eléctrico brillante
+                'text' => "\033[37m",               // Blanco para texto
+                'highlight' => "\033[1;38;5;208m",  // Naranja vibrante
                 'selected' => "\033[48;5;93m\033[38;5;255m", // Fondo púrpura, texto blanco
                 'company' => "\033[1;38;5;51m",      // Cyan eléctrico para empresa
                 'datetime' => "\033[38;5;129m",     // Violeta suave
                 'header_bg' => "\033[48;5;21m",     // Fondo azul eléctrico para cabecera
                 'header_fg' => "\033[1;38;5;255m",   // Blanco brillante sobre fondo azul
                 'menu_selected' => "\033[48;5;51m\033[38;5;232m", // Fondo cyan, texto casi negro
-                'menu_normal' => "\033[38;5;93m",     // Púrpura para menú
+                'menu_normal' => "\033[38;5;15m",     // Blanco para menú
                 'function_key' => "\033[1;38;5;45m",  // Turquesa para teclas de función
                 'error' => "\033[1;38;5;196m",       // Rojo intenso
                 'success' => "\033[1;38;5;46m",      // Verde lima brillante
                 'warning' => "\033[1;38;5;226m",     // Amarillo puro
                 'info' => "\033[1;38;5;51m",         // Cyan brillante
-                'data' => "\033[38;5;253m",          // Gris muy claro para datos
-                'label' => "\033[38;5;45m",          // Turquesa para etiquetas
-                'value' => "\033[1;38;5;208m",       // Naranja para valores
-                'separator' => "\033[38;5;93m",      // Púrpura para separadores
-                'reset' => "\033[0m\033[48;5;17m",   // Reset vuelve al fondo azul
+                'data' => "\033[1;37m",             // Blanco brillante para datos
+                'label' => "\033[37m",              // Blanco para etiquetas
+                'value' => "\033[1;38;5;208m",       // Naranja para valores (contrapunto)
+                'separator' => "\033[1;37m",        // Blanco para separadores
+                'reset' => "\033[0m\033[48;5;17m",   // Reset vuelve al azul base
             ],
             default => $this->loadTheme('vibrant'),
         };

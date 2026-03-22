@@ -172,7 +172,7 @@ class FullScreenLayout
     /**
      * Renderiza el layout completo
      */
-    public function render(callable $contentRenderer): void
+    public function render(callable $contentRenderer, ?string $bgKey = null): void
     {
         // Actualizar dimensiones por si la terminal cambió de tamaño
         $this->updateDimensions();
@@ -291,22 +291,22 @@ class FullScreenLayout
     /**
      * Renderiza el área de trabajo
      */
-    private function renderWorkArea(callable $contentRenderer, int $height): void
+    private function renderWorkArea(callable $contentRenderer, int $height, ?string $bgKey = null): void
     {
         $borderCol = $this->screen->color('border');
-        $reset = $this->screen->reset();
+        $reset = $this->screen->reset($bgKey); // Usar fondo contextual
         
         ob_start();
         call_user_func($contentRenderer, $this->width - 2, $height);
         $content = ob_get_clean();
         
-        $lines = explode("\n", $content);
+        $linesArr = explode("\n", $content);
         
         for ($i = 0; $i < $height; $i++) {
             echo "{$borderCol}║{$reset}";
             
-            if (isset($lines[$i])) {
-                $line = $lines[$i];
+            if (isset($linesArr[$i])) {
+                $line = $linesArr[$i];
                 $lineLength = $this->stripAnsiLength($line);
                 $maxWidth = $this->width - 2;
                 
@@ -315,7 +315,7 @@ class FullScreenLayout
                     echo $truncated;
                 } elseif ($lineLength < $maxWidth) {
                     echo $line;
-                    echo str_repeat(" ", $maxWidth - $lineLength);
+                    echo str_repeat(" ", max(0, $maxWidth - $lineLength));
                 } else {
                     echo $line;
                 }

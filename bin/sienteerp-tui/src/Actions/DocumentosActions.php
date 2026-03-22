@@ -252,7 +252,7 @@ class DocumentosActions
         $titleCol = $this->screen->color('title');
         $textCol = $this->screen->color('text');
         $highlightCol = $this->screen->color('highlight');
-        $reset = $this->screen->reset();
+        $reset = $this->screen->reset('form_bg');
         
         // --- 1. HEADER ---
         echo "{$borderCol}╔" . str_repeat("═", $innerW) . "╗\n";
@@ -516,7 +516,7 @@ class DocumentosActions
         $titleCol = $this->screen->color('title');
         $textCol = $this->screen->color('text');
         $highlightCol = $this->screen->color('highlight');
-        $reset = $this->screen->reset();
+        $reset = $this->screen->reset('form_bg');
 
         // HEADER
         echo "{$borderCol}╔" . str_repeat("═", $innerW) . "╗\n";

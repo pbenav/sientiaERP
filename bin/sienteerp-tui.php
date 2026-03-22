@@ -70,20 +70,25 @@ try {
             $userName = $authData['user']['name'] ?? 'Admin';
         }
     } else {
-        // Pantalla de bienvenida con ASCII Art (sientiaERP)
+        // Pantalla de bienvenida con ASCII Art (sientiaERP) - Más aire
+        $logoWidth = 80; // Volver a un ancho más estándar pero con márgenes internos
+        $innerW = $logoWidth - 4;
+        $borderC = $screen->color('border');
+        $reset = $screen->reset();
+        
         echo $screen->color('title');
-        echo "  ╔═══════════════════════════════════════════════════════════════════════════╗\n";
-        echo "  ║                                                                           ║\n";
-        echo "  ║   ███████╗██╗███████╗███╗   ██╗████████╗██╗ █████╗ ███████╗██████╗ ██████╗║\n";
-        echo "  ║   ██╔════╝██║██╔════╝████╗  ██║╚══██╔══╝██║██╔══██╗██╔════╝██╔══██╗██╔══██║\n";
+        echo "  {$borderC}╔" . str_repeat("═", $innerW) . "╗\n";
+        echo "  ║" . str_repeat(" ", $innerW) . "║\n";
+        echo "  ║   ███████╗██╗███████╗███╗   ██╗████████╗██╗ █████╗ ███████╗██████╗ ██████╗ ║\n";
+        echo "  ║   ██╔════╝██║██╔════╝████╗  ██║╚══██╔══╝██║██╔══██╗██╔════╝██╔══██╗██╔══██╗║\n";
         echo "  ║   ███████╗██║█████╗  ██╔██╗ ██║   ██║   ██║███████║█████╗  ██████╔╝██████╔╝║\n";
         echo "  ║   ╚════██║██║██╔══╝  ██║╚██╗██║   ██║   ██║██╔══██║██╔══╝  ██╔══██╗██╔═══╝ ║\n";
         echo "  ║   ███████║██║███████╗██║ ╚████║   ██║   ██║██║  ██║███████╗██║  ██║██║     ║\n";
         echo "  ║   ╚══════╝╚═╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ║\n";
-        echo "  ║                                                                           ║\n";
-        echo "  ║                    Sistema de Gestión Empresarial                         ║\n";
-        echo "  ║                                                                           ║\n";
-        echo "  ╚═══════════════════════════════════════════════════════════════════════════╝\n";
+        echo "  ║" . str_repeat(" ", $innerW) . "║\n";
+        echo "  ║" . str_pad("Sistema de Gestión Empresarial", $innerW, " ", STR_PAD_BOTH) . "║\n";
+        echo "  ║" . str_repeat(" ", $innerW) . "║\n";
+        echo "  ╚" . str_repeat("═", $innerW) . "╝{$reset}\n";
         echo $screen->reset();
         
         echo "\n\n";

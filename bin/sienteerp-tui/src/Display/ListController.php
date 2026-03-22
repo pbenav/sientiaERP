@@ -158,7 +158,7 @@ class ListController
         
         $this->layout->render(function($w, $h) {
             $this->renderTableInLayout($w, $h);
-        });
+        }, 'list_bg');
     }
 
     /**

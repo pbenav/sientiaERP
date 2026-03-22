@@ -31,16 +31,19 @@ class Screen
         return $this->theme->get($key);
     }
 
-    public function reset(): string
+    public function reset(?string $bgKey = null): string
     {
-        return $this->theme->get('reset');
+        $bg = $bgKey ? $this->theme->get($bgKey) : $this->theme->get('main_bg');
+        return "\033[0m" . $bg;
     }
 
-    public function clear(): void
+    public function clear(?string $bgKey = null): void
     {
-        $bg = $this->theme->get('main_bg');
-        // Limpiar pantalla (\033[2J) y mover cursor a 1,1 (\033[H)
+        $bg = $bgKey ? $this->theme->get($bgKey) : $this->theme->get('main_bg');
+        // Limpiar pantalla y aplicar fondo
         echo "{$bg}\033[2J\033[H";
+        // Asegurar que el buffer se limpie con el color correcto en algunos terminales
+        echo "\033[H\033[J";
     }
 
     public function render(string $content): void
