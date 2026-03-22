@@ -11,8 +11,8 @@ return [
     */
 
     'endpoints' => [
-        'test' => 'https://se-face.redsara.es/facturasspp/sspp',
-        'production' => 'https://face.gob.es/facturasspp/sspp',
+        'test' => 'https://se-face-webservice.redsara.es/facturasspp',
+        'production' => 'https://face-webservice.redsara.es/facturasspp',
     ],
 
     'mode' => env('FACTURAE_MODE', 'test'), // test | production
