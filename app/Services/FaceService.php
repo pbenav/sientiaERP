@@ -84,6 +84,11 @@ XML;
             ];
 
             $response = Http::withOptions($options)
+                ->withHeaders([
+                    'SOAPAction' => 'https://face.gob.es/facturasspp#enviarFactura',
+                    'User-Agent' => 'SientiaERP/1.0 (Laravel/11; PHP/8.4)',
+                    'Accept' => 'text/xml, application/soap+xml, */*',
+                ])
                 ->withBody($this->wrapInSoapEnvelope($soapBody), 'text/xml; charset=utf-8')
                 ->post($this->endpoint);
 
@@ -142,9 +147,25 @@ XML;
 
     protected function parseFaceResponse(string $xmlResponse): array
     {
+        // Si la respuesta contiene <html> o no empieza por < (es probablemente un error con ng-cloak)
+        if (stripos($xmlResponse, '<html') !== false || !str_starts_with(trim($xmlResponse), '<')) {
+            Log::error("Face Response is HTML: " . substr($xmlResponse, 0, 1000));
+            throw new \Exception("La respuesta de FACe es una página HTML en lugar de XML (posible bloqueo por firewall o error de sesión).");
+        }
+
+        // Evitar que libxml genere warnings que Laravel capture como excepciones
+        libxml_use_internal_errors(true);
+        
         // Limpiar namespaces para parsear fácil
         $cleanXml = str_replace(['ns2:', 'soap:', 'env:'], '', $xmlResponse);
-        $xml = simplexml_load_string($cleanXml);
+        $xml = @simplexml_load_string($cleanXml);
+        
+        if (!$xml) {
+            $libError = libxml_get_last_error();
+            Log::error("Face XML Parse Error: " . ($libError ? $libError->message : 'Unknown') . "\nContent: " . substr($cleanXml, 0, 500));
+            libxml_clear_errors();
+            throw new \Exception("Error al parsear el XML de respuesta de FACe.");
+        }
         
         // El resultado suele estar en Body -> enviarFacturaResponse -> resultado
         $res = $xml->Body->enviarFacturaResponse->resultado;
