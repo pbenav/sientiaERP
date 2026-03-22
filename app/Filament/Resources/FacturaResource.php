@@ -265,6 +265,17 @@ class FacturaResource extends Resource
                     ->modalDescription('¿Está seguro de que desea enviar esta factura directamente al portal FACe de la Administración Pública?')
                     ->visible(fn($record) => \App\Models\Setting::get('facturae_active', false) && $record->estado === 'confirmado' && empty($record->facturae_face_id))
                     ->action(function ($record) {
+                        $tercero = $record->tercero;
+                        if (empty($tercero->dir3_oficina_contable) || empty($tercero->dir3_organo_gestor) || empty($tercero->dir3_unidad_tramitadora)) {
+                            Notification::make()
+                                ->title('Faltan códigos DIR3')
+                                ->warning()
+                                ->body('El cliente no tiene configurados los códigos DIR3 (Oficina Contable, Órgano Gestor o Unidad Tramitadora). Por favor, rellénelos en la ficha del cliente antes de enviar a FACe.')
+                                ->persistent()
+                                ->send();
+                            return;
+                        }
+
                         $service = app(\App\Services\FaceService::class);
                         $result = $service->enviarFactura($record);
                         

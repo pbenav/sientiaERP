@@ -44,7 +44,8 @@ class FacturaeXmlService
         $unsignedXml = $xml->asXML();
         
         // Firma digital si hay certificado configurado
-        if (Setting::get('verifactu_cert_path')) {
+        $certPath = Setting::get('facturae_cert_path') ?: Setting::get('verifactu_cert_path');
+        if ($certPath) {
             return $this->signXml($unsignedXml);
         }
 
@@ -217,8 +218,8 @@ class FacturaeXmlService
      */
     protected function signXml(string $xmlContent): string
     {
-        $certPath = Setting::get('verifactu_cert_path');
-        $certPass = Setting::get('verifactu_cert_password');
+        $certPath = Setting::get('facturae_cert_path') ?: Setting::get('verifactu_cert_path');
+        $certPass = Setting::get('facturae_cert_password') ?: Setting::get('verifactu_cert_password');
         
         if (!$certPath) {
             Log::warning('No se pudo firmar el Facturae: ruta de certificado no configurada.');
