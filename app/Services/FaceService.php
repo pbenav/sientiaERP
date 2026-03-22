@@ -13,9 +13,11 @@ class FaceService
     private string $certPath;
     private string $certPassword;
     private string $endpoint;
+    private CertificateService $certService;
 
-    public function __construct()
+    public function __construct(CertificateService $certService)
     {
+        $this->certService = $certService;
         $storedPath = Setting::get('verifactu_cert_path');
         
         if ($storedPath) {
@@ -46,6 +48,9 @@ class FaceService
      */
     public function enviarFactura(Documento $record): array
     {
+        $tempCert = null;
+        $tempKey = null;
+
         try {
             $xmlGenerator = app(FacturaeXmlService::class);
             $xmlContent = $xmlGenerator->generateXml($record);
@@ -65,15 +70,18 @@ XML;
 
             $options = ['verify' => true];
             
-            if (str_ends_with(strtolower($this->certPath), '.p12') || str_ends_with(strtolower($this->certPath), '.pfx')) {
-                $options['curl'] = [
-                    CURLOPT_SSLCERT => $this->certPath,
-                    CURLOPT_SSLCERTPASSWD => $this->certPassword,
-                    CURLOPT_SSLCERTTYPE => 'P12',
-                ];
-            } else {
-                $options['cert'] = [$this->certPath, $this->certPassword];
-            }
+            // Cargar certificado usando el nuevo CertificateService (con fallback legacy)
+            $certs = $this->certService->loadP12($this->certPath, $this->certPassword);
+            
+            // Para cURL/Guzzle, debemos usar archivos PEM temporales
+            $tempCert = $this->certService->createTempPem($certs['cert']);
+            $tempKey = $this->certService->createTempPem($certs['pkey']);
+
+            $options['curl'] = [
+                CURLOPT_SSLCERT => $tempCert,
+                CURLOPT_SSLKEY => $tempKey,
+                // Ya no necesitamos CURLOPT_SSLCERTTYPE => 'P12' porque ahora es PEM
+            ];
 
             $response = Http::withOptions($options)
                 ->withBody($this->wrapInSoapEnvelope($soapBody), 'text/xml; charset=utf-8')
@@ -111,8 +119,12 @@ XML;
             Log::error("Face Submission Error: " . $e->getMessage());
             return [
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => "Error en envío a FACe: " . $e->getMessage()
             ];
+        } finally {
+            // Limpiar archivos temporales
+            if ($tempCert && file_exists($tempCert)) @unlink($tempCert);
+            if ($tempKey && file_exists($tempKey)) @unlink($tempKey);
         }
     }
 

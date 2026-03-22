@@ -13,6 +13,12 @@ use DOMDocument;
 class FacturaeXmlService
 {
     private const SCHEMA_VERSION = '3.2.2';
+    private CertificateService $certService;
+
+    public function __construct(CertificateService $certService)
+    {
+        $this->certService = $certService;
+    }
     
     /**
      * Generar XML Facturae 3.2.2 para un documento.
@@ -213,19 +219,29 @@ class FacturaeXmlService
         $certPath = Setting::get('verifactu_cert_path');
         $certPass = Setting::get('verifactu_cert_password');
         
-        if (!$certPath || !\Illuminate\Support\Facades\Storage::disk('local')->exists($certPath)) {
-            Log::warning('No se pudo firmar el Facturae: ruta de certificado inválida.');
+        if (!$certPath) {
+            Log::warning('No se pudo firmar el Facturae: ruta de certificado no configurada.');
             return $xmlContent;
         }
 
         try {
-            $realPath = \Illuminate\Support\Facades\Storage::disk('local')->path($certPath);
-            $p12content = file_get_contents($realPath);
-            $certs = [];
-            
-            if (!openssl_pkcs12_read($p12content, $certs, $certPass)) {
-                throw new \Exception('No se pudo leer el archivo P12. Contraseña incorrecta?');
+            // Obtener trayectoria real según el disco (igual que en FaceService)
+            $realPath = '';
+            if (Storage::disk('local')->exists($certPath)) {
+                $realPath = Storage::disk('local')->path($certPath);
+            } elseif (Storage::disk('public')->exists($certPath)) {
+                $realPath = Storage::disk('public')->path($certPath);
+            } else {
+                $realPath = storage_path('app/private/' . $certPath);
             }
+
+            if (!file_exists($realPath)) {
+                Log::warning('No se pudo firmar el Facturae: el archivo de certificado no existe en ' . $realPath);
+                return $xmlContent;
+            }
+
+            // Usar el nuevo CertificateService para cargar el P12
+            $certs = $this->certService->loadP12($realPath, $certPass);
 
             $privateKey = $certs['pkey'];
             $publicCert = $certs['cert'];
