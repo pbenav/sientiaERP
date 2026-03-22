@@ -18,7 +18,9 @@ class FaceService
     public function __construct(CertificateService $certService)
     {
         $this->certService = $certService;
-        $storedPath = Setting::get('facturae_cert_path');
+        
+        // Prioridad a facturae, fallback a verifactu (compatibilidad)
+        $storedPath = Setting::get('facturae_cert_path') ?: Setting::get('verifactu_cert_path');
         
         if ($storedPath) {
             if (Storage::disk('local')->exists($storedPath)) {
@@ -33,7 +35,7 @@ class FaceService
             $this->certPath = config('facturae.cert_path', storage_path('app/certificates/facturae.p12'));
         }
 
-        $this->certPassword = Setting::get('facturae_cert_password', '');
+        $this->certPassword = Setting::get('facturae_cert_password') ?: Setting::get('verifactu_cert_password', '');
         
         $mode = Setting::get('facturae_mode', config('facturae.mode', 'test'));
         if ($mode === 'production') {
