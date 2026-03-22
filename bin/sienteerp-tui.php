@@ -70,16 +70,16 @@ try {
             $userName = $authData['user']['name'] ?? 'Admin';
         }
     } else {
-        // Pantalla de bienvenida con ASCII Art
+        // Pantalla de bienvenida con ASCII Art (sientiaERP)
         echo $screen->color('title');
         echo "  ╔═══════════════════════════════════════════════════════════════════════════╗\n";
         echo "  ║                                                                           ║\n";
-        echo "  ║    ███╗   ██╗███████╗██╗  ██╗███████╗██████╗ ██████╗                      ║\n";
-        echo "  ║    ████╗  ██║██╔════╝╚██╗██╔╝██╔════╝██╔══██╗██╔══██╗                     ║\n";
-        echo "  ║    ██╔██╗ ██║█████╗   ╚███╔╝ █████╗  ██████╔╝██████╔╝                     ║\n";
-        echo "  ║    ██║╚██╗██║██╔══╝   ██╔██╗ ██╔══╝  ██╔══██╗██╔═══╝                      ║\n";
-        echo "  ║    ██║ ╚████║███████╗██╔╝ ██╗███████╗██║  ██║██║                          ║\n";
-        echo "  ║    ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝                          ║\n";
+        echo "  ║   ███████╗██╗███████╗███╗   ██╗████████╗██╗ █████╗ ███████╗██████╗ ██████╗║\n";
+        echo "  ║   ██╔════╝██║██╔════╝████╗  ██║╚══██╔══╝██║██╔══██╗██╔════╝██╔══██╗██╔══██║\n";
+        echo "  ║   ███████╗██║█████╗  ██╔██╗ ██║   ██║   ██║███████║█████╗  ██████╔╝██████╔╝║\n";
+        echo "  ║   ╚════██║██║██╔══╝  ██║╚██╗██║   ██║   ██║██╔══██║██╔══╝  ██╔══██╗██╔═══╝ ║\n";
+        echo "  ║   ███████║██║███████╗██║ ╚████║   ██║   ██║██║  ██║███████╗██║  ██║██║     ║\n";
+        echo "  ║   ╚══════╝╚═╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ║\n";
         echo "  ║                                                                           ║\n";
         echo "  ║                    Sistema de Gestión Empresarial                         ║\n";
         echo "  ║                                                                           ║\n";
@@ -87,9 +87,19 @@ try {
         echo $screen->reset();
         
         echo "\n\n";
-        echo "  ╔═══════════════════════════════════════╗\n";
-        echo "  ║     SISTEMA sienteERP - AUTENTICACIÓN    ║\n";
-        echo "  ╚═══════════════════════════════════════╝\n\n";
+        $boxTitle = "SISTEMA sientiaERP - AUTENTICACIÓN";
+        $boxWidth = 60;
+        $innerW = $boxWidth - 2;
+        $titleW = $screen->strWidth($boxTitle);
+        $padLeft = (int)floor(($innerW - $titleW) / 2);
+        $padRight = $innerW - $titleW - $padLeft;
+
+        $borderC = $screen->color('border');
+        $reset = $screen->reset();
+
+        echo "  {$borderC}╔" . str_repeat("═", $innerW) . "╗{$reset}\n";
+        echo "  {$borderC}║{$reset}" . str_repeat(" ", $padLeft) . "{$boxTitle}" . str_repeat(" ", $padRight) . "{$borderC}║{$reset}\n";
+        echo "  {$borderC}╚" . str_repeat("═", $innerW) . "╝{$reset}\n\n";
         
         $keyHandler->setRawMode(false);
         
