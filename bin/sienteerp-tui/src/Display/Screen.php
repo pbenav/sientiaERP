@@ -102,6 +102,8 @@ class Screen
             if ($key === 'F10') return true;
             if ($key === 'F12' || $key === 'ESC') return false;
         }
+    }
+
     /**
      * Calcula el ancho visual de una cadena ignorando códigos ANSI
      */
