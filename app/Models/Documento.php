@@ -30,7 +30,7 @@ class Documento extends Model
         'label_format_id', 'fila_inicio', 'columna_inicio',
         'verifactu_huella', 'verifactu_huella_anterior', 'verifactu_status',
         'verifactu_aeat_id', 'verifactu_qr_url', 'verifactu_signature',
-        'facturae_face_id', 'facturae_status', 'facturae_last_error',
+        'facturae_face_id', 'facturae_status', 'facturae_last_error', 'facturae_last_response',
     ];
 
     protected $casts = [
