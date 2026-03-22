@@ -351,7 +351,7 @@ class FacturaeXmlService
         $id = $doc->createElement('xades:SignaturePolicyId');
         $id->appendChild($doc->createElement('xades:SigPolicyId'))->appendChild($doc->createElement('xades:Identifier', 'http://www.facturae.gob.es/politica_de_firma_formato_facturae/politica_de_firma_formato_facturae_v3_1.pdf'));
         $id->appendChild($doc->createElement('xades:SigPolicyHash'))->appendChild($doc->createElement('ds:DigestMethod'))->setAttribute('Algorithm', 'http://www.w3.org/2001/04/xmlenc#sha256');
-        $id->getElementsByTagName('xades:SigPolicyHash')->item(0)->appendChild($doc->createElement('ds:DigestValue', 'Re8S1UM0SrnWicWvY7clZREpMmo=')); // Hash SHA-256 de la política v3.1
+        $id->getElementsByTagName('xades:SigPolicyHash')->item(0)->appendChild($doc->createElement('ds:DigestValue', '3S6fAtZsh9mSIdPZrntG87o8AlUCD9ApmMeUwbv7p6c=')); // Hash SHA-256 de la política v3.1
         $policy->appendChild($id);
         $signedSigProps->appendChild($policy);
         
