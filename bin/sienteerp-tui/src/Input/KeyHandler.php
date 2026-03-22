@@ -101,9 +101,8 @@ class KeyHandler
             $write = null;
             $except = null;
             
-            // Esperar brevemente (5ms) para capturar el resto de la secuencia si existe
-            // 50ms era demasiado conservador y causaba lag en redes rápidas/locales
-            if (stream_select($read, $write, $except, 0, 5000) > 0) {
+            // Esperar brevemente (20ms) para capturar el resto de la secuencia si existe
+            if (stream_select($read, $write, $except, 0, 20000) > 0) {
                 // Leemos todo lo que haya (hasta 1024 bytes) para llenar el buffer
                 $more = fread($this->stdin, 1024); 
                 if ($more !== false) {

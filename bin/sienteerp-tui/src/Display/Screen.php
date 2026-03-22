@@ -49,14 +49,57 @@ class Screen
 
     public function showMessage(string $message, string $type = 'info'): void
     {
-        $color = match($type) {
-            'success' => $this->color('success'),
-            'error' => $this->color('error'),
-            'warning' => $this->color('warning'),
-            default => $this->color('info'),
-        };
+        $color = $this->color($type);
         $reset = $this->reset();
         
-        echo "{$color}  {$message}{$reset}\n";
+        $icon = match($type) {
+            'success' => '✓',
+            'error' => '✗',
+            'warning' => '⚠',
+            default => 'ℹ'
+        };
+        
+        echo "  {$color}{$icon} {$message}{$reset}\n";
+    }
+
+    /**
+     * Muestra un diálogo de confirmación
+     */
+    public function confirm(string $message, \App\SienteErpTui\Input\KeyHandler $keyHandler): bool
+    {
+        $borderCol = $this->color('border');
+        $highlight = $this->color('highlight');
+        $reset = $this->reset();
+        $fKey = $this->color('function_key');
+        
+        $width = 60;
+        $innerW = $width - 2;
+        
+        echo "\n\n";
+        echo str_repeat(" ", 5) . "{$borderCol}╔" . str_repeat("═", $innerW) . "╗{$reset}\n";
+        echo str_repeat(" ", 5) . "║{$highlight}" . str_pad(" CONFIRMACIÓN ", $innerW, " ", STR_PAD_BOTH) . "{$borderCol}║{$reset}\n";
+        echo str_repeat(" ", 5) . "╠" . str_repeat("═", $innerW) . "╣{$reset}\n";
+        
+        $msgLines = explode("\n", wordwrap($message, $innerW - 4, "\n", true));
+        foreach ($msgLines as $line) {
+            echo str_repeat(" ", 5) . "║  " . str_pad($line, $innerW - 4) . "  {$borderCol}║{$reset}\n";
+        }
+        
+        echo str_repeat(" ", 5) . "║" . str_repeat(" ", $innerW) . "{$borderCol}║{$reset}\n";
+        
+        $actions = "{$fKey}F10{$reset}=Confirmar  {$fKey}F12{$reset}=Cancelar";
+        $cleanActions = preg_replace('/\033\[[0-9;:]*[mK]/', '', $actions);
+        $pad = $innerW - mb_strwidth($cleanActions);
+        
+        echo str_repeat(" ", 5) . "║ " . $actions . str_repeat(" ", max(0, (int)$pad - 1)) . "{$borderCol}║{$reset}\n";
+        echo str_repeat(" ", 5) . "╚" . str_repeat("═", $innerW) . "╝{$reset}\n\n";
+        
+        while (true) {
+            $rawKey = $keyHandler->waitForKey();
+            $key = \App\SienteErpTui\Input\FunctionKeyMapper::mapKey($rawKey);
+            
+            if ($key === 'F10') return true;
+            if ($key === 'F12' || $key === 'ESC') return false;
+        }
     }
 }

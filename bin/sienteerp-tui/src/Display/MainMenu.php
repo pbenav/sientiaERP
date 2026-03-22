@@ -201,9 +201,12 @@ class MainMenu
             ];
         }
         
-        // Salir
+        // Salir con confirmación
         if ($key === 'F12' || $key === 'ESC') {
-            return ['action' => 'exit'];
+            if ($this->screen->confirm("¿Está seguro de que desea salir del programa?", $this->keyHandler)) {
+                return ['action' => 'exit'];
+            }
+            return null;
         }
         
         return null;
