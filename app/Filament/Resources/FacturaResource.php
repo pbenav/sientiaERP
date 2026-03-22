@@ -275,22 +275,37 @@ class FacturaResource extends Resource
                                 ->body($result['message'])
                                 ->send();
                         } else {
-                            $body = $result['error'];
-                            if (!empty($result['raw_body'])) {
-                                $cleanBody = e(substr($result['raw_body'], 0, 2000));
-                                $body .= "<br><br><div style='max-height: 200px; overflow-y: auto; background: #333; color: #fff; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 10px; line-height: 1.2;'>{$cleanBody}</div>";
-                            }
+                            $record->update([
+                                'facturae_last_error' => $result['error'],
+                                'facturae_last_response' => $result['raw_body'] ?? null
+                            ]);
 
                             Notification::make()
                                 ->title('Error en envío a FACe')
                                 ->danger()
-                                ->body(new HtmlString($body))
+                                ->body("La respuesta de RedSARA no fue válida. Haga clic en el icono de diagnóstico (bicho) en la tabla para ver el rastro completo.")
                                 ->persistent()
                                 ->send();
-
-                            $record->update(['facturae_last_error' => $result['error']]);
                         }
                     }),
+
+                Tables\Actions\Action::make('view_face_error')
+                    ->label('')
+                    ->tooltip('Ver rastro técnico de FACe')
+                    ->icon('heroicon-o-bug-ant')
+                    ->color('danger')
+                    ->modalHeading('Diagnóstico de Respuesta FACe')
+                    ->modalWidth(\Filament\Support\Enums\MaxWidth::ExtraLarge)
+                    ->modalContent(fn ($record) => new HtmlString("
+                        <div style='margin-bottom: 10px; font-weight: bold; color: #d00;'>{$record->facturae_last_error}</div>
+                        <iframe 
+                            srcdoc=\"" . e($record->facturae_last_response) . "\" 
+                            style='width: 100%; height: 600px; border: 1px solid #ccc; border-radius: 8px; background: white;'
+                        ></iframe>
+                    "))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar')
+                    ->visible(fn($record) => !empty($record->facturae_last_response)),
                 
                  Tables\Actions\Action::make('ver_recibos')
                      ->label('')
