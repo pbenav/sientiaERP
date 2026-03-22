@@ -36,6 +36,7 @@ Route::middleware('auth:sanctum')->prefix('erp')->group(function () {
     Route::put('/documentos/{id}', [ErpController::class, 'updateDocumento']);
     Route::delete('/documentos/{id}', [ErpController::class, 'deleteDocumento']);
     Route::post('/documentos/{id}/convertir', [ErpController::class, 'convertirDocumento']);
+    Route::post('/documentos/{id}/send-face', [ErpController::class, 'sendToFace']);
     
     // Productos
     // Productos

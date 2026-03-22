@@ -281,4 +281,41 @@ class ErpController extends Controller
 
         return response()->json(['message' => 'Producto eliminado']);
     }
+
+    /**
+     * Facturae / FACe
+     */
+    public function sendToFace(int $id): JsonResponse
+    {
+        $documento = Documento::findOrFail($id);
+
+        if ($documento->tipo !== 'factura') {
+            return response()->json(['success' => false, 'error' => 'Solo se pueden enviar facturas a FACe.'], 400);
+        }
+
+        if (!\App\Models\Setting::get('facturae_active', false)) {
+            return response()->json(['success' => false, 'error' => 'El módulo de Facturae no está activo.'], 400);
+        }
+
+        if ($documento->estado !== 'confirmado') {
+            return response()->json(['success' => false, 'error' => 'La factura debe estar confirmada para enviarse a FACe.'], 400);
+        }
+
+        if (!empty($documento->facturae_face_id)) {
+            return response()->json(['success' => false, 'error' => 'Esta factura ya ha sido enviada a FACe.'], 400);
+        }
+
+        try {
+            $service = app(\App\Services\FaceService::class);
+            $result = $service->enviarFactura($documento);
+
+            if (!$result['success']) {
+                $documento->update(['facturae_last_error' => $result['error']]);
+            }
+
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => 'Error inesperado: ' . $e->getMessage()], 500);
+        }
+    }
 }

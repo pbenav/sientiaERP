@@ -84,21 +84,59 @@ class DetailsActions
 
     private function renderDocumentoDetail(array $doc): void
     {
-        // Usar FullScreenLayout para consistencia
-        $layout = new \App\SienteErpTui\Display\FullScreenLayout($this->screen);
         $tipoLabel = strtoupper($doc['tipo'] ?? 'DOCUMENTO');
         $numero = $doc['numero'] ?? '---';
         
-        $layout->setCompanyName('sienteERP')
-               ->setTitle("{$tipoLabel}: {$numero}");
-               
-        // Renderizar dentro del layout
-        $layout->render(function($width, $height) use ($doc) {
-            $this->renderDetailContent($width, $height, $doc);
-        });
+        $running = true;
+        while ($running) {
+            $layout = new \App\SienteErpTui\Display\FullScreenLayout($this->screen);
+            $layout->setCompanyName('sienteERP')
+                   ->setTitle("{$tipoLabel}: {$numero}");
+                   
+            $layout->render(function($width, $height) use ($doc) {
+                $this->renderDetailContent($width, $height, $doc);
+            });
 
-        // Esperar tecla
-        $this->keyHandler->clearStdin();
+            $this->keyHandler->clearStdin();
+            $rawKey = $this->keyHandler->waitForKey();
+            $key = FunctionKeyMapper::mapKey($rawKey);
+            
+            // Acción especial: Enviar a FACe (F9)
+            if ($key === 'F9' && $doc['tipo'] === 'factura' && $doc['estado'] === 'confirmado' && empty($doc['facturae_face_id'])) {
+                $this->handleSendToFace($doc);
+                // Recargar documento para actualizar estado visual (nº registro FACe, etc)
+                try {
+                    $doc = $this->client->getDocumento($doc['id']);
+                } catch (\Exception $e) {
+                    $running = false;
+                }
+            } else {
+                $running = false;
+            }
+        }
+    }
+
+    private function handleSendToFace(array $doc): void
+    {
+        $this->screen->clear();
+        echo "\n\n  \033[1;36m🚀 Procesando envío de factura {$doc['numero']} a FACe...\033[0m\n";
+        echo "  Por favor, espere a la respuesta del servidor administrativo...\n";
+        
+        try {
+            $result = $this->client->sendToFace($doc['id']);
+            if ($result['success']) {
+                echo "\n  \033[1;32m✓ " . ($result['message'] ?? 'Factura enviada correctamente.') . "\033[0m\n";
+                if (isset($result['data']['numeroRegistro'])) {
+                    echo "  Nº Registro: " . $result['data']['numeroRegistro'] . "\n";
+                }
+            } else {
+                echo "\n  \033[1;31m❌ Error en envío: " . ($result['error'] ?? 'Error desconocido') . "\033[0m\n";
+            }
+        } catch (\Exception $e) {
+            echo "\n  \033[1;31m❌ Error crítico: " . $e->getMessage() . "\033[0m\n";
+        }
+        
+        echo "\n  \033[33mPresione cualquier tecla para continuar...\033[0m";
         $this->keyHandler->waitForKey();
     }
 
@@ -203,6 +241,10 @@ class DetailsActions
         if (!empty($doc['observaciones'])) {
             echo "{$cyan}OBSERVACIONES:{$reset}\n";
             echo "{$white}" . wordwrap($doc['observaciones'], $width - 4) . "{$reset}\n";
+        }
+
+        if ($doc['tipo'] === 'factura' && $doc['estado'] === 'confirmado' && empty($doc['facturae_face_id'])) {
+            echo "\n  {$green}F9: Enviar a FACe{$reset}";
         }
         
         echo "\n  {$yellow}Presione cualquier tecla para volver...{$reset}";

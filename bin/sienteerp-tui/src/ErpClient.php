@@ -164,6 +164,11 @@ class ErpClient
         ]);
     }
 
+    public function sendToFace(int $id): array
+    {
+        return $this->request('POST', "/api/erp/documentos/{$id}/send-face");
+    }
+
     /**
      * Productos
      */
