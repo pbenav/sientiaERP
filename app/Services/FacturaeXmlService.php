@@ -81,11 +81,11 @@ class FacturaeXmlService
         // 1. Seller (Nosotros)
         $seller = $parties->addChild('SellerParty');
         $this->addTaxIdentification($seller, Setting::get('verifactu_nif_emisor'), 'J');
-        $this->addPartyData($seller, Setting::get('verifactu_nombre_emisor'), 'empresa@ejemplo.com', [
-            'address' => 'Nombre Calle 123',
-            'post_code' => '28001',
-            'town' => 'Madrid',
-            'province' => 'Madrid',
+        $this->addPartyData($seller, Setting::get('verifactu_nombre_emisor'), [
+            'address' => Setting::get('verifactu_direccion_emisor', 'Calle Ejemplo, 1'),
+            'post_code' => Setting::get('verifactu_cp_emisor', '28001'),
+            'town' => Setting::get('verifactu_poblacion_emisor', 'Madrid'),
+            'province' => Setting::get('verifactu_provincia_emisor', 'Madrid'),
             'country' => 'ESP'
         ]);
 
@@ -94,15 +94,15 @@ class FacturaeXmlService
         $tercero = $documento->tercero;
         
         $this->addTaxIdentification($buyer, $tercero->nif_cif, $tercero->es_persona_fisica ? 'F' : 'J');
-        $this->addPartyData($buyer, $tercero->razon_social ?: $tercero->nombre_comercial, $tercero->email, [
+        $this->addPartyData($buyer, $tercero->razon_social ?: $tercero->nombre_comercial, [
             'address' => $tercero->direccion_fiscal,
             'post_code' => $tercero->codigo_postal_fiscal,
             'town' => $tercero->poblacion_fiscal,
             'province' => $tercero->provincia_fiscal,
-            'country' => 'ESP' // TODO: Mapear desde pais_fiscal
+            'country' => 'ESP'
         ]);
         
-        // Si tiene DIR3, añadirlo
+        // Si tiene DIR3, añadirlo (Obligatorio para FACe)
         if ($tercero->dir3_oficina_contable || $tercero->dir3_organo_gestor) {
             $adminCenters = $buyer->addChild('AdministrativeCentres');
             
@@ -192,16 +192,18 @@ class FacturaeXmlService
         $id->addChild('TaxIdentificationNumber', $nif);
     }
 
-    protected function addPartyData(SimpleXMLElement $parent, ?string $name, ?string $email, array $addressData = []): void
+    protected function addPartyData(SimpleXMLElement $parent, ?string $name, array $addressData = []): void
     {
         $entity = $parent->addChild('LegalEntity');
         $entity->addChild('CorporateName', $name);
         
         if (!empty($addressData)) {
-            $address = $entity->addChild('RegistrationData'); // Placeholder in my basic version
-            // En Facturae la dirección va en 'Address' hermano de TaxIdentification, pero dentro de Party
-            // Pero SimpleXMLElement y mis métodos necesitan ser coherentes.
-            // Voy a refinar la estructura real de Party
+            $address = $entity->addChild('AddressInSpain');
+            $address->addChild('Address', substr($addressData['address'] ?? 'Calle Desconocida', 0, 80));
+            $address->addChild('PostCode', substr($addressData['post_code'] ?? '00000', 0, 5));
+            $address->addChild('Town', substr($addressData['town'] ?? 'Ciudad', 0, 50));
+            $address->addChild('Province', substr($addressData['province'] ?? 'Provincia', 0, 20));
+            $address->addChild('CountryCode', 'ESP');
         }
     }
 
@@ -260,17 +262,17 @@ class FacturaeXmlService
             
             $objDSig->addReference(
                 $doc, 
-                XMLSecurityDSig::SHA1, 
+                XMLSecurityDSig::SHA256, 
                 ['http://www.w3.org/2000/09/xmldsig#enveloped-signature'],
                 ['force_uri' => true, 'id_name' => 'SignatureID']
             );
+            $objDSig->id_name = 'Id';
 
-            // 2. Crear clave RSA para la firma
-            $objKey = new XMLSecurityKey(XMLSecurityKey::RSA_SHA1, ['type' => 'private']);
+            // 2. Crear clave RSA para la firma (SHA-256)
+            $objKey = new XMLSecurityKey(XMLSecurityKey::RSA_SHA256, ['type' => 'private']);
             $objKey->loadKey($privateKey);
 
-            // 3. BLOQUE XAdES-EPES: QualifyingProperties
-            // Este bloque es CRUCIAL para Facturae (XAdES-EPES)
+            // 3. BLOQUE XAdES-BES: QualifyingProperties
             $this->addXadesProperties($doc, $objDSig, $publicCert, $signatureId);
             
             // Firmar
@@ -314,30 +316,31 @@ class FacturaeXmlService
         // 1. SigningTime
         $signedSigProps->appendChild($doc->createElement('xades:SigningTime', $signingTime));
         
-        // 2. SigningCertificateV2 (Recomendado versión de Facturae 3.2.2+)
-        $signingCert = $doc->createElement('xades:SigningCertificate');
+        // 2. SigningCertificateV2 (Obligatorio para SHA-256)
+        $signingCert = $doc->createElement('xades:SigningCertificateV2');
         $cert = $doc->createElement('xades:Cert');
         $certDigest = $doc->createElement('xades:CertDigest');
         $digestMethod = $doc->createElement('ds:DigestMethod');
-        $digestMethod->setAttribute('Algorithm', 'http://www.w3.org/2000/09/xmldsig#sha1');
+        $digestMethod->setAttribute('Algorithm', 'http://www.w3.org/2001/04/xmlenc#sha256');
         $certDigest->appendChild($digestMethod);
-        $certDigest->appendChild($doc->createElement('ds:DigestValue', $certBase64));
+        $certDigest->appendChild($doc->createElement('ds:DigestValue', $certHash256));
         
+        $cert->appendChild($certDigest);
+
         $issuerSerial = $doc->createElement('xades:IssuerSerial');
         $issuerSerial->appendChild($doc->createElement('ds:X509IssuerName', $this->getIssuerName($certData)));
         $issuerSerial->appendChild($doc->createElement('ds:X509SerialNumber', $certData['serialNumber']));
-        
-        $cert->appendChild($certDigest);
         $cert->appendChild($issuerSerial);
+
         $signingCert->appendChild($cert);
         $signedSigProps->appendChild($signingCert);
         
-        // 3. SignaturePolicyIdentifier (Política de firma Facturae)
+        // 3. SignaturePolicyIdentifier (Política de firma Facturae 3.1)
         $policy = $doc->createElement('xades:SignaturePolicyIdentifier');
         $id = $doc->createElement('xades:SignaturePolicyId');
-        $id->appendChild($doc->createElement('xades:SigPolicyId'))->appendChild($doc->createElement('xades:Identifier', 'http://www.facturae.es/politica_de_firma_formato_facturae/politica_de_firma_formato_facturae_v3_1.pdf'));
-        $id->appendChild($doc->createElement('xades:SigPolicyHash'))->appendChild($doc->createElement('ds:DigestMethod'))->setAttribute('Algorithm', 'http://www.w3.org/2000/09/xmldsig#sha1');
-        $id->getElementsByTagName('xades:SigPolicyHash')->item(0)->appendChild($doc->createElement('ds:DigestValue', 'Ohixl6upD6av8N7pEvDABhEL6hM=')); // Hash fijo de la política v3.1
+        $id->appendChild($doc->createElement('xades:SigPolicyId'))->appendChild($doc->createElement('xades:Identifier', 'http://www.facturae.gob.es/politica_de_firma_formato_facturae/politica_de_firma_formato_facturae_v3_1.pdf'));
+        $id->appendChild($doc->createElement('xades:SigPolicyHash'))->appendChild($doc->createElement('ds:DigestMethod'))->setAttribute('Algorithm', 'http://www.w3.org/2001/04/xmlenc#sha256');
+        $id->getElementsByTagName('xades:SigPolicyHash')->item(0)->appendChild($doc->createElement('ds:DigestValue', 'Re8S1UM0SrnWicWvY7clZREpMmo=')); // Hash SHA-256 de la política v3.1
         $policy->appendChild($id);
         $signedSigProps->appendChild($policy);
         
@@ -350,7 +353,7 @@ class FacturaeXmlService
         // Referenciar SignedProperties para que sean firmadas también
         $objDSig->addReference(
             $signedProps,
-            XMLSecurityDSig::SHA1,
+            XMLSecurityDSig::SHA256,
             null,
             ['type' => 'http://uri.etsi.org/01903#SignedProperties', 'force_uri' => true]
         );
