@@ -78,6 +78,7 @@ class ColorTheme
             ],
 /* --- VIBRANT THEME --- */
             'vibrant' => [
+                'main_bg' => "\033[48;5;17m",       // Fondo azul oscuro/profundo
                 'border' => "\033[38;5;93m",        // Púrpura intenso
                 'title' => "\033[1;38;5;51m",      // Cyan eléctrico brillante
                 'text' => "\033[38;5;15m",         // Blanco puro
@@ -85,8 +86,8 @@ class ColorTheme
                 'selected' => "\033[48;5;93m\033[38;5;255m", // Fondo púrpura, texto blanco
                 'company' => "\033[1;38;5;51m",      // Cyan eléctrico para empresa
                 'datetime' => "\033[38;5;129m",     // Violeta suave
-                'header_bg' => "\033[48;5;93m",     // Fondo púrpura para cabecera
-                'header_fg' => "\033[1;38;5;255m",   // Blanco brillante sobre fondo púrpura
+                'header_bg' => "\033[48;5;21m",     // Fondo azul eléctrico para cabecera
+                'header_fg' => "\033[1;38;5;255m",   // Blanco brillante sobre fondo azul
                 'menu_selected' => "\033[48;5;51m\033[38;5;232m", // Fondo cyan, texto casi negro
                 'menu_normal' => "\033[38;5;93m",     // Púrpura para menú
                 'function_key' => "\033[1;38;5;45m",  // Turquesa para teclas de función
@@ -98,7 +99,7 @@ class ColorTheme
                 'label' => "\033[38;5;45m",          // Turquesa para etiquetas
                 'value' => "\033[1;38;5;208m",       // Naranja para valores
                 'separator' => "\033[38;5;93m",      // Púrpura para separadores
-                'reset' => "\033[0m",
+                'reset' => "\033[0m\033[48;5;17m",   // Reset vuelve al fondo azul
             ],
             default => $this->loadTheme('vibrant'),
         };

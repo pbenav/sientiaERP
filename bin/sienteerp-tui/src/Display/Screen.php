@@ -38,8 +38,9 @@ class Screen
 
     public function clear(): void
     {
-        // Limpiar pantalla y posicionar cursor en 1,1
-        echo "\033[2J\033[H";
+        $bg = $this->theme->get('main_bg');
+        // Limpiar pantalla (\033[2J) y mover cursor a 1,1 (\033[H)
+        echo "{$bg}\033[2J\033[H";
     }
 
     public function render(string $content): void
@@ -101,5 +102,19 @@ class Screen
             if ($key === 'F10') return true;
             if ($key === 'F12' || $key === 'ESC') return false;
         }
+    /**
+     * Calcula el ancho visual de una cadena ignorando códigos ANSI
+     */
+    public function strWidth(string $text): int
+    {
+        // Limpiar códigos ANSI: \e [ ... letra , \e O letra, \e ( letra
+        $clean = preg_replace([
+            '/\x1b\[[0-9;?]*[A-Za-z~]/',
+            '/\x1bO[A-Za-z]/',
+            '/\x1b\([A-Z]/',
+            '/\x1b\][0-9;]*\x07/' // OSC sequences
+        ], '', $text);
+        
+        return (int)mb_strwidth($clean);
     }
 }

@@ -408,10 +408,7 @@ class FullScreenLayout
 
     private function stripAnsiLength(string $text): int
     {
-        $clean = preg_replace('/\033\[[0-9;]*m/', '', $text);
-        // También limpiar códigos 38;5;Xm y 48;5;Xm (256 colores)
-        $clean = preg_replace('/\033\[[0-9;:]*[mK]/', '', $clean);
-        return mb_strwidth($clean);
+        return $this->screen->strWidth($text);
     }
     
     /**

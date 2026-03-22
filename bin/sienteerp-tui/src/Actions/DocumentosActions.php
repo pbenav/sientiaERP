@@ -346,10 +346,9 @@ class DocumentosActions
         }
 
         foreach ($linesArr as $l) {
-             $clean = preg_replace('/\033\[[0-9;:]*[mK]/', '', $l);
-             $visibleLen = mb_strwidth($clean);
+             $visibleLen = $this->screen->strWidth($l);
              $padding = max(0, $innerW - $visibleLen);
-             echo "{$borderCol}║{$reset}" . $l . str_repeat(" ", $padding) . "{$borderCol}║{$reset}\n";
+             echo "{$borderCol}║{$reset}" . $l . str_repeat(" ", (int)$padding) . "{$borderCol}║{$reset}\n";
         }
         
         // --- 3. FOOTER ---
@@ -358,15 +357,8 @@ class DocumentosActions
         $fKey = $this->screen->color('function_key');
         $modeStr = $isEditing ? "{$this->screen->color('selected')}MODO EDICIÓN{$reset}" : "{$this->screen->color('info')}MODO NAVEGACIÓN{$reset}";
         
-        if ($editandoCabecera) {
-             $enterAction = $isEditing ? "Confirmar" : "Editar Fecha";
-             $helpText = "{$fKey}ENTER{$reset}={$textCol}{$enterAction}  {$fKey}TAB{$reset}={$textCol}A Líneas  {$fKey}F10{$reset}={$textCol}Guardar  {$modeStr}";
-        } else {
-             $helpText = "{$fKey}F5{$reset}={$textCol}Añadir  {$fKey}F2{$reset}={$textCol}Editar  {$fKey}F8{$reset}={$textCol}Eliminar  {$fKey}TAB{$reset}={$textCol}A Cabecera  {$fKey}F10{$reset}={$textCol}Guardar";
-        }
-        
-        $helpClean = preg_replace('/\033\[[0-9;:]*[mK]/', '', $helpText);
-        $helpLen = mb_strwidth($helpClean);
+        $helpText = implode("  ", $helpParts);
+        $helpLen = $this->screen->strWidth($helpText);
         $helpPad = max(0, $innerW - 1 - $helpLen);
         
         echo "{$borderCol}║ {$reset}" . $helpText . str_repeat(" ", (int)$helpPad) . "{$borderCol}║{$reset}\n";

@@ -129,7 +129,7 @@ class FormController
         foreach ($lines as $line) {
             if ($line === '' && $index === count($lines)-1) continue; 
             
-            $visibleLen = $this->stripAnsiLength($line);
+            $visibleLen = $this->screen->strWidth($line);
             $padding = max(0, $this->width - 2 - $visibleLen);
             
             echo "{$borderCol}║{$reset}" . $line . str_repeat(" ", (int)$padding) . "{$borderCol}║{$reset}\n";
@@ -201,9 +201,8 @@ class FormController
         ];
         
         $functionText = implode("  ", $functions);
-        $visibleText = strip_tags(str_replace(['{', '}'], '', $functionText)); // Simplified clean check
-        $cleanText = preg_replace('/\033\[[0-9;:]*[mK]/', '', $functionText);
-        $padding = $this->width - 4 - mb_strwidth($cleanText);
+        $cleanTextWidth = $this->screen->strWidth($functionText);
+        $padding = $this->width - 4 - $cleanTextWidth;
         
         echo $functionText . str_repeat(" ", max(0, (int)$padding));
         echo " {$borderCol}║{$reset}\n";
@@ -373,7 +372,7 @@ class FormController
      */
     private function stripAnsiLength(string $text): int
     {
-        return mb_strlen(preg_replace('/\033\[[0-9;]*m/', '', $text));
+        return $this->screen->strWidth($text);
     }
     
     /**

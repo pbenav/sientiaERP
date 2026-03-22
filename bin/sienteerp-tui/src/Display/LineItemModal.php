@@ -139,17 +139,16 @@ class LineItemModal
         // Borde superior
         echo "{$borderCol}╔" . str_repeat("═", $this->width - 2) . "╗\n";
         
-        // Título
+        // Título centralizado
         $title = "AÑADIR LÍNEA AL DOCUMENTO";
-        $titleLength = mb_strlen($title);
-        $availableSpace = $this->width - 4;
-        $totalPadding = $availableSpace - $titleLength;
-        $leftPadding = (int)floor($totalPadding / 2) + 1;
-        $rightPadding = (int)ceil($totalPadding / 2) + 1;
+        $titleWidth = $this->screen->strWidth($title);
+        $availableSpace = $this->width - 2;
+        $leftPadding = (int)floor(($availableSpace - $titleWidth) / 2);
+        $rightPadding = $availableSpace - $titleWidth - $leftPadding;
         
-        echo "║" . str_repeat(" ", $leftPadding);
-        echo "{$titleCol}" . $title . "{$borderCol}";
-        echo str_repeat(" ", $rightPadding) . "║\n";
+        echo "{$borderCol}║{$reset}" . str_repeat(" ", $leftPadding);
+        echo "{$titleCol}" . $title . "{$reset}";
+        echo str_repeat(" ", $rightPadding) . "{$borderCol}║{$reset}\n";
         
         echo "╠" . str_repeat("═", $this->width - 2) . "╣{$reset}\n\n";
         
@@ -194,8 +193,8 @@ class LineItemModal
         ];
         
         $functionText = implode("  ", $functions);
-        $cleanText = preg_replace('/\033\[[0-9;:]*[mK]/', '', $functionText);
-        $padding = $this->width - 4 - mb_strwidth($cleanText);
+        $cleanTextWidth = $this->screen->strWidth($functionText);
+        $padding = $this->width - 4 - $cleanTextWidth;
         
         echo $functionText . str_repeat(" ", max(0, (int)$padding));
         echo " {$borderCol}║{$reset}\n";
@@ -285,6 +284,6 @@ class LineItemModal
      */
     private function stripAnsiLength(string $text): int
     {
-        return mb_strlen(preg_replace('/\033\[[0-9;]*m/', '', $text));
+        return $this->screen->strWidth($text);
     }
 }

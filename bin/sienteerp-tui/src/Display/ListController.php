@@ -523,6 +523,6 @@ class ListController
      */
     private function stripAnsiLength(string $text): int
     {
-        return mb_strlen(preg_replace('/\033\[[0-9;]*m/', '', $text));
+        return $this->screen->strWidth($text);
     }
 }

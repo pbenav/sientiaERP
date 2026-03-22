@@ -90,33 +90,32 @@ class KeyHandler
         $char = fread($this->stdin, 1);
         
         if ($char === false || $char === "") {
-            return ""; // EOF o Error
+            return ""; 
         }
         
         $this->buffer .= $char;
 
-        // 3. Si es ESC, mirar si hay bytes pendientes inmediatamente (secuencia rápida)
+        // 3. Si es ESC, capturar ráfaga inmediata
         if ($char === "\e" || $char === "\x1b") {
+            // Esperar un poco más (30ms) para ráfagas lentas o latencia
             $read = [$this->stdin];
             $write = null;
             $except = null;
             
-            // Esperar brevemente (20ms) para capturar el resto de la secuencia si existe
-            if (stream_select($read, $write, $except, 0, 20000) > 0) {
-                // Leemos todo lo que haya (hasta 1024 bytes) para llenar el buffer
-                $more = fread($this->stdin, 1024); 
-                if ($more !== false) {
-                    $this->buffer .= $more;
+            if (stream_select($read, $write, $except, 0, 30000) > 0) {
+                // Leer todo lo que haya disponible
+                while (stream_select($read, $write, $except, 0, 0) > 0) {
+                    $more = fread($this->stdin, 1024);
+                    if ($more !== false) $this->buffer .= $more;
+                    $read = [$this->stdin];
                 }
             }
         }
         
-        // Ensure signals (like SIGWINCH) are processed
         if (function_exists('pcntl_signal_dispatch')) {
             pcntl_signal_dispatch();
         }
 
-        // 4. Procesar buffer
         return $this->extractKey();
     }
     private function extractKey(): string
