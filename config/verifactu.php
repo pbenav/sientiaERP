@@ -12,10 +12,10 @@ return [
     
     // AEAT Endpoints (Pruebas / Producción)
     'endpoints' => [
-        'test' => 'https://prewww1.agenciatributaria.gob.es/ar_aret_litx_ws/VeriFactu',
-        'test_query' => 'https://prewww1.agenciatributaria.gob.es/ar_aret_litx_ws/ConsultaVeriFactu',
-        'production' => 'https://www1.agenciatributaria.gob.es/ar_aret_litx_ws/VeriFactu',
-        'production_query' => 'https://www1.agenciatributaria.gob.es/ar_aret_litx_ws/ConsultaVeriFactu',
+        'test' => 'https://prewww10.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP',
+        'test_query' => 'https://prewww10.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP',
+        'production' => 'https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP',
+        'production_query' => 'https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP',
     ],
 
     'mode' => env('VERIFACTU_MODE', 'test'), // test | production
