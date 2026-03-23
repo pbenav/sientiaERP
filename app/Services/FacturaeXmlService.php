@@ -69,7 +69,7 @@ class FacturaeXmlService
         $batch->addChild('TotalInvoicesAmount')->addChild('TotalAmount', number_format($documento->total, 2, '.', ''));
         $batch->addChild('TotalOutstandingAmount')->addChild('TotalAmount', number_format($documento->total, 2, '.', ''));
         $batch->addChild('TotalExecutableAmount')->addChild('TotalAmount', number_format($documento->total, 2, '.', ''));
-        $batch->addChild('BatchCurrency', 'EUR');
+        $batch->addChild('InvoiceCurrencyCode', 'EUR');
     }
 
     /**
@@ -95,6 +95,30 @@ class FacturaeXmlService
         $tercero = $documento->tercero;
         
         $this->addTaxIdentification($buyer, $tercero->nif_cif, $tercero->es_persona_fisica ? 'F' : 'J');
+
+        // Si tiene DIR3, añadirlo (Obligatorio para FACe)
+        // DEBE ir antes de LegalEntity/Individual en el esquema de Facturae
+        if ($tercero->dir3_oficina_contable || $tercero->dir3_organo_gestor) {
+            $adminCenters = $buyer->addChild('AdministrativeCentres');
+            
+            $addressData = [
+                'address' => $tercero->direccion_fiscal,
+                'post_code' => $tercero->codigo_postal_fiscal,
+                'town' => $tercero->poblacion_fiscal,
+                'province' => $tercero->provincia_fiscal,
+            ];
+            
+            if ($tercero->dir3_oficina_contable) {
+                $this->addAdminCenter($adminCenters, '01', $tercero->dir3_oficina_contable, 'Oficina Contable', $addressData);
+            }
+            if ($tercero->dir3_organo_gestor) {
+                $this->addAdminCenter($adminCenters, '02', $tercero->dir3_organo_gestor, 'Órgano Gestor', $addressData);
+            }
+            if ($tercero->dir3_unidad_tramitadora) {
+                $this->addAdminCenter($adminCenters, '03', $tercero->dir3_unidad_tramitadora, 'Unidad Tramitadora', $addressData);
+            }
+        }
+
         $this->addPartyData($buyer, $tercero->razon_social ?: $tercero->nombre_comercial, [
             'address' => $tercero->direccion_fiscal,
             'post_code' => $tercero->codigo_postal_fiscal,
@@ -102,21 +126,6 @@ class FacturaeXmlService
             'province' => $tercero->provincia_fiscal,
             'country' => 'ESP'
         ]);
-        
-        // Si tiene DIR3, añadirlo (Obligatorio para FACe)
-        if ($tercero->dir3_oficina_contable || $tercero->dir3_organo_gestor) {
-            $adminCenters = $buyer->addChild('AdministrativeCentres');
-            
-            if ($tercero->dir3_oficina_contable) {
-                $this->addAdminCenter($adminCenters, '01', $tercero->dir3_oficina_contable, 'Oficina Contable');
-            }
-            if ($tercero->dir3_organo_gestor) {
-                $this->addAdminCenter($adminCenters, '02', $tercero->dir3_organo_gestor, 'Órgano Gestor');
-            }
-            if ($tercero->dir3_unidad_tramitadora) {
-                $this->addAdminCenter($adminCenters, '03', $tercero->dir3_unidad_tramitadora, 'Unidad Tramitadora');
-            }
-        }
     }
 
     /**
@@ -133,7 +142,11 @@ class FacturaeXmlService
         $header->addChild('InvoiceDocumentType', 'FC'); // FC = Factura completa
         $header->addChild('InvoiceClass', 'OO'); // OO = Original
         
-        $invoice->addChild('InvoiceIssueDate', $documento->fecha->format('Y-m-d'));
+        $issueData = $invoice->addChild('InvoiceIssueData');
+        $issueData->addChild('IssueDate', $documento->fecha->format('Y-m-d'));
+        $issueData->addChild('InvoiceCurrencyCode', 'EUR');
+        $issueData->addChild('TaxCurrencyCode', 'EUR');
+        $issueData->addChild('LanguageName', 'es');
         
         // Impuestos
         $taxesOutputs = $invoice->addChild('TaxesOutputs');
@@ -141,7 +154,7 @@ class FacturaeXmlService
         
         foreach ($desgloseResumen as $lineaIva) {
             $tax = $taxesOutputs->addChild('Tax');
-            $tax->addChild('TaxCode', '01'); // 01 = IVA
+            $tax->addChild('TaxTypeCode', '01'); // 01 = IVA
             $tax->addChild('TaxRate', number_format($lineaIva['iva'], 2, '.', ''));
             $tax->addChild('TaxableBase')->addChild('TotalAmount', number_format($lineaIva['base'], 2, '.', ''));
             $tax->addChild('TaxAmount')->addChild('TotalAmount', number_format($lineaIva['cuota_iva'], 2, '.', ''));
@@ -150,8 +163,12 @@ class FacturaeXmlService
         // Totales
         $totals = $invoice->addChild('InvoiceTotals');
         $totals->addChild('TotalGrossAmount', number_format($documento->subtotal, 2, '.', ''));
+        $totals->addChild('TotalGrossAmountBeforeTaxes', number_format($documento->subtotal, 2, '.', ''));
         $totals->addChild('TotalTaxOutputs', number_format($documento->iva, 2, '.', ''));
-        $totals->addChild('TotalInvoiceAmount', number_format($documento->total, 2, '.', ''));
+        $totals->addChild('TotalTaxesWithheld', '0.00');
+        $totals->addChild('InvoiceTotal', number_format($documento->total, 2, '.', ''));
+        $totals->addChild('TotalOutstandingAmount', number_format($documento->total, 2, '.', ''));
+        $totals->addChild('TotalExecutableAmount', number_format($documento->total, 2, '.', ''));
         
         // Líneas (items) - DEBEN ir antes de PaymentDetails
         $items = $invoice->addChild('Items');
@@ -166,7 +183,7 @@ class FacturaeXmlService
             
             $itemTaxes = $item->addChild('TaxesOutputs');
             $tax = $itemTaxes->addChild('Tax');
-            $tax->addChild('TaxCode', '01');
+            $tax->addChild('TaxTypeCode', '01');
             $tax->addChild('TaxRate', number_format($linea->iva, 2, '.', ''));
             $tax->addChild('TaxableBase')->addChild('TotalAmount', number_format($linea->subtotal, 2, '.', ''));
             $tax->addChild('TaxAmount')->addChild('TotalAmount', number_format($linea->importe_iva, 2, '.', ''));
@@ -208,12 +225,22 @@ class FacturaeXmlService
         }
     }
 
-    protected function addAdminCenter(SimpleXMLElement $parent, string $role, string $code, string $description): void
+    protected function addAdminCenter(SimpleXMLElement $parent, string $role, string $code, string $description, array $addressData = []): void
     {
         $center = $parent->addChild('AdministrativeCentre');
-        $center->addChild('CentreRoleCode', $role); // 01 Contable, 02 Gestor, 03 Tramitadora
         $center->addChild('CentreCode', $code);
-        $center->addChild('CentreDescription', $description);
+        $center->addChild('RoleTypeCode', $role); // 01 Contable, 02 Gestor, 03 Tramitadora
+        $center->addChild('Name', substr($description, 0, 40));
+        
+        // El esquema 3.2.2 requiere dirección obligatoria en el centro administrativo
+        if (!empty($addressData)) {
+            $address = $center->addChild('AddressInSpain');
+            $address->addChild('Address', substr($addressData['address'] ?? 'Calle Desconocida', 0, 80));
+            $address->addChild('PostCode', substr($addressData['post_code'] ?? '00000', 0, 5));
+            $address->addChild('Town', substr($addressData['town'] ?? 'Ciudad', 0, 50));
+            $address->addChild('Province', substr($addressData['province'] ?? 'Provincia', 0, 20));
+            $address->addChild('CountryCode', 'ESP');
+        }
     }
 
     /**
