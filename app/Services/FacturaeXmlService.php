@@ -282,10 +282,12 @@ class FacturaeXmlService
 
             // 1. Inicializar objeto DSig
             $objDSig = new XMLSecurityDSig();
-            $objDSig->setCanonicalMethod(XMLSecurityDSig::C14N);
+            $objDSig->setCanonicalMethod(XMLSecurityDSig::EXC_C14N);
             
             $signatureId = 'Signature-' . uniqid();
+            $signedPropsId = 'SignedProperties-' . $signatureId;
             
+            // Referencia al propio documento (Enveloped)
             $objDSig->addReference(
                 $doc, 
                 XMLSecurityDSig::SHA256, 
@@ -293,34 +295,47 @@ class FacturaeXmlService
                 ['force_uri' => true, 'id_name' => 'SignatureID']
             );
 
-            // 2. Crear clave RSA para la firma (SHA-256)
+            // 2. BLOQUE XAdES-BES: Crear y añadir al DOM para que sea "visible"
+            $xadesObject = $this->addXadesProperties($doc, $publicCert, $signatureId, $signedPropsId);
+            $doc->documentElement->appendChild($xadesObject);
+
+            // Registrar IDs manualmente para el motor DOM (Crucial para getElementById)
+            $signedPropsNode = $doc->getElementsByTagName('xades:SignedProperties')->item(0);
+            if ($signedPropsNode) {
+                $signedPropsNode->setIdAttribute('Id', true);
+            }
+
+            // 3. Añadir Referencia a SignedProperties (XAdES) usando Exclusive C14N
+            $objDSig->addReference(
+                $signedPropsNode,
+                XMLSecurityDSig::SHA256,
+                ['http://www.w3.org/2001/10/xml-exc-c14n#'],
+                [
+                    'type' => 'http://uri.etsi.org/01903#SignedProperties', 
+                    'force_uri' => true, 
+                    'id_name' => 'Id'
+                ]
+            );
+
+            // 4. Crear clave RSA para la firma (SHA-256)
             $objKey = new XMLSecurityKey(XMLSecurityKey::RSA_SHA256, ['type' => 'private']);
             $objKey->loadKey($privateKey);
 
-            // 3. BLOQUE XAdES-BES: QualifyingProperties (Lo creamos pero no lo insertamos aún)
-            $xadesObject = $this->addXadesProperties($doc, $objDSig, $publicCert, $signatureId);
-            
-            // Firmar
+            // 5. FIRMAR (Ahora el DigestValue de XAdES será correcto)
             $objDSig->sign($objKey);
 
-            // 4. Añadir Certificado Público a la firma
-            $objDSig->add509Cert($publicCert);
-
-            // 5. Insertar firma en el documento
+            // 6. Insertar firma en el documento
             $objDSig->insertSignature($doc->documentElement);
             
-            // 6. ASIGNAR ID A LA FIRMA Y REUBICAR EL OBJETO XAdES
-            // Buscamos la firma dentro del documento principal (no usamos sigNode directamente si es de otro doc)
+            // Reubicar el objeto XAdES dentro de la firma
             $sigNodes = $doc->getElementsByTagNameNS('http://www.w3.org/2000/09/xmldsig#', 'Signature');
-            if ($sigNodes->length > 0) {
-                $actualSigNode = $sigNodes->item(0);
-                $actualSigNode->setAttribute('Id', $signatureId);
-                
-                if (isset($xadesObject)) {
-                    $importedObject = $doc->importNode($xadesObject, true);
-                    $actualSigNode->appendChild($importedObject);
-                }
-            }
+            $sigNode = $sigNodes->item(0);
+            $sigNode->setAttribute('Id', $signatureId);
+            $sigNode->setIdAttribute('Id', true);
+            $sigNode->appendChild($xadesObject);
+
+            // 7. Añadir Certificado Público a la firma
+            $objDSig->add509Cert($publicCert);
 
             return $doc->saveXML();
 
@@ -330,7 +345,7 @@ class FacturaeXmlService
         }
     }
 
-    protected function addXadesProperties(DOMDocument $doc, XMLSecurityDSig $objDSig, string $publicCert, string $signatureId): \DOMElement
+    protected function addXadesProperties(DOMDocument $doc, string $publicCert, string $signatureId, string $signedPropsId): \DOMElement
     {
         $signingTime = gmdate("Y-m-d\TH:i:s\Z");
         
@@ -348,6 +363,7 @@ class FacturaeXmlService
         $signedProps = $doc->createElement('xades:SignedProperties');
         $signedPropsId = 'SignedProperties-' . $signatureId;
         $signedProps->setAttribute('Id', $signedPropsId);
+        $signedProps->setIdAttribute('Id', true);
         
         $signedSigProps = $doc->createElement('xades:SignedSignatureProperties');
         
@@ -386,14 +402,6 @@ class FacturaeXmlService
         $qualProperties->appendChild($signedProps);
         $object->appendChild($qualProperties);
         
-        // Referenciar SignedProperties para que sean firmadas también
-        $objDSig->addReference(
-            $signedProps,
-            XMLSecurityDSig::SHA256,
-            null,
-            ['type' => 'http://uri.etsi.org/01903#SignedProperties', 'force_uri' => true]
-        );
-
         return $object;
     }
 
@@ -410,6 +418,6 @@ class FacturaeXmlService
             if (is_array($value)) $value = implode(', ', $value);
             $parts[] = "$key=$value";
         }
-        return implode(', ', array_reverse($parts));
+        return implode(',', array_reverse($parts)); // Sin espacios para máxima compatibilidad LDAP
     }
 }
