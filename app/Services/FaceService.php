@@ -60,7 +60,7 @@ class FaceService
             $filename = 'Facturae_' . str_replace('/', '_', $record->numero ?? $record->id) . '.xml';
             $base64Xml = base64_encode($xmlContent);
 
-            $soapBody = <<<XML
+            $soapInnerBody = <<<XML
 <fac:enviarFactura xmlns:fac="https://face.gob.es/facturasspp">
    <fac:factura>
       <fac:factura>$base64Xml</fac:factura>
@@ -70,19 +70,24 @@ class FaceService
 </fac:enviarFactura>
 XML;
 
+            // Cargar certificado
+            $certs = $this->certService->loadP12($this->certPath, $this->certPassword);
+
+            // Generar y FIRMAR el sobre SOAP con WS-Security
+            $signedSoap = $this->generateSignedSoapEnvelope($soapInnerBody, $certs['cert'], $certs['pkey']);
+            
+            // Log para inspección profunda
+            file_put_contents('/tmp/last_face_soap.xml', $signedSoap);
+
             $options = ['verify' => true];
             
-            // Cargar certificado usando el nuevo CertificateService (con fallback legacy)
-            $certs = $this->certService->loadP12($this->certPath, $this->certPassword);
-            
-            // Para cURL/Guzzle, debemos usar archivos PEM temporales
+            // mTLS (Capa de transporte SSL/TLS) - Sigue siendo necesaria en FACe
             $tempCert = $this->certService->createTempPem($certs['cert']);
             $tempKey = $this->certService->createTempPem($certs['pkey']);
 
             $options['curl'] = [
                 CURLOPT_SSLCERT => $tempCert,
                 CURLOPT_SSLKEY => $tempKey,
-                // Ya no necesitamos CURLOPT_SSLCERTTYPE => 'P12' porque ahora es PEM
             ];
 
             $response = Http::withOptions($options)
@@ -91,14 +96,13 @@ XML;
                     'User-Agent' => 'SientiaERP/1.0 (Laravel/11; PHP/8.4)',
                     'Accept' => 'text/xml, application/soap+xml, */*',
                 ])
-                ->withBody($this->wrapInSoapEnvelope($soapBody), 'text/xml; charset=utf-8')
+                ->withBody($signedSoap, 'text/xml; charset=utf-8')
                 ->post($this->endpoint);
 
             if ($response->successful()) {
                 $result = $this->parseFaceResponse($response->body());
                 
                 if ($result['codigo'] === '0') {
-                    // Éxito: Guardar registro de FACe
                     $record->update([
                         'facturae_face_id' => $result['numeroRegistro'],
                         'facturae_status' => 'submitted'
@@ -124,29 +128,138 @@ XML;
             ];
 
         } catch (\Exception $e) {
-            Log::error("Face Submission Error: " . $e->getMessage());
+            Log::error("Face Submission Error: " . $e->getMessage() . "\n" . $e->getTraceAsString());
             return [
                 'success' => false,
                 'error' => "Error en envío a FACe: " . $e->getMessage(),
-                'raw_body' => $e->raw_body ?? null
+                'raw_body' => $e instanceof \Exception && isset($e->raw_body) ? $e->raw_body : null
             ];
         } finally {
-            // Limpiar archivos temporales
             if ($tempCert && file_exists($tempCert)) @unlink($tempCert);
             if ($tempKey && file_exists($tempKey)) @unlink($tempKey);
         }
     }
 
-    protected function wrapInSoapEnvelope(string $body): string
+    /**
+     * Generar un sobre SOAP 1.1 firmado con WS-Security (WSS-X509 1.0).
+     */
+    protected function generateSignedSoapEnvelope(string $innerBody, string $publicCert, string $privateKey): string
     {
-        return <<<XML
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:fac="https://face.gob.es/facturasspp">
-   <soapenv:Header/>
-   <soapenv:Body>
-      $body
-   </soapenv:Body>
-</soapenv:Envelope>
+        $nsSoap = 'http://schemas.xmlsoap.org/soap/envelope/';
+        $nsWSSE = 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd';
+        $nsWSU = 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd';
+        $nsDS = 'http://www.w3.org/2000/09/xmldsig#';
+
+        $doc = new \DOMDocument();
+        $envelope = $doc->createElementNS($nsSoap, 'soapenv:Envelope');
+        $envelope->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:fac', 'https://face.gob.es/facturasspp');
+        $envelope->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:wsu', $nsWSU);
+        $envelope->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:wsse', $nsWSSE);
+        $doc->appendChild($envelope);
+
+        $header = $doc->createElementNS($nsSoap, 'soapenv:Header');
+        $envelope->appendChild($header);
+
+        $body = $doc->createElementNS($nsSoap, 'soapenv:Body');
+        $body->setAttributeNS($nsWSU, 'wsu:Id', 'Body-Content');
+        $envelope->appendChild($body);
+
+        // Importar el contenido del body
+        $innerBodyDoc = new \DOMDocument();
+        $innerBodyDoc->loadXML($innerBody);
+        $importedBody = $doc->importNode($innerBodyDoc->documentElement, true);
+        $body->appendChild($importedBody);
+
+        $body->setIdAttributeNS($nsWSU, 'Id', true);
+
+        // Bloque de Seguridad
+        $security = $doc->createElementNS($nsWSSE, 'wsse:Security');
+        $header->appendChild($security);
+
+        // BinarySecurityToken (Debe ir antes que la firma, idealmente al principio)
+        $token = $doc->createElementNS($nsWSSE, 'wsse:BinarySecurityToken');
+        $token->setAttributeNS($nsWSU, 'wsu:Id', 'Cert-Content');
+        $token->setAttribute('ValueType', 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-x509-token-profile-1.0#X509v3');
+        $token->setAttribute('EncodingType', 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary');
+        
+        $cleanCert = str_replace(['-----BEGIN CERTIFICATE-----', '-----END CERTIFICATE-----', "\r", "\n"], '', $publicCert);
+        $token->nodeValue = $cleanCert;
+        $security->appendChild($token);
+        $token->setIdAttributeNS($nsWSU, 'Id', true);
+
+        // Timestamp
+        $timestamp = $doc->createElementNS($nsWSU, 'wsu:Timestamp');
+        $timestamp->setAttributeNS($nsWSU, 'wsu:Id', 'TS-Content');
+        $created = gmdate("Y-m-d\TH:i:s\Z");
+        $expires = gmdate("Y-m-d\TH:i:s\Z", time() + 3600); // 1 hora para evitar lag
+        $timestamp->appendChild($doc->createElementNS($nsWSU, 'wsu:Created', $created));
+        $timestamp->appendChild($doc->createElementNS($nsWSU, 'wsu:Expires', $expires));
+        $security->appendChild($timestamp);
+        $timestamp->setIdAttributeNS($nsWSU, 'Id', true);
+        
+        // FIRMA MANUAL con xmlseclibs para evitar Namespace Error
+        $objKey = new \RobRichards\XMLSecLibs\XMLSecurityKey(\RobRichards\XMLSecLibs\XMLSecurityKey::RSA_SHA256, ['type' => 'private']);
+        $objKey->loadKey($privateKey);
+
+        // 1. Canonizar y calcular Digest del Timestamp (SHA-256)
+        $c14nTS = $timestamp->C14N(true, false);
+        $digestTS = base64_encode(hash('sha256', $c14nTS, true));
+
+        // 2. Canonizar y calcular Digest del Body (SHA-256)
+        $c14nBody = $body->C14N(true, false);
+        $digestBody = base64_encode(hash('sha256', $c14nBody, true));
+
+        // 3. Construir SignedInfo (SHA-256)
+        $signedInfoXml = <<<XML
+<ds:SignedInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+  <ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+  <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
+  <ds:Reference URI="#TS-Content">
+    <ds:Transforms>
+      <ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+    </ds:Transforms>
+    <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+    <ds:DigestValue>$digestTS</ds:DigestValue>
+  </ds:Reference>
+  <ds:Reference URI="#Body-Content">
+    <ds:Transforms>
+      <ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+    </ds:Transforms>
+    <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+    <ds:DigestValue>$digestBody</ds:DigestValue>
+  </ds:Reference>
+</ds:SignedInfo>
 XML;
+
+        // 4. Firmar el SignedInfo
+        // Para firmar, debemos canonizar el propio SignedInfo
+        $siDoc = new \DOMDocument();
+        $siDoc->loadXML($signedInfoXml);
+        $c14nSI = $siDoc->documentElement->C14N(true, false);
+        $signatureValue = base64_encode($objKey->signData($c14nSI));
+
+        // 5. Ensamblar ds:Signature en el bloque Security
+        $signatureNode = $doc->createElementNS('http://www.w3.org/2000/09/xmldsig#', 'ds:Signature');
+        $security->appendChild($signatureNode);
+
+        $importedSI = $doc->importNode($siDoc->documentElement, true);
+        $signatureNode->appendChild($importedSI);
+
+        $svNode = $doc->createElementNS('http://www.w3.org/2000/09/xmldsig#', 'ds:SignatureValue', $signatureValue);
+        $signatureNode->appendChild($svNode);
+
+        $keyInfo = $doc->createElementNS('http://www.w3.org/2000/09/xmldsig#', 'ds:KeyInfo');
+        $signatureNode->appendChild($keyInfo);
+
+        $secRef = $doc->createElementNS($nsWSSE, 'wsse:SecurityTokenReference');
+        $keyInfo->appendChild($secRef);
+
+        $ref = $doc->createElementNS($nsWSSE, 'wsse:Reference');
+        $ref->setAttribute('URI', '#Cert-Content');
+        $ref->setAttribute('ValueType', 'http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-x509-token-profile-1.0#X509v3');
+        $secRef->appendChild($ref);
+
+        return $doc->saveXML();
     }
 
     protected function parseFaceResponse(string $xmlResponse): array
@@ -162,15 +275,28 @@ XML;
         // Evitar que libxml genere warnings que Laravel capture como excepciones
         libxml_use_internal_errors(true);
         
-        // Limpiar namespaces para parsear fácil
-        $cleanXml = str_replace(['ns2:', 'soap:', 'env:'], '', $xmlResponse);
+        // Limpiar namespaces comunes para facilitar el acceso con SimpleXML
+        $cleanXml = str_replace(['ns2:', 'soap:', 'env:', 'SOAP-ENV:', 'S:'], '', $xmlResponse);
         $xml = @simplexml_load_string($cleanXml);
         
         if (!$xml) {
             $libError = libxml_get_last_error();
             Log::error("Face XML Parse Error: " . ($libError ? $libError->message : 'Unknown') . "\nContent: " . substr($cleanXml, 0, 500));
             libxml_clear_errors();
-            throw new \Exception("Error al parsear el XML de respuesta de FACe.");
+            $error = new \Exception("No se pudo parsear la respuesta XML de FACe.");
+            $error->raw_body = $xmlResponse;
+            throw $error;
+        }
+
+        // Caso de error SOAP (Fault)
+        if (isset($xml->Body->Fault)) {
+            $code = (string)$xml->Body->Fault->faultcode;
+            $msg = (string)$xml->Body->Fault->faultstring;
+            return [
+                'codigo' => '-1',
+                'descripcion' => "$code: $msg",
+                'numeroRegistro' => null
+            ];
         }
         
         // El resultado suele estar en Body -> enviarFacturaResponse -> resultado
@@ -178,9 +304,8 @@ XML;
         
         return [
             'codigo' => (string)($res->codigo ?? '-1'),
-            'descripcion' => (string)($res->descripcion ?? 'Unknown error'),
-            'numeroRegistro' => (string)($res->registro->numeroRegistro ?? ''),
-            'fechaRecepcion' => (string)($res->registro->fechaRecepcion ?? ''),
+            'descripcion' => (string)($res->descripcion ?? 'Respuesta desconocida'),
+            'numeroRegistro' => (string)($res->numeroRegistro ?? null)
         ];
     }
 }

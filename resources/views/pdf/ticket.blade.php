@@ -102,10 +102,12 @@
             <td>Fecha:</td>
             <td class="text-right">{{ $doc->fecha->format('d/m/Y H:i') }}</td>
         </tr>
-        <tr>
-            <td width="30%">Cliente:</td>
-            <td class="text-right">{{ substr($doc->tercero->nombre_comercial, 0, 20) }}</td>
-        </tr>
+        @if ($doc->tercero)
+            <tr>
+                <td width="30%">Cliente:</td>
+                <td class="text-right">{{ substr($doc->tercero->nombre_comercial ?? $doc->tercero->nombre_razon_social, 0, 20) }}</td>
+            </tr>
+        @endif
     </table>
 
     <div class="divider"></div>

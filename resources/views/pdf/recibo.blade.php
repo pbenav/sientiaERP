@@ -141,18 +141,22 @@
 
     <div class="envelope-window">
         <!-- Datos del Cliente para Ventanilla -->
-        <div class="client-name">{{ $doc->tercero->nombre_comercial ?? $doc->tercero->nombre_razon_social }}</div>
-        <div class="client-address">
-            {{ $doc->tercero->direccion ?? '' }}<br>
-            {{ $doc->tercero->codigo_postal ?? '' }} {{ $doc->tercero->ciudad ?? '' }}<br>
-            {{ $doc->tercero->provincia ?? '' }}
-        </div>
+        @if ($doc->tercero)
+            <div class="client-name">{{ $doc->tercero->nombre_comercial ?? $doc->tercero->nombre_razon_social }}</div>
+            <div class="client-address">
+                {{ $doc->tercero->direccion ?? '' }}<br>
+                {{ $doc->tercero->codigo_postal ?? '' }} {{ $doc->tercero->ciudad ?? '' }}<br>
+                {{ $doc->tercero->provincia ?? '' }}
+            </div>
+        @else
+            <div class="client-name">[CLIENTE NO DEFINIDO]</div>
+        @endif
     </div>
 
     <div class="receipt-body">
         @if($doc->tipo === 'recibo_compra')
         <p>
-            El proveedor <span class="highlight">{{ $doc->tercero->nombre_razon_social ?? $doc->tercero->nombre_comercial }}</span>
+            El proveedor <span class="highlight">{{ $doc->tercero->nombre_razon_social ?? $doc->tercero->nombre_comercial ?? '[NO DEFINIDO]' }}</span>
             con NIF/CIF {{ $doc->tercero->nif_cif ?? '___________' }},
         </p>
         <p>
@@ -165,7 +169,7 @@
         </p>
         @else
         <p>
-            He recibido de <span class="highlight">{{ $doc->tercero->nombre_razon_social ?? $doc->tercero->nombre_comercial }}</span>
+            He recibido de <span class="highlight">{{ $doc->tercero->nombre_razon_social ?? $doc->tercero->nombre_comercial ?? '[NO DEFINIDO]' }}</span>
             con NIF/CIF {{ $doc->tercero->nif_cif ?? '___________' }},
         </p>
         <p>
@@ -199,7 +203,7 @@
             <td class="footer-cell" style="text-align: center;">
                 <div class="signature-box">
                     Firma y Sello<br>
-                    <strong>{{ $doc->tipo === 'recibo_compra' ? ($doc->tercero->nombre_razon_social ?? $doc->tercero->nombre_comercial) : $empresaNombre }}</strong>
+                    <strong>{{ $doc->tipo === 'recibo_compra' ? ($doc->tercero->nombre_razon_social ?? $doc->tercero->nombre_comercial ?? '[NO DEFINIDO]') : $empresaNombre }}</strong>
                 </div>
             </td>
         </tr>

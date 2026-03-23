@@ -166,22 +166,26 @@
         <div class="company-info">
             @if ($esCompra)
                 {{-- Documentos de compra: arriba a la izquierda va el PROVEEDOR --}}
-                <h1 style="font-size: 20px; margin: 0 0 8px 0;">{{ $doc->tercero->nombre_comercial }}</h1>
-                <p style="margin: 0; font-size: 11px;">
-                    @if ($doc->tercero->razon_social && $doc->tercero->razon_social !== $doc->tercero->nombre_comercial)
-                        {{ $doc->tercero->razon_social }}<br>
-                    @endif
-                    NIF/CIF: {{ $doc->tercero->nif_cif }}<br>
-                    @if ($doc->tercero->direccion_fiscal)
-                        {{ $doc->tercero->direccion_fiscal }}<br>
-                    @endif
-                    @if ($doc->tercero->codigo_postal_fiscal || $doc->tercero->poblacion_fiscal)
-                        {{ $doc->tercero->codigo_postal_fiscal }} {{ $doc->tercero->poblacion_fiscal }}
-                        @if ($doc->tercero->provincia_fiscal)
-                            ({{ $doc->tercero->provincia_fiscal }})
+                @if ($doc->tercero)
+                    <h1 style="font-size: 20px; margin: 0 0 8px 0;">{{ $doc->tercero->nombre_comercial }}</h1>
+                    <p style="margin: 0; font-size: 11px;">
+                        @if ($doc->tercero->razon_social && $doc->tercero->razon_social !== $doc->tercero->nombre_comercial)
+                            {{ $doc->tercero->razon_social }}<br>
                         @endif
-                    @endif
-                </p>
+                        NIF/CIF: {{ $doc->tercero->nif_cif }}<br>
+                        @if ($doc->tercero->direccion_fiscal)
+                            {{ $doc->tercero->direccion_fiscal }}<br>
+                        @endif
+                        @if ($doc->tercero->codigo_postal_fiscal || $doc->tercero->poblacion_fiscal)
+                            {{ $doc->tercero->codigo_postal_fiscal }} {{ $doc->tercero->poblacion_fiscal }}
+                            @if ($doc->tercero->provincia_fiscal)
+                                ({{ $doc->tercero->provincia_fiscal }})
+                            @endif
+                        @endif
+                    </p>
+                @else
+                    <h1 style="font-size: 20px; margin: 0 0 8px 0;">[PROVEEDOR NO DEFINIDO]</h1>
+                @endif
             @else
                 {{-- Documentos de venta: arriba a la izquierda van los datos de nuestra empresa --}}
                 @php
@@ -234,37 +238,43 @@
             </div>
         @else
             {{-- Documentos de venta: abajo muestra al CLIENTE (tercero) --}}
-            @if ($doc->tercero->direccion_envio_diferente && $doc->tercero->direccion_envio)
-                {{-- Datos Fiscales al IZQUIERDO --}}
-                <div class="client-info">
-                    <span style="font-size: 10px; color: #64748b; text-transform: uppercase;">Datos Fiscales</span><br>
-                    <strong>{{ $doc->tercero->nombre_comercial }}</strong><br>
-                    NIF/CIF: {{ $doc->tercero->nif_cif }}<br>
-                    {{ $doc->tercero->direccion_fiscal }}<br>
-                    {{ $doc->tercero->codigo_postal_fiscal }} {{ $doc->tercero->poblacion_fiscal }}
-                </div>
-                {{-- Dirección de Envío a la DERECHA (ventana postal) --}}
-                <div class="delivery-info">
-                    <strong>{{ $doc->tercero->nombre_comercial }}</strong><br>
-                    {{ $doc->tercero->direccion_envio }}<br>
-                    {{ $doc->tercero->codigo_postal_envio }} {{ $doc->tercero->poblacion_envio }}
-                    @if ($doc->tercero->provincia_envio)
-                        ({{ $doc->tercero->provincia_envio }})
-                    @endif
-                </div>
+            @if ($doc->tercero)
+                @if ($doc->tercero->direccion_envio_diferente && $doc->tercero->direccion_envio)
+                    {{-- Datos Fiscales al IZQUIERDO --}}
+                    <div class="client-info">
+                        <span style="font-size: 10px; color: #64748b; text-transform: uppercase;">Datos Fiscales</span><br>
+                        <strong>{{ $doc->tercero->nombre_comercial }}</strong><br>
+                        NIF/CIF: {{ $doc->tercero->nif_cif }}<br>
+                        {{ $doc->tercero->direccion_fiscal }}<br>
+                        {{ $doc->tercero->codigo_postal_fiscal }} {{ $doc->tercero->poblacion_fiscal }}
+                    </div>
+                    {{-- Dirección de Envío a la DERECHA (ventana postal) --}}
+                    <div class="delivery-info">
+                        <strong>{{ $doc->tercero->nombre_comercial }}</strong><br>
+                        {{ $doc->tercero->direccion_envio }}<br>
+                        {{ $doc->tercero->codigo_postal_envio }} {{ $doc->tercero->poblacion_envio }}
+                        @if ($doc->tercero->provincia_envio)
+                            ({{ $doc->tercero->provincia_envio }})
+                        @endif
+                    </div>
+                @else
+                    {{-- Solo datos fiscales a la DERECHA (ventana postal) --}}
+                    <div class="delivery-info">
+                        <strong>{{ $doc->tercero->nombre_comercial }}</strong><br>
+                        @if ($doc->tercero->razon_social && $doc->tercero->razon_social !== $doc->tercero->nombre_comercial)
+                            {{ $doc->tercero->razon_social }}<br>
+                        @endif
+                        NIF/CIF: {{ $doc->tercero->nif_cif }}<br>
+                        {{ $doc->tercero->direccion_fiscal }}<br>
+                        {{ $doc->tercero->codigo_postal_fiscal }} {{ $doc->tercero->poblacion_fiscal }}
+                        @if ($doc->tercero->provincia_fiscal)
+                            ({{ $doc->tercero->provincia_fiscal }})
+                        @endif
+                    </div>
+                @endif
             @else
-                {{-- Solo datos fiscales a la DERECHA (ventana postal) --}}
                 <div class="delivery-info">
-                    <strong>{{ $doc->tercero->nombre_comercial }}</strong><br>
-                    @if ($doc->tercero->razon_social && $doc->tercero->razon_social !== $doc->tercero->nombre_comercial)
-                        {{ $doc->tercero->razon_social }}<br>
-                    @endif
-                    NIF/CIF: {{ $doc->tercero->nif_cif }}<br>
-                    {{ $doc->tercero->direccion_fiscal }}<br>
-                    {{ $doc->tercero->codigo_postal_fiscal }} {{ $doc->tercero->poblacion_fiscal }}
-                    @if ($doc->tercero->provincia_fiscal)
-                        ({{ $doc->tercero->provincia_fiscal }})
-                    @endif
+                    <strong>[CLIENTE NO DEFINIDO]</strong>
                 </div>
             @endif
         @endif
