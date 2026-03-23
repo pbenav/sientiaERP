@@ -63,7 +63,8 @@ class FacturaeXmlService
         $header->addChild('InvoiceIssuerType', 'EM'); // EM = Emisor (Proveedor)
         
         $batch = $header->addChild('Batch');
-        $batch->addChild('BatchIdentifier', 'FACT' . $documento->numero . '-' . now()->format('YmdHis'));
+        $nifEmisor = Setting::get('verifactu_nif_emisor') ?: '00000000X';
+        $batch->addChild('BatchIdentifier', $nifEmisor . $documento->numero);
         $batch->addChild('InvoicesCount', '1');
         
         $batch->addChild('TotalInvoicesAmount')->addChild('TotalAmount', number_format($documento->total, 2, '.', ''));
@@ -165,7 +166,7 @@ class FacturaeXmlService
         $totals->addChild('TotalGrossAmount', number_format($documento->subtotal, 2, '.', ''));
         $totals->addChild('TotalGrossAmountBeforeTaxes', number_format($documento->subtotal, 2, '.', ''));
         $totals->addChild('TotalTaxOutputs', number_format($documento->iva, 2, '.', ''));
-        $totals->addChild('TotalTaxesWithheld', '0.00');
+        $totals->addChild('TotalTaxesWithheld', number_format($documento->irpf ?: 0, 2, '.', ''));
         $totals->addChild('InvoiceTotal', number_format($documento->total, 2, '.', ''));
         $totals->addChild('TotalOutstandingAmount', number_format($documento->total, 2, '.', ''));
         $totals->addChild('TotalExecutableAmount', number_format($documento->total, 2, '.', ''));
@@ -285,14 +286,12 @@ class FacturaeXmlService
             $objDSig->setCanonicalMethod(XMLSecurityDSig::EXC_C14N);
             
             $signatureId = 'Signature-' . uniqid();
-            $signedPropsId = 'SignedProperties-' . $signatureId;
-            
-            // Referencia al propio documento (Enveloped)
+            $signedPropsId = 'SignedProperties-' . $signatureId;            // Referencia al propio documento (Enveloped)
             $objDSig->addReference(
                 $doc, 
                 XMLSecurityDSig::SHA256, 
                 ['http://www.w3.org/2000/09/xmldsig#enveloped-signature'],
-                ['force_uri' => true, 'id_name' => 'SignatureID']
+                ['force_uri' => true, 'id_name' => 'Id']
             );
 
             // 2. BLOQUE XAdES-BES: Crear y añadir al DOM para que sea "visible"
@@ -300,8 +299,8 @@ class FacturaeXmlService
             $doc->documentElement->appendChild($xadesObject);
 
             // Registrar IDs manualmente para el motor DOM (Crucial para getElementById)
-            $signedPropsNode = $doc->getElementsByTagName('xades:SignedProperties')->item(0);
-            if ($signedPropsNode) {
+            $signedPropsNode = $doc->getElementsByTagNameNS('http://uri.etsi.org/01903/v1.3.2#', 'SignedProperties')->item(0);
+            if ($signedPropsNode && $signedPropsNode instanceof \DOMElement) {
                 $signedPropsNode->setIdAttribute('Id', true);
             }
 
@@ -327,12 +326,14 @@ class FacturaeXmlService
             // 6. Insertar firma en el documento
             $objDSig->insertSignature($doc->documentElement);
             
-            // Reubicar el objeto XAdES dentro de la firma
+            // Reubicar el objeto XAdES dentro de la firma y añadir Id
             $sigNodes = $doc->getElementsByTagNameNS('http://www.w3.org/2000/09/xmldsig#', 'Signature');
             $sigNode = $sigNodes->item(0);
-            $sigNode->setAttribute('Id', $signatureId);
-            $sigNode->setIdAttribute('Id', true);
-            $sigNode->appendChild($xadesObject);
+            if ($sigNode && $sigNode instanceof \DOMElement) {
+                $sigNode->setAttribute('Id', $signatureId);
+                $sigNode->setIdAttribute('Id', true);
+                $sigNode->appendChild($xadesObject);
+            }
 
             // 7. Añadir Certificado Público a la firma
             $objDSig->add509Cert($publicCert);
@@ -340,63 +341,75 @@ class FacturaeXmlService
             return $doc->saveXML();
 
         } catch (\Exception $e) {
-            Log::error("Error firmando XML Facturae: " . $e->getMessage());
+            Log::error("Error firmando XML Facturae: " . $e->getMessage() . "\n" . $e->getTraceAsString());
             return $xmlContent;
         }
     }
 
-    protected function addXadesProperties(DOMDocument $doc, string $publicCert, string $signatureId, string $signedPropsId): \DOMElement
+    /**
+     * Crear el bloque de propiedades XAdES-BES.
+     */
+    protected function addXadesProperties(DOMDocument $doc, string $publicCert, string $signatureId, string $signedPropsId): \DOMNode
     {
+        $nsXades = 'http://uri.etsi.org/01903/v1.3.2#';
+        $nsDS = 'http://www.w3.org/2000/09/xmldsig#';
+        
         $signingTime = gmdate("Y-m-d\TH:i:s\Z");
         
-        // Extraer hash del certificado (SHA-256 es preferible hoy en día)
         $certData = openssl_x509_parse($publicCert);
-        $certBase64 = base64_encode(sha1($this->getCertContent($publicCert), true)); // v1 usaba sha1, v2 usa sha256
         $certHash256 = base64_encode(hash('sha256', $this->getCertContent($publicCert), true));
 
         // Crear contenedor ds:Object
-        $object = $doc->createElementNS('http://www.w3.org/2000/09/xmldsig#', 'ds:Object');
+        $object = $doc->createElementNS($nsDS, 'ds:Object');
         
-        $qualProperties = $doc->createElementNS('http://uri.etsi.org/01903/v1.3.2#', 'xades:QualifyingProperties');
+        $qualProperties = $doc->createElementNS($nsXades, 'xades:QualifyingProperties');
         $qualProperties->setAttribute('Target', '#' . $signatureId);
         
-        $signedProps = $doc->createElement('xades:SignedProperties');
-        $signedPropsId = 'SignedProperties-' . $signatureId;
+        $signedProps = $doc->createElementNS($nsXades, 'xades:SignedProperties');
         $signedProps->setAttribute('Id', $signedPropsId);
-        $signedProps->setIdAttribute('Id', true);
         
-        $signedSigProps = $doc->createElement('xades:SignedSignatureProperties');
+        $signedSigProps = $doc->createElementNS($nsXades, 'xades:SignedSignatureProperties');
         
         // 1. SigningTime
-        $signedSigProps->appendChild($doc->createElement('xades:SigningTime', $signingTime));
+        $signedSigProps->appendChild($doc->createElementNS($nsXades, 'xades:SigningTime', $signingTime));
         
-        // 2. SigningCertificateV2 (Obligatorio para SHA-256)
-        $signingCert = $doc->createElement('xades:SigningCertificateV2');
-        $cert = $doc->createElement('xades:Cert');
-        $certDigest = $doc->createElement('xades:CertDigest');
-        $digestMethod = $doc->createElement('ds:DigestMethod');
+        // 2. SigningCertificateV2
+        $signingCert = $doc->createElementNS($nsXades, 'xades:SigningCertificateV2');
+        $cert = $doc->createElementNS($nsXades, 'xades:Cert');
+        $certDigest = $doc->createElementNS($nsXades, 'xades:CertDigest');
+        
+        $digestMethod = $doc->createElementNS($nsDS, 'ds:DigestMethod');
         $digestMethod->setAttribute('Algorithm', 'http://www.w3.org/2001/04/xmlenc#sha256');
         $certDigest->appendChild($digestMethod);
-        $certDigest->appendChild($doc->createElement('ds:DigestValue', $certHash256));
-        
+        $certDigest->appendChild($doc->createElementNS($nsDS, 'ds:DigestValue', $certHash256));
         $cert->appendChild($certDigest);
 
-        $issuerSerial = $doc->createElement('xades:IssuerSerial');
-        $issuerSerial->appendChild($doc->createElement('ds:X509IssuerName', $this->getIssuerName($certData)));
-        $issuerSerial->appendChild($doc->createElement('ds:X509SerialNumber', $certData['serialNumber']));
+        $issuerSerial = $doc->createElementNS($nsXades, 'xades:IssuerSerial');
+        $issuerSerial->appendChild($doc->createElementNS($nsDS, 'ds:X509IssuerName', $this->getIssuerName($certData)));
+        $issuerSerial->appendChild($doc->createElementNS($nsDS, 'ds:X509SerialNumber', $certData['serialNumber']));
         $cert->appendChild($issuerSerial);
 
         $signingCert->appendChild($cert);
         $signedSigProps->appendChild($signingCert);
         
-        // 3. SignaturePolicyIdentifier (Política de firma Facturae 3.1)
-        $policy = $doc->createElement('xades:SignaturePolicyIdentifier');
-        $id = $doc->createElement('xades:SignaturePolicyId');
-        $id->appendChild($doc->createElement('xades:SigPolicyId'))->appendChild($doc->createElement('xades:Identifier', 'http://www.facturae.gob.es/politica_de_firma_formato_facturae/politica_de_firma_formato_facturae_v3_1.pdf'));
-        $id->appendChild($doc->createElement('xades:SigPolicyHash'))->appendChild($doc->createElement('ds:DigestMethod'))->setAttribute('Algorithm', 'http://www.w3.org/2001/04/xmlenc#sha256');
-        $id->getElementsByTagName('xades:SigPolicyHash')->item(0)->appendChild($doc->createElement('ds:DigestValue', '3S6fAtZsh9mSIdPZrntG87o8AlUCD9ApmMeUwbv7p6c=')); // Hash SHA-256 de la política v3.1
-        $policy->appendChild($id);
-        $signedSigProps->appendChild($policy);
+        // 3. SignaturePolicyIdentifier (Facturae 3.1)
+        $policyIdentifier = $doc->createElementNS($nsXades, 'xades:SignaturePolicyIdentifier');
+        $signaturePolicyId = $doc->createElementNS($nsXades, 'xades:SignaturePolicyId');
+        
+        $sigPolicyId = $doc->createElementNS($nsXades, 'xades:SigPolicyId');
+        $sigPolicyId->appendChild($doc->createElementNS($nsXades, 'xades:Identifier', 'http://www.facturae.es/politica_de_firma_formato_facturae/politica_de_firma_formato_facturae_v3_1.pdf'));
+        $sigPolicyId->appendChild($doc->createElementNS($nsXades, 'xades:Description', 'Política de Firma de Facturae v3.1'));
+        $signaturePolicyId->appendChild($sigPolicyId);
+        
+        $sigPolicyHash = $doc->createElementNS($nsXades, 'xades:SigPolicyHash');
+        $digestMethodPolicy = $doc->createElementNS($nsDS, 'ds:DigestMethod');
+        $digestMethodPolicy->setAttribute('Algorithm', 'http://www.w3.org/2001/04/xmlenc#sha256');
+        $sigPolicyHash->appendChild($digestMethodPolicy);
+        $sigPolicyHash->appendChild($doc->createElementNS($nsDS, 'ds:DigestValue', '3S6fAtZsh9mSIdPZrntG87o8AlUCD9ApmMeUwbv7p6c='));
+        $signaturePolicyId->appendChild($sigPolicyHash);
+        
+        $policyIdentifier->appendChild($signaturePolicyId);
+        $signedSigProps->appendChild($policyIdentifier);
         
         $signedProps->appendChild($signedSigProps);
         $qualProperties->appendChild($signedProps);
