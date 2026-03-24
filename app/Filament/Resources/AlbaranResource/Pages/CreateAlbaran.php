@@ -11,13 +11,7 @@ class CreateAlbaran extends CreateRecord
 
     public function mount(): void
     {
-        $data = [
-            'tipo' => 'albaran',
-            'estado' => 'borrador',
-            'user_id' => auth()->id(),
-            'fecha' => now(),
-            'serie' => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A',
-        ];
+        $data = \App\Models\Documento::getDefaultsFor('albaran');
 
         $record = static::getModel()::create($data);
 

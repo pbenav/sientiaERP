@@ -98,7 +98,7 @@ class FacturaResource extends Resource
                         ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
                         ->searchable()
                         ->preload()
-                        ->default(fn() => \App\Models\FormaPago::activas()->first()?->id ?? 1)
+                        ->default(fn() => (int)\App\Models\Setting::get('default_forma_pago_id', 1))
                         ->required()
                         ->createOptionForm([
                             Forms\Components\TextInput::make('codigo')->required()->maxLength(50),
@@ -247,6 +247,28 @@ class FacturaResource extends Resource
                     ->url(fn($record) => route('documentos.pdf', $record))
                     ->openUrlInNewTab(),
 
+                Tables\Actions\Action::make('send_verifactu')
+                    ->label('')
+                    ->tooltip('Enviar a Veri*Factu (AEAT)')
+                    ->icon('heroicon-o-cloud-arrow-up')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->visible(fn($record) => \App\Models\Setting::get('verifactu_active', false) && $record->estado === 'confirmado' && $record->verifactu_status !== 'accepted')
+                    ->action(function ($record) {
+                        $verifactuService = app(\App\Services\VerifactuService::class);
+                        $res = $verifactuService->enviarAEAT($record);
+                        if ($res['success']) {
+                            Notification::make()->title('Veri*Factu: Aceptado')->success()->send();
+                        } else {
+                            Notification::make()
+                                ->title('Veri*Factu: Error')
+                                ->body($res['error'] ?? 'Error desconocido')
+                                ->danger()
+                                ->persistent()
+                                ->send();
+                        }
+                    }),
+
                 Tables\Actions\Action::make('facturae')
                     ->label('')
                     ->tooltip('Descargar Facturae (XML)')
@@ -358,6 +380,24 @@ class FacturaResource extends Resource
                                 }
                             }
                             \Filament\Notifications\Notification::make()->title("Se han eliminado $count cadenas de documentos")->success()->send();
+                        }),
+                    
+                    Tables\Actions\BulkAction::make('send_verifactu_bulk')
+                        ->label('Enviar a Veri*Factu')
+                        ->icon('heroicon-o-cloud-arrow-up')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->action(function ($records) {
+                            $verifactuService = app(\App\Services\VerifactuService::class);
+                            $count = 0;
+                            foreach ($records as $record) {
+                                if ($record->estado === 'confirmado' && $record->verifactu_status !== 'accepted') {
+                                    $res = $verifactuService->enviarAEAT($record); if ($res['success']) {
+                                        $count++;
+                                    }
+                                }
+                            }
+                            Notification::make()->title("$count facturas enviadas a Veri*Factu")->success()->send();
                         }),
                     
                     Tables\Actions\DeleteBulkAction::make(),

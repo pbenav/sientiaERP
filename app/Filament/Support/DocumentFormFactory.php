@@ -27,6 +27,18 @@ class DocumentFormFactory
                     ->preload()
                     ->live()
                     ->required()
+                    ->afterStateUpdated(function ($state, Forms\Set $set) {
+                        if (!$state) return;
+                        $tercero = Tercero::find($state);
+                        if (!$tercero) return;
+
+                        if ($tercero->forma_pago_id) {
+                            $set('forma_pago_id', $tercero->forma_pago_id);
+                        }
+                        if ($tercero->irpf > 0) {
+                            $set('porcentaje_irpf', (string)$tercero->irpf);
+                        }
+                    })
                     ->createOptionForm([
                         Forms\Components\TextInput::make('nombre_comercial')
                             ->label('Nombre Comercial')

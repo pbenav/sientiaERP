@@ -11,15 +11,7 @@ class CreatePedido extends CreateRecord
 
     public function mount(): void
     {
-        $data = [
-            'tipo' => 'pedido',
-            'estado' => 'borrador',
-            'user_id' => auth()->id(),
-            'fecha' => now(),
-            'fecha' => now(),
-            'serie' => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A',
-            'forma_pago_id' => \App\Models\FormaPago::activas()->first()?->id,
-        ];
+        $data = \App\Models\Documento::getDefaultsFor('pedido');
 
         $record = static::getModel()::create($data);
 

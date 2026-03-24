@@ -95,6 +95,108 @@ class EditFactura extends EditRecord
                         ->send();
                 }),
 
+            Actions\Action::make('send_verifactu')
+                ->label('Enviar Veri*Factu')
+                ->icon('heroicon-o-cloud-arrow-up')
+                ->color('success')
+                ->requiresConfirmation()
+                ->visible(fn() => \App\Models\Setting::get('verifactu_active', false) && $this->record->estado === 'confirmado' && $this->record->verifactu_status !== 'accepted')
+                ->action(function () {
+                    $verifactuService = app(\App\Services\VerifactuService::class);
+                    $res = $verifactuService->enviarAEAT($this->record);
+                    if ($res['success']) {
+                        Notification::make()->title('Veri*Factu: Aceptado')->success()->send();
+                        $this->refreshFormData(['verifactu_status', 'verifactu_aeat_id', 'verifactu_huella']);
+                    } else {
+                        Notification::make()
+                            ->title('Veri*Factu: Error')
+                            ->body($res['error'] ?? 'Error desconocido')
+                            ->danger()
+                            ->persistent()
+                            ->send();
+                    }
+                }),
+
+            Actions\Action::make('send_face')
+                ->label('Enviar FACe')
+                ->icon('heroicon-o-paper-airplane')
+                ->color('success')
+                ->requiresConfirmation()
+                ->modalHeading('Enviar a FACe')
+                ->modalDescription('¿Está seguro de que desea enviar esta factura directamente al portal FACe de la Administración Pública?')
+                ->visible(fn() => \App\Models\Setting::get('facturae_active', false) && $this->record->estado === 'confirmado' && empty($this->record->facturae_face_id))
+                ->action(function () {
+                    $tercero = $this->record->tercero;
+                    if (empty($tercero->dir3_oficina_contable) || empty($tercero->dir3_organo_gestor) || empty($tercero->dir3_unidad_tramitadora)) {
+                        Notification::make()
+                            ->title('Faltan códigos DIR3')
+                            ->warning()
+                            ->body('El cliente no tiene configurados los códigos DIR3. Por favor, rellénelos en la ficha del cliente antes de enviar a FACe.')
+                            ->persistent()
+                            ->send();
+                        return;
+                    }
+
+                    $service = app(\App\Services\FaceService::class);
+                    $result = $service->enviarFactura($this->record);
+                    
+                    if ($result['success']) {
+                        Notification::make()
+                            ->title('Factura enviada a FACe')
+                            ->success()
+                            ->body($result['message'])
+                            ->send();
+                        $this->refreshFormData(['facturae_face_id', 'facturae_status']);
+                    } else {
+                        $this->record->update([
+                            'facturae_last_error' => $result['error'],
+                            'facturae_last_response' => $result['raw_body'] ?? null
+                        ]);
+                        $this->refreshFormData(['facturae_last_error', 'facturae_last_response']);
+
+                        Notification::make()
+                            ->title('Error en envío a FACe')
+                            ->danger()
+                            ->body("La respuesta de RedSARA no fue válida. Revise el rastro técnico.")
+                            ->persistent()
+                            ->send();
+                    }
+                }),
+
+            Actions\Action::make('check_face_status')
+                ->label('Verificar FACe')
+                ->icon('heroicon-m-magnifying-glass')
+                ->color('info')
+                ->visible(fn() => !empty($this->record->facturae_face_id))
+                ->action(function () {
+                    $service = app(\App\Services\FaceService::class);
+                    $res = $service->consultarFactura($this->record->facturae_face_id);
+                    
+                    if ($res['success']) {
+                        $this->record->update(['facturae_status' => $res['codigo_estado']]);
+                        Notification::make()
+                            ->title('Estado en FACe')
+                            ->body("Estado: {$res['estado']} ({$res['codigo_estado']})")
+                            ->info()
+                            ->send();
+                        $this->refreshFormData(['facturae_status']);
+                    } else {
+                        Notification::make()
+                            ->title('Error al consultar FACe')
+                            ->body($res['error'])
+                            ->danger()
+                            ->send();
+                    }
+                }),
+
+            Actions\Action::make('verify_aeat')
+                ->label('Verificar QR')
+                ->icon('heroicon-m-qr-code')
+                ->color('info')
+                ->visible(fn() => $this->record->verifactu_status === 'accepted')
+                ->url(fn() => $this->record->verifactu_qr_url)
+                ->openUrlInNewTab(),
+
             Actions\Action::make('pdf')
                 ->label('Descargar PDF')
                 ->icon('heroicon-o-document-arrow-down')

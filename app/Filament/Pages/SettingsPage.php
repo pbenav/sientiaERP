@@ -98,6 +98,9 @@ class SettingsPage extends Page
             'verifactu_endpoint_test_query' => Setting::get('verifactu_endpoint_test_query', config('verifactu.endpoints.test_query')),
             'verifactu_endpoint_production' => Setting::get('verifactu_endpoint_production', config('verifactu.endpoints.production')),
             'verifactu_endpoint_production_query' => Setting::get('verifactu_endpoint_production_query', config('verifactu.endpoints.production_query')),
+            'verifactu_qr_url_test' => Setting::get('verifactu_qr_url_test', "https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR"),
+            'verifactu_qr_url_production' => Setting::get('verifactu_qr_url_production', "https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/v1/f"),
+            'verifactu_send_mode' => Setting::get('verifactu_send_mode', 'immediate'),
             
             // Facturae
             'facturae_active' => filter_var(Setting::get('facturae_active', false), FILTER_VALIDATE_BOOLEAN),
@@ -337,8 +340,16 @@ class SettingsPage extends Page
                                             ->label('Activar Veri*Factu')
                                             ->helperText('Habilita el encadenamiento de facturas y envío a la AEAT.')
                                             ->default(false),
-                                        FileUpload::make('verifactu_cert_path')->label('Certificado (.p12)')->directory('certs')->visibility('private'),
+                                        FileUpload::make('verifactu_cert_path')->label('Certificado (.p12)')->directory('certs')->disk('local')->visibility('private'),
                                         TextInput::make('verifactu_cert_password')->label('Pass Certificado')->password()->revealable(),
+                                        Select::make('verifactu_send_mode')
+                                            ->label('Modo de Envío')
+                                            ->options([
+                                                'immediate' => 'Inmediato (Al confirmar)',
+                                                'manual' => 'Manual (Desde la tabla/ficha)',
+                                            ])
+                                            ->required()
+                                            ->columnSpanFull(),
                                     ])->columns(2),
                                 Section::make('Endpoints AEAT')
                                     ->description('Direcciones web oficiales de la Agencia Tributaria')
@@ -346,8 +357,10 @@ class SettingsPage extends Page
                                     ->schema([
                                         TextInput::make('verifactu_endpoint_test')->label('URL Alta (Pruebas)')->columnSpanFull(),
                                         TextInput::make('verifactu_endpoint_test_query')->label('URL Consulta (Pruebas)')->columnSpanFull(),
+                                        TextInput::make('verifactu_qr_url_test')->label('URL QR (Pruebas)')->columnSpanFull(),
                                         TextInput::make('verifactu_endpoint_production')->label('URL Alta (Producción)')->columnSpanFull(),
                                         TextInput::make('verifactu_endpoint_production_query')->label('URL Consulta (Producción)')->columnSpanFull(),
+                                        TextInput::make('verifactu_qr_url_production')->label('URL QR (Producción)')->columnSpanFull(),
                                     ]),
                             ]),
                         
@@ -367,7 +380,7 @@ class SettingsPage extends Page
                                             ->default('test'),
                                         FileUpload::make('facturae_cert_path')
                                             ->label('Certificado (.p12)')
-                                            ->directory('certs')
+                                            ->disk('local')
                                             ->visibility('private')
                                             ->helperText('Si se deja vacío, se intentará usar el certificado de Veri*Factu por defecto.'),
                                         TextInput::make('facturae_cert_password')

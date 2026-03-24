@@ -64,7 +64,7 @@ class PresupuestoResource extends Resource
                         ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
                         ->searchable()
                         ->preload()
-                        ->default(fn() => \App\Models\FormaPago::activas()->first()?->id ?? 1)
+                        ->default(fn() => \App\Models\Setting::get('default_forma_pago_id', 1))
                         ->required()
                         ->createOptionForm([
                             Forms\Components\TextInput::make('codigo')->required()->maxLength(50),

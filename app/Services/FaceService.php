@@ -25,14 +25,12 @@ class FaceService
         if ($storedPath) {
             if (Storage::disk('local')->exists($storedPath)) {
                 $this->certPath = Storage::disk('local')->path($storedPath);
-            } elseif (Storage::disk('public')->exists($storedPath)) {
-                $this->certPath = Storage::disk('public')->path($storedPath);
             } else {
-                // Si no existe en ningún disco estándar, probamos trayectoria relativa directa (por compatibilidad)
+                // Fallback a app/private/certs
                 $this->certPath = storage_path('app/private/' . $storedPath);
             }
         } else {
-            $this->certPath = config('facturae.cert_path', storage_path('app/certificates/facturae.p12'));
+            $this->certPath = config('facturae.cert_path', storage_path('app/private/certs/facturae.p12'));
         }
 
         $this->certPassword = Setting::get('facturae_cert_password') ?: Setting::get('verifactu_cert_password', '');
@@ -307,5 +305,69 @@ XML;
             'descripcion' => (string)($res->descripcion ?? 'Respuesta desconocida'),
             'numeroRegistro' => (string)($res->numeroRegistro ?? null)
         ];
+    }
+
+    /**
+     * Consultar el estado de una factura en FACe.
+     */
+    public function consultarFactura(string $numeroRegistro): array
+    {
+        $tempCert = null;
+        $tempKey = null;
+
+        try {
+            $soapInnerBody = <<<XML
+<fac:consultarFactura xmlns:fac="https://face.gob.es/facturasspp">
+   <fac:numeroRegistro>$numeroRegistro</fac:numeroRegistro>
+</fac:consultarFactura>
+XML;
+
+            $certs = $this->certService->loadP12($this->certPath, $this->certPassword);
+            $signedSoap = $this->generateSignedSoapEnvelope($soapInnerBody, $certs['cert'], $certs['pkey']);
+
+            $options = ['verify' => true];
+            $tempCert = $this->certService->createTempPem($certs['cert']);
+            $tempKey = $this->certService->createTempPem($certs['pkey']);
+
+            $options['curl'] = [
+                CURLOPT_SSLCERT => $tempCert,
+                CURLOPT_SSLKEY => $tempKey,
+            ];
+
+            $response = Http::withOptions($options)
+                ->withHeaders([
+                    'SOAPAction' => 'https://face.gob.es/facturasspp#consultarFactura',
+                    'Content-Type' => 'text/xml; charset=utf-8',
+                ])
+                ->withBody($signedSoap, 'text/xml')
+                ->post($this->endpoint);
+
+            if ($response->successful()) {
+                // Parse simplificado para consulta (idéntico al de envío pero con otros campos)
+                $cleanXml = str_replace(['ns2:', 'soap:', 'env:', 'SOAP-ENV:', 'S:'], '', $response->body());
+                $xml = @simplexml_load_string($cleanXml);
+                
+                if (isset($xml->Body->consultarFacturaResponse->resultado)) {
+                    $res = $xml->Body->consultarFacturaResponse->resultado;
+                    $factura = $xml->Body->consultarFacturaResponse->factura;
+
+                    return [
+                        'success' => true,
+                        'codigo' => (string)$res->codigo,
+                        'descripcion' => (string)$res->descripcion,
+                        'estado' => (string)($factura->estado ?? 'Desconocido'),
+                        'codigo_estado' => (string)($factura->codigo_estado ?? ''),
+                    ];
+                }
+            }
+
+            return ['success' => false, 'error' => "Error FACe: " . $response->status()];
+
+        } catch (\Exception $e) {
+            return ['success' => false, 'error' => $e->getMessage()];
+        } finally {
+            if ($tempCert && file_exists($tempCert)) @unlink($tempCert);
+            if ($tempKey && file_exists($tempKey)) @unlink($tempKey);
+        }
     }
 }

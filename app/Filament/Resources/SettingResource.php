@@ -82,6 +82,16 @@ class SettingResource extends Resource
                             ->columnSpanFull(),
                         
                         Forms\Components\Select::make('value')
+                            ->label('Modo de Envío Veri*Factu')
+                            ->options([
+                                'immediate' => 'Inmediato (Al confirmar)',
+                                'manual' => 'Manual (Desde la tabla/ficha)',
+                            ])
+                            ->required()
+                            ->visible(fn ($get) => $get('key') === 'verifactu_send_mode')
+                            ->columnSpanFull(),
+
+                        Forms\Components\Select::make('value')
                             ->label('Valor')
                             ->options([
                                 'prefix' => 'Prefijo (Ej: € 100,00)',

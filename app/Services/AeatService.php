@@ -11,17 +11,23 @@ class AeatService
     private string $certPassword;
     private string $altaEndpoint;
     private string $consultaEndpoint;
+    private CertificateService $certService;
 
-    public function __construct()
+    public function __construct(CertificateService $certService)
     {
+        $this->certService = $certService;
         $storedPath = \App\Models\Setting::get('verifactu_cert_path');
         
-        // Si el path guardado es relativo (típico de FileUpload), resolverlo en el disco respectivo
-        if ($storedPath && \Illuminate\Support\Facades\Storage::disk('local')->exists($storedPath)) {
-            $this->certPath = \Illuminate\Support\Facades\Storage::disk('local')->path($storedPath);
+        if ($storedPath) {
+            if (\Illuminate\Support\Facades\Storage::disk('local')->exists($storedPath)) {
+                $this->certPath = \Illuminate\Support\Facades\Storage::disk('local')->path($storedPath);
+            } else {
+                // Fallback a storage_path relativo a app/private para compatibilidad manual
+                $this->certPath = storage_path('app/private/' . $storedPath);
+            }
         } else {
             // Default path (config or manual)
-            $this->certPath = config('verifactu.cert_path', storage_path('app/certificates/verifactu.p12'));
+            $this->certPath = config('verifactu.cert_path', storage_path('app/private/certs/verifactu.p12'));
         }
 
         $this->certPassword = \App\Models\Setting::get('verifactu_cert_password', config('verifactu.cert_password', ''));
@@ -41,22 +47,23 @@ class AeatService
      */
     public function submitAlta(string $xmlContent): array
     {
+        $tempCert = null;
+        $tempKey = null;
+
         try {
+            // Cargar componentes del certificado (Soporta Legacy a través de CertificateService)
+            $certs = $this->certService->loadP12($this->certPath, $this->certPassword);
+            $tempCert = $this->certService->createTempPem($certs['cert']);
+            $tempKey = $this->certService->createTempPem($certs['pkey']);
+
             // Veri*Factu usa SOAP 1.1 o 1.2 sobre HTTPS con certificado de cliente
             $options = [
                 'verify' => true,
+                'curl'   => [
+                    CURLOPT_SSLCERT => $tempCert,
+                    CURLOPT_SSLKEY  => $tempKey,
+                ]
             ];
-
-            // Si es P12, necesitamos opciones específicas de cURL
-            if (str_ends_with(strtolower($this->certPath), '.p12') || str_ends_with(strtolower($this->certPath), '.pfx')) {
-                $options['curl'] = [
-                    CURLOPT_SSLCERT => $this->certPath,
-                    CURLOPT_SSLCERTPASSWD => $this->certPassword,
-                    CURLOPT_SSLCERTTYPE => 'P12',
-                ];
-            } else {
-                $options['cert'] = [$this->certPath, $this->certPassword];
-            }
 
             $response = Http::withOptions($options)
                 ->withBody($this->wrapInSoapEnvelope($xmlContent), 'text/xml; charset=utf-8')
@@ -81,6 +88,9 @@ class AeatService
                 'success' => false,
                 'error' => $e->getMessage()
             ];
+        } finally {
+            if ($tempCert && file_exists($tempCert)) @unlink($tempCert);
+            if ($tempKey && file_exists($tempKey)) @unlink($tempKey);
         }
     }
 
@@ -89,18 +99,22 @@ class AeatService
      */
     public function submitConsulta(string $xmlContent): array
     {
-        try {
-            $options = ['verify' => true];
+        $tempCert = null;
+        $tempKey = null;
 
-            if (str_ends_with(strtolower($this->certPath), '.p12') || str_ends_with(strtolower($this->certPath), '.pfx')) {
-                $options['curl'] = [
-                    CURLOPT_SSLCERT => $this->certPath,
-                    CURLOPT_SSLCERTPASSWD => $this->certPassword,
-                    CURLOPT_SSLCERTTYPE => 'P12',
-                ];
-            } else {
-                $options['cert'] = [$this->certPath, $this->certPassword];
-            }
+        try {
+            // Cargar componentes del certificado
+            $certs = $this->certService->loadP12($this->certPath, $this->certPassword);
+            $tempCert = $this->certService->createTempPem($certs['cert']);
+            $tempKey = $this->certService->createTempPem($certs['pkey']);
+
+            $options = [
+                'verify' => true,
+                'curl'   => [
+                    CURLOPT_SSLCERT => $tempCert,
+                    CURLOPT_SSLKEY  => $tempKey,
+                ]
+            ];
 
             $response = Http::withOptions($options)
                 ->withBody($this->wrapInSoapEnvelope($xmlContent), 'text/xml; charset=utf-8')
@@ -124,6 +138,9 @@ class AeatService
                 'success' => false,
                 'error' => $e->getMessage()
             ];
+        } finally {
+            if ($tempCert && file_exists($tempCert)) @unlink($tempCert);
+            if ($tempKey && file_exists($tempKey)) @unlink($tempKey);
         }
     }
 
@@ -152,11 +169,5 @@ XML;
             return $matches[1];
         }
         return null;
-    }
-
-    protected function getCertPemPath(): string
-    {
-        // En producción, cargaríamos el path real del certificado
-        return $this->certPath;
     }
 }

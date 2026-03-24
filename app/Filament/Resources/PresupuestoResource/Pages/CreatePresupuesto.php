@@ -11,14 +11,7 @@ class CreatePresupuesto extends CreateRecord
 
     public function mount(): void
     {
-        $data = [
-            'tipo' => 'presupuesto',
-            'estado' => 'borrador',
-            'user_id' => auth()->id(),
-            'fecha' => now(),
-            'serie' => \App\Models\BillingSerie::where('activo', true)->orderBy('codigo')->first()?->codigo ?? 'A',
-            'fecha_validez' => now()->addDays(30),
-        ];
+        $data = \App\Models\Documento::getDefaultsFor('presupuesto');
 
         $record = static::getModel()::create($data);
 

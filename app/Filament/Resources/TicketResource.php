@@ -384,6 +384,29 @@ class TicketResource extends Resource
                             ->success()
                             ->send();
                     }),
+                
+                Tables\Actions\Action::make('send_verifactu')
+                    ->label('')
+                    ->tooltip('Enviar a Veri*Factu (AEAT)')
+                    ->icon('heroicon-o-cloud-arrow-up')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->visible(fn($record) => \App\Models\Setting::get('verifactu_active', false) && $record->status === 'completed' && $record->verifactu_status !== 'accepted')
+                    ->action(function ($record) {
+                        $verifactuService = app(\App\Services\VerifactuService::class);
+                        $res = $verifactuService->enviarAEAT($record);
+                        if ($res['success']) {
+                            \Filament\Notifications\Notification::make()->title('Veri*Factu: Aceptado')->success()->send();
+                        } else {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Veri*Factu: Error')
+                                ->body($res['error'] ?? 'Error desconocido')
+                                ->danger()
+                                ->persistent()
+                                ->send();
+                        }
+                    }),
+
                 Tables\Actions\Action::make('mostrarEnPOS')
                     ->label('')
                     ->tooltip('Mostrar en POS')
@@ -400,6 +423,24 @@ class TicketResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+
+                    Tables\Actions\BulkAction::make('send_verifactu_bulk')
+                        ->label('Enviar a Veri*Factu')
+                        ->icon('heroicon-o-cloud-arrow-up')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->action(function ($records) {
+                            $verifactuService = app(\App\Services\VerifactuService::class);
+                            $count = 0;
+                            foreach ($records as $record) {
+                                if ($record->status === 'completed' && $record->verifactu_status !== 'accepted') {
+                                    $res = $verifactuService->enviarAEAT($record); if ($res['success']) {
+                                        $count++;
+                                    }
+                                }
+                            }
+                            \Filament\Notifications\Notification::make()->title("$count tickets enviados a Veri*Factu")->success()->send();
+                        }),
                 ]),
             ])
             ->defaultSort('created_at', 'desc');

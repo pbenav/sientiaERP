@@ -50,7 +50,7 @@ class PedidoCompraResource extends Resource
                 
                 Forms\Components\Select::make('forma_pago_id')->label('Forma de Pago')
                     ->relationship('formaPago', 'nombre', fn($query) => $query->activas())
-                    ->searchable()->preload()->default(fn() => \App\Models\FormaPago::activas()->first()?->id ?? 1)->required()
+                    ->searchable()->preload()->default(fn() => \App\Models\Setting::get('default_forma_pago_id', 1))->required()
                     ->createOptionForm([
                         Forms\Components\TextInput::make('codigo')->required()->maxLength(50),
                         Forms\Components\TextInput::make('nombre')->required()->maxLength(100),

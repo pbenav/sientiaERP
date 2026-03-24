@@ -317,6 +317,19 @@ class Documento extends Model
     public function confirmar(): void
     {
         if ($this->estado === 'borrador') {
+            // Validaciones de integridad antes de confirmar
+            if (!$this->tercero_id) {
+                throw new \Exception("No se puede confirmar el documento sin asignar un Cliente o Proveedor.");
+            }
+
+            if (!$this->forma_pago_id) {
+                throw new \Exception("Debe seleccionar una Forma de Pago antes de confirmar.");
+            }
+
+            if ($this->total == 0) {
+                throw new \Exception("No se puede confirmar un documento con importe total de cero (0,00 €).");
+            }
+
             // Validación cronológica para facturas
             if (in_array($this->tipo, ['factura', 'factura_compra'])) {
                 $ultimaFactura = self::where('tipo', $this->tipo)
@@ -369,6 +382,31 @@ class Documento extends Model
                 try {
                    $verifactuService = app(\App\Services\VerifactuService::class);
                    $verifactuService->procesarEncadenamiento($this);
+                   
+                   // ENVIAR AUTOMÁTICAMENTE A LA AEAT (Si el modo es inmediato)
+                   if (\App\Models\Setting::get('verifactu_active', false)) {
+                       $sendMode = \App\Models\Setting::get('verifactu_send_mode', 'immediate');
+                       
+                       if ($sendMode === 'immediate') {
+                           $res = $verifactuService->enviarAEAT($this);
+                           if ($res['success']) {
+                               \Filament\Notifications\Notification::make()
+                                   ->title('Veri*Factu: Factura aceptada')
+                                   ->success()
+                                   ->body($res['error'] ?? "La factura {$this->numero} ha sido registrada y aceptada por la AEAT.")
+                                   ->send();
+                           } else {
+                               \Filament\Notifications\Notification::make()
+                                   ->title('Veri*Factu: Error en el envío')
+                                   ->danger()
+                                   ->body($res['error'] ?? "No se pudo completar el registro en la AEAT. Revise el rastro técnico.")
+                                   ->persistent()
+                                   ->send();
+                           }
+                       } else {
+                           \Illuminate\Support\Facades\Log::info("Verifactu: Envío diferido para factura {$this->numero} (Modo manual activo).");
+                       }
+                   }
                 } catch (\Exception $e) {
                    \Illuminate\Support\Facades\Log::error('Error Verifactu Documento: ' . $e->getMessage());
                 }

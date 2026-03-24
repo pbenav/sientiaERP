@@ -77,54 +77,102 @@ class VerifactuService
 
     /**
      * Enviar el registro a la AEAT.
+     * Devuelve ['success' => bool, 'error' => string|null]
      */
-    public function enviarAEAT(Model $model): bool
+    public function enviarAEAT(Model $model): array
     {
         if (!\App\Models\Setting::get('verifactu_active', false)) {
-            return false;
+            return ['success' => false, 'error' => 'Servicio Veri*Factu no activo en ajustes.'];
+        }
+
+        // --- SEGURIDAD: NO REENVIAR SI YA ESTÁ ACEPTADO ---
+        if ($model->verifactu_status === 'accepted') {
+            return ['success' => true, 'error' => 'Este documento ya ha sido aceptado por la AEAT previamente.'];
+        }
+
+        // --- PREVENCIÓN DE DUPLICIDAD (CANJE DE TICKETS) ---
+        if ($model instanceof Documento && $model->tipo === 'factura') {
+            $ticket = Ticket::where('documento_id', $model->id)->first();
+            if ($ticket && $ticket->verifactu_status === 'accepted') {
+                $msg = "Factura de canje: Ya reportada como Ticket {$ticket->numero}.";
+                Log::info("Verifactu: " . $msg);
+                
+                $model->update([
+                    'verifactu_status' => 'accepted',
+                    'verifactu_aeat_id' => 'REEMPLAZA:' . $ticket->numero,
+                    'verifactu_qr_url' => $ticket->verifactu_qr_url,
+                ]);
+
+                return ['success' => true, 'error' => $msg];
+            }
         }
 
         // 1. Generar XML
-        $xmlBuilder = app(VerifactuXmlService::class);
-        $xml = $xmlBuilder->generateAltaXml($model);
-        
-        // 2. Enviar a la AEAT
-        $aeat = app(AeatService::class);
-        $res = $aeat->submitAlta($xml);
-        
-        if ($res['success']) {
+        try {
+            $xmlBuilder = app(VerifactuXmlService::class);
+            $xml = $xmlBuilder->generateAltaXml($model);
+            
+            // 2. Enviar a la AEAT
+            $aeat = app(AeatService::class);
+            $res = $aeat->submitAlta($xml);
+            
+            if ($res['success']) {
+                $model->update([
+                    'verifactu_status' => 'accepted',
+                    'verifactu_aeat_id' => $res['trace_id'] ?? 'OK'
+                ]);
+                return ['success' => true, 'error' => null];
+            }
+            
+            $errorMsg = $res['error'] ?? 'Error desconocido en la comunicación con AEAT';
             $model->update([
-                'verifactu_status' => 'accepted',
-                'verifactu_aeat_id' => $res['trace_id'] ?? 'OK'
+                'verifactu_status' => 'error',
+                'verifactu_signature' => substr($errorMsg, 0, 1000)
             ]);
-            return true;
+            
+            return ['success' => false, 'error' => $errorMsg];
+
+        } catch (\Exception $e) {
+            $errorMsg = "Error interno: " . $e->getMessage();
+            Log::error("Verifactu Service: " . $errorMsg);
+            $model->update([
+                'verifactu_status' => 'error',
+                'verifactu_signature' => substr($errorMsg, 0, 1000)
+            ]);
+            return ['success' => false, 'error' => $errorMsg];
         }
-        
-        $model->update([
-            'verifactu_status' => 'error',
-            'verifactu_signature' => substr($res['error'], 0, 1000) // Guardar error para depuración
-        ]);
-        
-        return false;
     }
 
     protected function generarQrUrl(Model $model, string $huella): string
     {
-        // URL Oficial de consulta de Veri*Factu (Tike)
         $mode = \App\Models\Setting::get('verifactu_mode', config('verifactu.mode', 'test'));
-        $baseUrl = ($mode === 'production') 
-            ? "https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/ValidarQR"
-            : "https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR";
+        $isProduction = ($mode === 'production');
+
+        // URL Oficial de consulta de Veri*Factu (Tike)
+        // En PRE la v1/f no está habilitada públicamente aún
+        $baseUrl = $isProduction 
+            ? \App\Models\Setting::get('verifactu_qr_url_production', "https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/v1/f")
+            : \App\Models\Setting::get('verifactu_qr_url_test', "https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR");
 
         $nif = \App\Models\Setting::get('verifactu_nif_emisor', config('verifactu.nif_emisor', 'B00000000'));
         $fecha = $model->fecha ? $model->fecha->format('d-m-Y') : ($model->completed_at ? $model->completed_at->format('d-m-Y') : now()->format('d-m-Y'));
         
-        $params = [
-            'nif' => $nif,
-            'numserie' => $model->numero,
-            'fecha' => $fecha,
-            'importe' => number_format($model->total, 2, '.', ''),
-        ];
+        if ($isProduction) {
+            $params = [
+                'nif' => $nif,
+                'num' => $model->numero,
+                'fec' => $fecha,
+                'imp' => number_format($model->total, 2, '.', ''),
+            ];
+        } else {
+            // Parámetros para ValidarQR en PRE
+            $params = [
+                'nif' => $nif,
+                'numserie' => $model->numero,
+                'fecha' => $fecha,
+                'importe' => number_format($model->total, 2, '.', ''),
+            ];
+        }
 
         return $baseUrl . "?" . http_build_query($params);
     }
