@@ -37,6 +37,18 @@ class Ticket extends Model
         'verifactu_aeat_id', 'verifactu_qr_url', 'verifactu_signature',
     ];
 
+    /**
+     * Obtener el último ticket aceptado por la AEAT para encadenamiento.
+     */
+    public function getUltimaAceptada(): ?self
+    {
+        return self::where('status', 'completed')
+            ->where('verifactu_status', 'Aceptado')
+            ->whereNotNull('verifactu_huella')
+            ->orderBy('numero', 'desc')
+            ->first();
+    }
+
     protected $attributes = [
         'descuento_porcentaje' => 0,
         'descuento_importe' => 0,

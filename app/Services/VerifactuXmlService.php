@@ -14,62 +14,109 @@ class VerifactuXmlService
      */
     public function generateAltaXml(Model $model): string
     {
+        // Forzar carga de relación para integridad en el XML
+        // Forzar carga de relación para integridad en el XML
+        if (($model instanceof Documento || $model instanceof Ticket) && !$model->relationLoaded('tercero')) {
+            $model->load('tercero');
+        }
         $nifEmisor = \App\Models\Setting::get('verifactu_nif_emisor', config('verifactu.nif_emisor', 'B00000000'));
-        $nombreEmisor = \App\Models\Setting::get('verifactu_nombre_emisor', config('verifactu.nombre_emisor', 'SienteERP Demo'));
-        
-        $xml = new \SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><sum:RegAltaRegistroFacturacion xmlns:sum="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"></sum:RegAltaRegistroFacturacion>');
-        
-        // Cabecera del mensaje
-        $cabecera = $xml->addChild('sum:Cabecera');
-        $cabecera->addChild('sum:IDEmisorFactura')->addChild('sum:NIF', $nifEmisor);
-        
-        // El contenido del registro
-        $registro = $xml->addChild('sum:RegistroAlta');
-        $idReg = $registro->addChild('sum:IDRegistroFacturacion');
-        $idReg->addChild('sum:IDEmisorFactura')->addChild('sum:NIF', $nifEmisor);
-        $idReg->addChild('sum:NumSerieFactura', $model->numero);
+        $nombreEmisor = \App\Models\Setting::get('verifactu_nombre_emisor', config('verifactu.nombre_emisor', 'BENAVIDES ORTIGOSA PABLO ANTONIO'));
+        $tipoFactura = ($model instanceof Documento && $model->tipo === 'factura') ? 'F1' : 'F2';
         $fecha = $model->fecha ? $model->fecha->format('d-m-Y') : ($model->completed_at ? $model->completed_at->format('d-m-Y') : now()->format('d-m-Y'));
-        $idReg->addChild('sum:FechaExpedicionFactura', $fecha);
+        $total = number_format($model->total, 2, '.', '');
 
-        $registro->addChild('sum:NombreRazonEmisor', $nombreEmisor);
-        $registro->addChild('sum:TipoFactura', ($model instanceof Ticket ? 'F2' : 'F1')); // F2 = Simplificada, F1 = Completa
-        $registro->addChild('sum:ConceptoFactura', 'Venta y servicios');
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>';
+        $xml .= '<sfLR:RegFactuSistemaFacturacion xmlns:sfLR="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroLR.xsd" xmlns:sf="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd">';
         
-        // Desglose de IVA
-        $desgloseResumen = $this->getDesgloseParaXml($model);
-        $cuotas = $registro->addChild('sum:DesgloseIVA');
-        foreach ($desgloseResumen as $lineaIva) {
-            $det = $cuotas->addChild('sum:DetalleIVA');
-            $det->addChild('sum:BaseImponible', number_format($lineaIva['base'], 2, '.', ''));
-            $det->addChild('sum:TipoImpositivo', number_format($lineaIva['iva'], 2, '.', ''));
-            $det->addChild('sum:CuotaRepercutida', number_format($lineaIva['cuota_iva'], 2, '.', ''));
-        }
-
-        $registro->addChild('sum:ImporteTotal', number_format($model->total, 2, '.', ''));
-
-        // Encadenamiento (Crucial para Verifactu)
-        if ($model->verifactu_huella_anterior) {
-            $encadenamiento = $registro->addChild('sum:Encadenamiento');
-            $regAnt = $encadenamiento->addChild('sum:RegistroAnterior');
-            $idAnt = $regAnt->addChild('sum:IDRegistroFacturacion');
-            $idAnt->addChild('sum:IDEmisorFactura')->addChild('sum:NIF', $nifEmisor);
-            // Si el anterior es otro modelo, buscarlo
-            $idAnt->addChild('sum:NumSerieFactura', $this->getNumeroAnterior($model));
-            $idAnt->addChild('sum:FechaExpedicionFactura', $this->getFechaAnterior($model));
-            $regAnt->addChild('sum:Huella', $model->verifactu_huella_anterior);
-        }
-
-        // Huella del mensaje actual
-        $registro->addChild('sum:Huella', $model->verifactu_huella);
+        // CABECERA
+        $xml .= "<sfLR:Cabecera>";
+        $xml .= "<sf:ObligadoEmision>";
+        $xml .= "<sf:NombreRazon>$nombreEmisor</sf:NombreRazon>";
+        $xml .= "<sf:NIF>$nifEmisor</sf:NIF>";
+        $xml .= "</sf:ObligadoEmision>";
+        $xml .= "</sfLR:Cabecera>";
         
-        // Bloque de Sistema Informático (Semaforización)
-        $sif = $registro->addChild('sum:SistemaInformatico');
-        $sif->addChild('sum:NombreSistema', 'SIENTEERP');
-        $sif->addChild('sum:Versión', config('app.version', '0.3.0'));
-        $sif->addChild('sum:NIFEntidadDesarrolladora', 'B12345678'); // NIF de la empresa propietaria de SienteERP
-        $sif->addChild('sum:TipoUso', '01'); // 01 = Uso general
-
-        return $xml->asXML();
+        // REGISTRO ALTA
+        $xml .= "<sfLR:RegistroAlta>";
+        $xml .= "<sfLR:RegistroFactura>";
+        
+        $xml .= "<sfLR:IDFactura>";
+        $xml .= "<sfLR:IDEmisorFactura><sf:NIF>$nifEmisor</sf:NIF></sfLR:IDEmisorFactura>";
+        $numeroLimpio = str_replace(' ', '', $model->numero);
+        $xml .= "<sfLR:NumSerieFactura>{$numeroLimpio}</sfLR:NumSerieFactura>";
+        $xml .= "<sfLR:FechaExpedicionFactura>$fecha</sfLR:FechaExpedicionFactura>";
+        $xml .= "</sfLR:IDFactura>";
+        
+        $xml .= "<sf:NombreRazonEmisor>$nombreEmisor</sf:NombreRazonEmisor>";
+        $xml .= "<sf:TipoFactura>$tipoFactura</sf:TipoFactura>";
+        $xml .= "<sf:DescripcionOperacion>Venta y servicios</sf:DescripcionOperacion>";
+        
+        // Indicadores obligatorios (S/N)
+        $xml .= "<sf:FacturaSimplificadaArticulos72_73>N</sf:FacturaSimplificadaArticulos72_73>";
+        $xml .= "<sf:FacturaSinIdentifDestinatarioArticulo6_1_d>N</sf:FacturaSinIdentifDestinatarioArticulo6_1_d>";
+        $xml .= "<sf:Macrodato>N</sf:Macrodato>";
+        $xml .= "<sf:EmitidaPorTercerosODestinatario>N</sf:EmitidaPorTercerosODestinatario>";
+        
+        // DESTINATARIO (Mandatorio para F1)
+        if ($model->tercero) {
+            $nifDest = $model->tercero->cif ?: ($model->tercero->nif ?: '');
+            $xml .= "<sfLR:Destinatario>";
+            $xml .= "<sf:NombreRazon>{$model->tercero->razon_social}</sf:NombreRazon>";
+            $xml .= "<sf:NIF>$nifDest</sf:NIF>";
+            $xml .= "</sfLR:Destinatario>";
+        }
+        
+        $xml .= "<sfLR:Desglose>";
+        $xml .= "<sfLR:DetalleDesglose>";
+        $xml .= "<sf:Impuesto>01</sf:Impuesto>";
+        $xml .= "<sf:ClaveRegimen>01</sf:ClaveRegimen>";
+        foreach ($this->getDesgloseParaXml($model) as $linea) {
+            $base = number_format($linea['base'], 2, '.', '');
+            $iva = number_format($linea['iva'], 1, '.', '');
+            $cuota = number_format($linea['cuota_iva'], 2, '.', '');
+            $xml .= "<sf:BaseImponible>$base</sf:BaseImponible>";
+            $xml .= "<sf:TipoImpositivo>$iva</sf:TipoImpositivo>";
+            $xml .= "<sf:CuotaRepercutida>$cuota</sf:CuotaRepercutida>";
+        }
+        $xml .= "</sfLR:DetalleDesglose>";
+        $xml .= "</sfLR:Desglose>";
+        
+        $xml .= "<sf:ImporteTotal>$total</sf:ImporteTotal>";
+        
+        // Encadenamiento
+        $anterior = $model->getUltimaAceptada();
+        if ($anterior) {
+            $numAnt = str_replace(' ', '', $anterior->numero);
+            $fechaAnt = $anterior->fecha->format('d-m-Y');
+            $xml .= "<sfLR:Encadenamiento>";
+            $xml .= "<sfLR:RegistroAnterior>";
+            $xml .= "<sfLR:IDFactura>";
+            $xml .= "<sfLR:IDEmisorFactura><sf:NIF>$nifEmisor</sf:NIF></sfLR:IDEmisorFactura>";
+            $xml .= "<sfLR:NumSerieFactura>$numAnt</sfLR:NumSerieFactura>";
+            $xml .= "<sfLR:FechaExpedicionFactura>$fechaAnt</sfLR:FechaExpedicionFactura>";
+            $xml .= "</sfLR:IDFactura>";
+            $xml .= "<sfLR:Huella>{$anterior->verifactu_huella}</sfLR:Huella>";
+            $xml .= "</sfLR:RegistroAnterior>";
+            $xml .= "</sfLR:Encadenamiento>";
+        }
+        
+        $xml .= "<sfLR:Huella>{$model->verifactu_huella}</sfLR:Huella>";
+        
+        $xml .= "<sfLR:SistemaInformatico>";
+        $xml .= "<sf:NombreRazon>SIENTIA ERP</sf:NombreRazon>";
+        $xml .= "<sf:NIF>24265003A</sf:NIF>";
+        $xml .= "<sf:NombreSistemaInformatico>SIENTIA ERP</sf:NombreSistemaInformatico>";
+        $xml .= "<sf:IdSistemaInformatico>01</sf:IdSistemaInformatico>";
+        $xml .= "<sf:Version>1.0</sf:Version>";
+        $xml .= "<sf:NumeroInstalacion>01</sf:NumeroInstalacion>";
+        $xml .= "<sf:TipoUsoSistemaInformatico>01</sf:TipoUsoSistemaInformatico>";
+        $xml .= "</sfLR:SistemaInformatico>";
+        
+        $xml .= "</sfLR:RegistroFactura>";
+        $xml .= "</sfLR:RegistroAlta>";
+        $xml .= "</sfLR:RegFactuSistemaFacturacion>";
+        
+        return $xml;
     }
 
     protected function getDesgloseParaXml(Model $model): array

@@ -65,21 +65,46 @@ class AeatService
                 ]
             ];
 
+            $soapBody = $this->wrapInSoapEnvelope($xmlContent);
+            Log::info("VERIFACTU SOAP PAYLOAD:");
+            Log::info($soapBody);
+            
             $response = Http::withOptions($options)
-                ->withBody($this->wrapInSoapEnvelope($xmlContent), 'text/xml; charset=utf-8')
+                ->withoutVerifying()
+                ->withHeaders([
+                    'SOAPAction' => '""', 
+                    'Content-Type' => 'text/xml; charset=utf-8',
+                    'User-Agent' => 'GuzzleHttp/7',
+                    'Connection' => 'close',
+                ])
+                ->withBody($soapBody, 'text/xml; charset=utf-8')
                 ->post($this->altaEndpoint);
 
+            Log::debug("Verifactu: Respuesta de AEAT ({$response->status()})\n" . $response->body());
+
             if ($response->successful()) {
+                $body = $response->body();
+                
+                // Buscar rastro de aceptación real en el XML
+                // Estructura habitual: <EstadoRegistro>Aceptado</EstadoRegistro> o <EstadoRegistro>AceptadoConErrores</EstadoRegistro>
+                if (stripos($body, 'Aceptado') !== false) {
+                    return [
+                        'success' => true,
+                        'data' => $body,
+                        'trace_id' => $this->extractTraceId($body) ?: 'OK'
+                    ];
+                }
+
                 return [
-                    'success' => true,
-                    'data' => $response->body(),
-                    'trace_id' => $this->extractTraceId($response->body())
+                    'success' => false,
+                    'error' => "AEAT Rechazado (Business Error): " . $this->extractError($body),
+                    'raw_body' => $body
                 ];
             }
 
             return [
                 'success' => false,
-                'error' => "AEAT Error ({$response->status()}): " . $response->body()
+                'error' => "AEAT Error de Red ({$response->status()}): " . $response->body()
             ];
 
         } catch (\Exception $e) {
@@ -149,17 +174,9 @@ class AeatService
      */
     protected function wrapInSoapEnvelope(string $xmlContent): string
     {
-        // Limpiar declaraciones XML internas del content para evitar conflicto
-        $xmlContent = preg_replace('/^<\?xml[^>]*\?>/i', '', $xmlContent);
+        $xmlContent = trim(preg_replace('/^<\?xml[^>]*\?>/i', '', $xmlContent));
         
-        return <<<XML
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tic="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd">
-   <soapenv:Header/>
-   <soapenv:Body>
-      $xmlContent
-   </soapenv:Body>
-</soapenv:Envelope>
-XML;
+        return '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"><soapenv:Body>' . $xmlContent . '</soapenv:Body></soapenv:Envelope>';
     }
 
     protected function extractTraceId(string $soapResponse): ?string
@@ -169,5 +186,16 @@ XML;
             return $matches[1];
         }
         return null;
+    }
+
+    protected function extractError(string $soapResponse): string
+    {
+        if (preg_match('/<DescripcionErrorRegistro>([^<]+)<\/DescripcionErrorRegistro>/i', $soapResponse, $matches)) {
+            return $matches[1];
+        }
+        if (preg_match('/<faultstring>([^<]+)<\/faultstring>/i', $soapResponse, $matches)) {
+            return $matches[1];
+        }
+        return "Error no especificado en la respuesta.";
     }
 }

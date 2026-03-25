@@ -195,12 +195,12 @@ class FacturaResource extends Resource
                 Tables\Columns\IconColumn::make('verifactu_status')
                     ->label('VF')
                     ->options([
-                        'heroicon-s-check-circle' => 'accepted',
+                        'heroicon-s-check-circle' => 'Aceptado',
                         'heroicon-s-x-circle' => 'error',
                         'heroicon-s-clock' => 'pending',
                     ])
                     ->colors([
-                        'success' => 'accepted',
+                        'success' => 'Aceptado',
                         'danger' => 'error',
                         'warning' => 'pending',
                     ])
@@ -253,8 +253,26 @@ class FacturaResource extends Resource
                     ->icon('heroicon-o-cloud-arrow-up')
                     ->color('success')
                     ->requiresConfirmation()
-                    ->visible(fn($record) => \App\Models\Setting::get('verifactu_active', false) && $record->estado === 'confirmado' && $record->verifactu_status !== 'accepted')
+                    ->visible(fn($record) => \App\Models\Setting::get('verifactu_active', false) && $record->estado === 'confirmado' && $record->verifactu_status !== 'Aceptado')
                     ->action(function ($record) {
+                        // VALIDACIÓN DE ORDEN CORRELATIVO (Sugerencia de Pablo)
+                        $anterioresPendientes = \App\Models\Documento::where('tipo', 'factura')
+                            ->where('serie', $record->serie)
+                            ->where('numero', '<', $record->numero)
+                            ->whereYear('fecha', $record->fecha->year)
+                            ->where('verifactu_status', '!=', 'Aceptado')
+                            ->exists();
+
+                        if ($anterioresPendientes) {
+                            Notification::make()
+                                ->title('Veri*Factu: Envío Bloqueado')
+                                ->warning()
+                                ->body('Existen facturas anteriores en esta serie que aún no han sido aceptadas por la AEAT. Veri*Factu requiere que se envíen de forma correlativa para mantener el encadenamiento.')
+                                ->persistent()
+                                ->send();
+                            return;
+                        }
+
                         $verifactuService = app(\App\Services\VerifactuService::class);
                         $res = $verifactuService->enviarAEAT($record);
                         if ($res['success']) {
@@ -390,10 +408,40 @@ class FacturaResource extends Resource
                         ->action(function ($records) {
                             $verifactuService = app(\App\Services\VerifactuService::class);
                             $count = 0;
-                            foreach ($records as $record) {
-                                if ($record->estado === 'confirmado' && $record->verifactu_status !== 'accepted') {
-                                    $res = $verifactuService->enviarAEAT($record); if ($res['success']) {
+                            
+                            // Ordenar por número para asegurar envío correlativo
+                            $sortedRecords = $records->sortBy('numero');
+
+                            foreach ($sortedRecords as $record) {
+                                if ($record->estado === 'confirmado' && $record->verifactu_status !== 'Aceptado') {
+                                    
+                                    // Validación de orden antes de cada envío
+                                    $anterioresPendientes = \App\Models\Documento::where('tipo', 'factura')
+                                        ->where('serie', $record->serie)
+                                        ->where('numero', '<', $record->numero)
+                                        ->whereYear('fecha', $record->fecha->year)
+                                        ->where('verifactu_status', '!=', 'Aceptado')
+                                        ->exists();
+
+                                    if ($anterioresPendientes) {
+                                        Notification::make()
+                                            ->title("Bulk: Envío detenido en {$record->numero}")
+                                            ->warning()
+                                            ->body("La factura anterior de su serie aún no ha sido aceptada.")
+                                            ->send();
+                                        break; // Detenemos el proceso bulk para no romper la cadena
+                                    }
+
+                                    $res = $verifactuService->enviarAEAT($record); 
+                                    if ($res['success']) {
                                         $count++;
+                                    } else {
+                                        Notification::make()
+                                            ->title("Error enviando {$record->numero}")
+                                            ->danger()
+                                            ->body($res['error'] ?? 'Error desconocido')
+                                            ->send();
+                                        break; // Si una falla, paramos el bulk
                                     }
                                 }
                             }

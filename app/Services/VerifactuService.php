@@ -86,19 +86,19 @@ class VerifactuService
         }
 
         // --- SEGURIDAD: NO REENVIAR SI YA ESTÁ ACEPTADO ---
-        if ($model->verifactu_status === 'accepted') {
+        if ($model->verifactu_status === 'Aceptado') {
             return ['success' => true, 'error' => 'Este documento ya ha sido aceptado por la AEAT previamente.'];
         }
 
         // --- PREVENCIÓN DE DUPLICIDAD (CANJE DE TICKETS) ---
         if ($model instanceof Documento && $model->tipo === 'factura') {
             $ticket = Ticket::where('documento_id', $model->id)->first();
-            if ($ticket && $ticket->verifactu_status === 'accepted') {
+            if ($ticket && $ticket->verifactu_status === 'Aceptado') {
                 $msg = "Factura de canje: Ya reportada como Ticket {$ticket->numero}.";
                 Log::info("Verifactu: " . $msg);
                 
                 $model->update([
-                    'verifactu_status' => 'accepted',
+                    'verifactu_status' => 'Aceptado',
                     'verifactu_aeat_id' => 'REEMPLAZA:' . $ticket->numero,
                     'verifactu_qr_url' => $ticket->verifactu_qr_url,
                 ]);
@@ -107,18 +107,21 @@ class VerifactuService
             }
         }
 
-        // 1. Generar XML
+        // 1. Asegurar Huella y Encadenamiento antes de generar XML
+        $this->procesarEncadenamiento($model);
+
+        // 2. Generar XML
         try {
             $xmlBuilder = app(VerifactuXmlService::class);
             $xml = $xmlBuilder->generateAltaXml($model);
             
-            // 2. Enviar a la AEAT
+            // 3. Enviar a la AEAT
             $aeat = app(AeatService::class);
             $res = $aeat->submitAlta($xml);
             
             if ($res['success']) {
                 $model->update([
-                    'verifactu_status' => 'accepted',
+                    'verifactu_status' => 'Aceptado',
                     'verifactu_aeat_id' => $res['trace_id'] ?? 'OK'
                 ]);
                 return ['success' => true, 'error' => null];

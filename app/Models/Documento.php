@@ -661,6 +661,26 @@ class Documento extends Model
     }
 
     /**
+     * Obtener valores por defecto para un nuevo documento
+     */
+    public static function getDefaultsFor(string $tipo): array
+    {
+        return [
+            'tipo' => $tipo,
+            'fecha' => now(),
+            'estado' => 'borrador',
+            'serie' => Setting::get('default_serie', 'A'),
+            'user_id' => auth()->id() ?? (\class_exists('\Filament\Facades\Filament') ? \Filament\Facades\Filament::auth()->id() : null) ?? 1,
+            'recargo_equivalencia' => 0,
+            'porcentaje_irpf' => 0,
+            'subtotal' => 0,
+            'iva' => 0,
+            'base_imponible' => 0,
+            'total' => 0,
+        ];
+    }
+
+    /**
      * Borrado recursivo en cadena (este documento y todos sus orígenes)
      */
     public function borrarEnCadena(): bool
@@ -688,5 +708,19 @@ class Documento extends Model
         }
 
         return true;
+    }
+    /**
+     * Obtiene la última factura aceptada por Veri*Factu para la misma serie y año.
+     * Útil para el encadenamiento de huellas.
+     */
+    public function getUltimaAceptada()
+    {
+        return self::where('tipo', $this->tipo)
+            ->where('serie', $this->serie)
+            ->whereYear('fecha', $this->fecha->year)
+            ->where('verifactu_status', 'Aceptado')
+            ->where('id', '!=', $this->id)
+            ->orderBy('numero', 'desc')
+            ->first();
     }
 }

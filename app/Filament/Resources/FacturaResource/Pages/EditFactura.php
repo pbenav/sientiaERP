@@ -26,6 +26,9 @@ class EditFactura extends EditRecord
                 ->modalDescription('Al confirmar la factura se asignará la fecha de hoy (' . now()->format('d/m/Y') . ') para garantizar la correlación numérica de la serie. ¿Desea continuar?')
                 ->action(function () {
                     try {
+                        // Guardar cambios del formulario primero (importante para capturar el cliente/tercero_id)
+                        $this->save(shouldRedirect: false, shouldSendSavedNotification: false);
+                        
                         $this->record->fecha = now();
                         $this->record->confirmar();
                         $this->refreshFormData(['numero', 'estado', 'fecha']);
@@ -35,6 +38,9 @@ class EditFactura extends EditRecord
                             ->body("Se ha asignado el número {$this->record->numero}")
                             ->success()
                             ->send();
+                    } catch (\Illuminate\Validation\ValidationException $e) {
+                        // Errores de validación del formulario de Filament
+                        throw $e;
                     } catch (\Exception $e) {
                         Notification::make()
                             ->title('Error al confirmar')
@@ -55,6 +61,9 @@ class EditFactura extends EditRecord
                 ->modalDescription('Esta factura está confirmada pero sin número asignado. Se le asignará un número automático.')
                 ->action(function () {
                     try {
+                        // Guardar cambios primero
+                        $this->save(shouldRedirect: false, shouldSendSavedNotification: false);
+                        
                         $this->record->fecha = now();
                         $this->record->numero = \App\Models\NumeracionDocumento::generarNumero(
                             $this->record->tipo,
