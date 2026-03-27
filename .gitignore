@@ -27,3 +27,4 @@ yarn-error.log
 php-local.ini
 /public/.user.ini
 shop
+public/descargas/*.apk

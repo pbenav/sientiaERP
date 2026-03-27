@@ -397,6 +397,31 @@ class SettingsPage extends Page
                                         TextInput::make('facturae_endpoint_production')->label('URL Producción (Oficial)')->columnSpanFull(),
                                     ]),
                             ]),
+                        Tabs\Tab::make('ERP Mobile')
+                            ->icon('heroicon-o-device-phone-mobile')
+                            ->schema([
+                                Section::make('Aplicación Android')
+                                    ->description('Descarga e instala la aplicación para gestión de inventario y OCR.')
+                                    ->schema([
+                                        TextInput::make('app_version')
+                                            ->label('Versión Actual')
+                                            ->default('1.0.0+1')
+                                            ->disabled(),
+                                        \Filament\Forms\Components\Placeholder::make('download_link')
+                                            ->label('Enlace de Descarga')
+                                            ->content(new \Illuminate\Support\HtmlString('
+                                                <div class="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                                                    <div class="p-3 bg-primary-100 dark:bg-primary-900 rounded-lg text-primary-600 dark:text-primary-400">
+                                                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-sm font-medium">Instalador Android (APK)</p>
+                                                        <a href="/descargas/sientia-mobile.apk" target="_blank" class="text-xs text-primary-600 hover:underline">Descargar sientia-mobile.apk</a>
+                                                    </div>
+                                                </div>
+                                            ')),
+                                    ])->columns(2),
+                            ]),
                     ])->columnSpanFull()
             ])
             ->statePath('data');
