@@ -28,7 +28,15 @@ Route::middleware('auth:sanctum')->prefix('erp')->group(function () {
     Route::post('/terceros', [ErpController::class, 'createTercero']);
     Route::put('/terceros/{id}', [ErpController::class, 'updateTercero']);
     Route::delete('/terceros/{id}', [ErpController::class, 'deleteTercero']);
-    
+});
+
+// Rutas ERP Públicas (Para pruebas de escaneo)
+Route::prefix('erp')->group(function () {
+    Route::post('/productos/scan-label', [ErpController::class, 'scanProductoLabel']);
+});
+
+// Rutas protegidas con Sanctum - ERP
+Route::middleware('auth:sanctum')->prefix('erp')->group(function () {
     // Documentos
     Route::get('/documentos', [ErpController::class, 'getDocumentos']);
     Route::get('/documentos/{id}', [ErpController::class, 'getDocumento']);
@@ -43,7 +51,6 @@ Route::middleware('auth:sanctum')->prefix('erp')->group(function () {
     Route::get('/productos', [ErpController::class, 'getProductos']);
     Route::get('/productos/search', [ErpController::class, 'searchProducto']); // Más específica antes de /{id}
     Route::get('/productos/{id}', [ErpController::class, 'getProducto']);
-    Route::post('/productos/scan-label', [ErpController::class, 'scanProductoLabel']);
     Route::post('/productos', [ErpController::class, 'createProducto']);
     Route::put('/productos/{id}', [ErpController::class, 'updateProducto']);
     Route::delete('/productos/{id}', [ErpController::class, 'deleteProducto']);
