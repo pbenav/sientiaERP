@@ -350,6 +350,73 @@ EOT;
         }
     }
 
+    public function extractProductFromLabel(string $imagePath): array
+    {
+        $apiKey = Setting::get('ai_gemini_api_key', config('services.google.ai_api_key'));
+        if (empty($apiKey)) {
+            throw new \Exception("API Key de Gemini no configurada en Ajustes ni en .env");
+        }
+
+        $client = \Gemini::factory()
+            ->withApiKey($apiKey)
+            ->make();
+
+        $imageData = base64_encode(file_get_contents($imagePath));
+        $mimeType = mime_content_type($imagePath);
+
+        $prompt = <<<EOT
+You are a High-Precision Visual Extraction AI specialized in Retail Price Labels and Product Tags.
+Your goal is to transform the provided image of a product label into a structured JSON dataset with 100% accuracy.
+
+LABEL ANALYSIS RULES:
+1. **Barcode/Product Code**: Look for a numeric or alphanumeric sequence that looks like a barcode (EAN, UPC, or local SKU). 
+2. **Product Name/Description**: Extract the full product name, including brand and variety. Merge multi-line text if necessary.
+3. **Price Identification**: This is CRITICAL. Extract the final consumer price (PVP). 
+   - It is usually the largest number on the tag.
+   - Separate the numeric value from the currency symbol (€). Use a dot (.) as decimal separator.
+   - Ignore "Price per unit/weight" if there is a larger "Final Price".
+4. **Data Types**: 
+   - "price" MUST be a number.
+   - "code" and "name" MUST be strings.
+
+JSON STRUCTURE:
+{
+  "code": "Numeric code or SKU",
+  "name": "Full product description",
+  "price": 0.00,
+  "currency": "EUR"
+}
+
+NO HALLUCINATIONS: If a value is not present, use null for strings and 0 for numbers.
+OUTPUT: Return ONLY the JSON object. Do not include introductory text or markdown formatting.
+EOT;
+
+        try {
+            $modelName = Setting::get('ai_gemini_model', 'gemini-1.5-flash');
+            $result = $client->generativeModel($modelName)->generateContent([
+                $prompt,
+                new \Gemini\Data\Blob(
+                    mimeType: \Gemini\Enums\MimeType::from($mimeType),
+                    data: $imageData
+                )
+            ]);
+
+            $jsonRaw = $result->text();
+            
+            // Cleanup markdown
+            $jsonRaw = str_replace(['```json', '```'], '', $jsonRaw);
+            $jsonRaw = trim($jsonRaw);
+
+            $data = json_decode($jsonRaw, true, 512, JSON_THROW_ON_ERROR);
+
+            return $data;
+
+        } catch (\Exception $e) {
+            Log::error("Gemini Label Scan Error: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
     protected function extractWithOpenAi(string $imagePath): array
     {
         $apiKey = Setting::get('ai_openai_api_key');

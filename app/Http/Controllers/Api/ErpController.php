@@ -9,6 +9,7 @@ use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Services\AiDocumentParserService;
 
 class ErpController extends Controller
 {
@@ -280,6 +281,44 @@ class ErpController extends Controller
         $producto->delete();
 
         return response()->json(['message' => 'Producto eliminado']);
+    }
+
+    /**
+     * Scan Product Label via Gemini Vision
+     */
+    public function scanProductoLabel(Request $request, AiDocumentParserService $aiService): JsonResponse
+    {
+        $request->validate([
+            'image' => 'required|image|max:5120', // Max 5MB
+        ]);
+
+        try {
+            $imagePath = $request->file('image')->getRealPath();
+            $data = $aiService->extractProductFromLabel($imagePath);
+
+            // Intentar emparejar con un producto existente en la DB si el código existe
+            if (!empty($data['code'])) {
+                $product = Product::where('barcode', $data['code'])
+                    ->orWhere('sku', $data['code'])
+                    ->first();
+                
+                if ($product) {
+                    $data['database_id'] = $product->id;
+                    $data['database_price'] = $product->price;
+                    $data['database_name'] = $product->name;
+                    $data['in_database'] = true;
+                } else {
+                    $data['in_database'] = false;
+                }
+            }
+
+            return response()->json($data);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Gemini Scan Error: " . $e->getMessage());
+            return response()->json([
+                'error' => 'No se pudo procesar la etiqueta: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

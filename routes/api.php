@@ -43,6 +43,7 @@ Route::middleware('auth:sanctum')->prefix('erp')->group(function () {
     Route::get('/productos', [ErpController::class, 'getProductos']);
     Route::get('/productos/search', [ErpController::class, 'searchProducto']); // Más específica antes de /{id}
     Route::get('/productos/{id}', [ErpController::class, 'getProducto']);
+    Route::post('/productos/scan-label', [ErpController::class, 'scanProductoLabel']);
     Route::post('/productos', [ErpController::class, 'createProducto']);
     Route::put('/productos/{id}', [ErpController::class, 'updateProducto']);
     Route::delete('/productos/{id}', [ErpController::class, 'deleteProducto']);
