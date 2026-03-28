@@ -365,23 +365,22 @@ EOT;
         $mimeType = mime_content_type($imagePath);
 
         $prompt = <<<EOT
-You are a High-Precision Visual Extraction AI specialized in Retail Price Labels and Product Tags.
+You are a High-Precision Visual Extraction AI specialized in Retail Price Labels and shelf tags.
 Your goal is to transform the provided image of a product label into a structured JSON dataset with 100% accuracy.
 
-LABEL ANALYSIS RULES:
-1. **Barcode/Product Code**: Look for a numeric or alphanumeric sequence that looks like a barcode (EAN, UPC, or local SKU). 
-2. **Product Name/Description**: Extract the full product name, including brand and variety. Merge multi-line text if necessary.
-3. **Price Identification**: This is CRITICAL. Extract the final consumer price (PVP). 
-   - It is usually the largest number on the tag.
-   - Separate the numeric value from the currency symbol (€). Use a dot (.) as decimal separator.
-   - Ignore "Price per unit/weight" if there is a larger "Final Price".
-4. **Data Types**: 
+LABEL VISUAL HIERARCHY RULES:
+1. **Product Name/Description**: Usually the MOST RELEVANT text. Often at the top, in BOLD or LARGER font than other supporting text. Extract the FULL name (brand + variety).
+2. **Main Price (PVP)**: This is the FINAL selling price. It is ALWAYS the LARGEST numeric font on the label. 
+   - DO NOT confuse it with "Price per kg", "Price per unit", or "Was/Old Price".
+   - Extract only the numeric value. Use a dot (.) as decimal separator.
+3. **Barcode/Product Code**: Look for a numeric sequence (EAN13, EAN8, etc.) or a SKU often found near a barcode or at the bottom corner.
+4. **Data Consistency**: 
    - "price" MUST be a number.
    - "code" and "name" MUST be strings.
 
 JSON STRUCTURE:
 {
-  "code": "Numeric code or SKU",
+  "code": "Barcode or SKU string",
   "name": "Full product description",
   "price": 0.00,
   "currency": "EUR"
