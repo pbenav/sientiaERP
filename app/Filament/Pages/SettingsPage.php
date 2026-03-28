@@ -14,7 +14,9 @@ use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Pages\Page;
+use Filament\Forms\Components\Placeholder;
 use Filament\Notifications\Notification;
+use Illuminate\Support\HtmlString;
 
 class SettingsPage extends Page
 {
@@ -397,30 +399,28 @@ class SettingsPage extends Page
                                         TextInput::make('facturae_endpoint_production')->label('URL Producción (Oficial)')->columnSpanFull(),
                                     ]),
                             ]),
-                        Tabs\Tab::make('ERP Mobile')
+                        Tabs\Tab::make('App Móvil')
                             ->icon('heroicon-o-device-phone-mobile')
                             ->schema([
-                                Section::make('Aplicación Android')
-                                    ->description('Descarga e instala la aplicación para gestión de inventario y OCR.')
+                                Section::make('Descargar ERP Móvil (APK)')
+                                    ->description('Descarga e instala la aplicación móvil en dispositivos Android compatibles.')
                                     ->schema([
-                                        TextInput::make('app_version')
-                                            ->label('Versión Actual')
-                                            ->default('1.0.0+1')
-                                            ->disabled(),
-                                        \Filament\Forms\Components\Placeholder::make('download_link')
-                                            ->label('Enlace de Descarga')
-                                            ->content(new \Illuminate\Support\HtmlString('
-                                                <div class="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-                                                    <div class="p-3 bg-primary-100 dark:bg-primary-900 rounded-lg text-primary-600 dark:text-primary-400">
-                                                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                        Placeholder::make('download_apk')
+                                            ->label('Instalador de la App')
+                                            ->content(new HtmlString('
+                                                <div class="flex items-center gap-4 p-4 bg-primary-50 rounded-xl border border-primary-100">
+                                                    <div class="p-3 bg-primary-500 rounded-lg text-white">
+                                                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
                                                     </div>
                                                     <div>
-                                                        <p class="text-sm font-medium">Instalador Android (APK)</p>
-                                                        <a href="/descargas/sientia-mobile.apk" target="_blank" class="text-xs text-primary-600 hover:underline">Descargar sientia-mobile.apk</a>
+                                                        <a href="/descargas/erp-mobile-latest.apk" target="_blank" class="text-lg font-bold text-primary-600 hover:text-primary-700 underline">Descargar APK (v1.0.0-latest)</a>
+                                                        <p class="text-sm text-gray-500">Última actualización: Hoy</p>
                                                     </div>
                                                 </div>
-                                            ')),
-                                    ])->columns(2),
+                                            '))
+                                            ->helperText('Asegúrate de permitir la instalación de aplicaciones de fuentes desconocidas en los ajustes de tu teléfono Android.'),
+                                    ]),
+                            ]),
                             ]),
                     ])->columnSpanFull()
             ])

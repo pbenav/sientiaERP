@@ -12,6 +12,73 @@ use Illuminate\Support\Str;
 
 class AiDocumentParserService
 {
+    public function extractProductLabelFromImage(string $imagePath): array
+    {
+        $provider = Setting::get('ai_provider', 'gemini'); 
+        
+        try {
+            if ($provider === 'gemini') {
+                return $this->extractProductLabelWithGemini($imagePath);
+            }
+            // Fallback to Tesseract if needed, but for product labels Gemini is much better
+            return $this->extractProductLabelWithGemini($imagePath);
+        } catch (\Throwable $e) {
+            Log::warning("Fallo extracción de etiqueta ($provider): " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    protected function extractProductLabelWithGemini(string $imagePath): array
+    {
+        $apiKey = Setting::get('ai_gemini_api_key', config('services.google.ai_api_key'));
+        if (empty($apiKey)) {
+            throw new \Exception("API Key de Gemini no configurada");
+        }
+
+        $client = \Gemini::factory()->withApiKey($apiKey)->make();
+
+        $imageData = base64_encode(file_get_contents($imagePath));
+        $mimeType = mime_content_type($imagePath);
+
+        $prompt = <<<EOT
+You are a High-Precision Product Label Extraction AI.
+Your goal is to extract the Product Name and its Price from the provided image.
+
+RULES:
+1. **Product Name**: Look for the most prominent text that represents a product name or description.
+2. **Price**: Look for a numeric value, often accompanied by currency symbols like € or $.
+3. **Accuracy**: Return only the name and price in a clean JSON format.
+
+JSON STRUCTURE:
+{
+  "name": "Product Name",
+  "price": 0.00
+}
+
+OUTPUT: Return ONLY the JSON object.
+EOT;
+
+        $modelName = Setting::get('ai_gemini_model', 'gemini-1.5-flash');
+        $result = $client->generativeModel($modelName)->generateContent([
+            $prompt,
+            new \Gemini\Data\Blob(
+                mimeType: \Gemini\Enums\MimeType::from($mimeType),
+                data: $imageData
+            )
+        ]);
+
+        $jsonRaw = $result->text();
+        
+        // Cleanup JSON
+        if (preg_match('/```json\s*(.*?)\s*```/s', $jsonRaw, $matches)) {
+            $jsonRaw = $matches[1];
+        } else {
+            $jsonRaw = trim(str_replace(['```json', '```'], '', $jsonRaw));
+        }
+
+        return json_decode($jsonRaw, true) ?? ['name' => 'Desconocido', 'price' => 0.0];
+    }
+
     public function extractFromImage(string $imagePath): array
     {
         // Petición usuario: Usar Tesseract por defecto o fallback silencioso si Google falla.

@@ -283,6 +283,42 @@ class ErpController extends Controller
         return response()->json(['message' => 'Producto eliminado']);
     }
 
+    public function scanLabel(Request $request): JsonResponse
+    {
+        $request->validate([
+            'image' => 'required|image',
+        ]);
+
+        $imagePath = $request->file('image')->getRealPath();
+        
+        try {
+            $service = app(\App\Services\AiDocumentParserService::class);
+            $aiData = $service->extractProductLabelFromImage($imagePath);
+            
+            // Search in DB
+            $product = null;
+            if (!empty($aiData['name'])) {
+                $product = Product::where('name', 'LIKE', "%{$aiData['name']}%")
+                    ->orWhere('active', true) // Just for checking if we can find it
+                    ->first();
+                // Realmente queremos que 'LIKE' sea lo primero
+                 $product = Product::where('name', 'LIKE', "%{$aiData['name']}%")->first();
+            }
+
+            return response()->json([
+                'name' => $aiData['name'] ?? 'Desconocido',
+                'price' => (float)($aiData['price'] ?? 0),
+                'in_database' => (bool)$product,
+                'database_id' => $product?->id,
+                'database_name' => $product?->name,
+                'database_price' => $product?->price,
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
     /**
      * Scan Product Label via Gemini Vision
      */
