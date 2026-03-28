@@ -21,16 +21,21 @@ class VerifactuService
         // 1. Obtener el hash del documento anterior en la misma serie
         $hashAnterior = $this->obtenerHashAnterior($model);
         
-        // 2. Generar el contenido canónico para el hash actual
-        $contenido = $this->generarContenidoCanonico($model, $hashAnterior);
+        // 2. Generar Timestamp ISO 8601 una única vez para consistencia
+        $fechaHoraHuso = now()->toIso8601String();
+
+        // 3. Generar el contenido canónico para el hash actual
+        $contenido = $this->generarContenidoCanonico($model, $hashAnterior, $fechaHoraHuso);
         
-        // 3. Calcular SHA-256
-        $huella = hash('sha256', $contenido);
+        // 4. Calcular SHA-256 en Mayúsculas (Requerido)
+        $huella = strtoupper(hash('sha256', $contenido));
         
-        // 4. Actualizar el modelo
+        // 5. Actualizar el modelo con trazabilidad completa
         $model->update([
             'verifactu_huella' => $huella,
             'verifactu_huella_anterior' => $hashAnterior,
+            'verifactu_fecha_hora_huso' => $fechaHoraHuso,
+            'verifactu_tipo_huella' => '01', // SHA-256
             'verifactu_qr_url' => $this->generarQrUrl($model, $huella)
         ]);
         
@@ -45,6 +50,8 @@ class VerifactuService
     protected function obtenerHashAnterior(Model $model): ?string
     {
         $class = get_class($model);
+        
+        // Buscamos el último que tenga huella, independientemente de si fue aceptado o no (la cadena sigue)
         $query = $class::where('id', '!=', $model->id)
             ->whereNotNull('verifactu_huella')
             ->orderBy('id', 'desc');
@@ -59,20 +66,53 @@ class VerifactuService
     }
 
     /**
-     * Generar cadena de datos para el hash (Simplificado para fase 1)
+     * Generar cadena de datos para el hash SEGÚN ESPECIFICACIONES AEAT (nombre=valor&...)
      */
-    protected function generarContenidoCanonico(Model $model, ?string $hashAnterior): string
+    protected function generarContenidoCanonico(Model $model, ?string $hashAnterior, string $fechaHoraHuso): string
     {
-        $fecha = $model->fecha ? $model->fecha->format('Y-m-d') : ($model->completed_at ? $model->completed_at->format('Y-m-d') : now()->format('Y-m-d'));
+        $nifEmisor = \App\Models\Setting::get('verifactu_nif_emisor', config('verifactu.nif_emisor', 'B00000000'));
+        $numeroLimpio = str_replace(' ', '', $model->numero);
+        $fechaExp = $model->fecha ? $model->fecha->format('d-m-Y') : ($model->completed_at ? $model->completed_at->format('d-m-Y') : now()->format('d-m-Y'));
         
-        $partes = [
-            $model->numero,
-            $fecha,
-            number_format($model->total, 2, '.', ''),
-            $hashAnterior ?? str_repeat('0', 64)
-        ];
+        $isAnulacion = ($model instanceof Documento && $model->estado === 'anulado') 
+                    || ($model instanceof Ticket && $model->status === 'cancelled');
+
+        if ($isAnulacion) {
+            // Formato Anulación: IDEmisorFacturaAnulada=VAL&NumSerieFacturaAnulada=VAL&FechaExpedicionFacturaAnulada=VAL&Huella=VAL&FechaHoraHusoGenRegistro=VAL
+            $partes = [
+                "IDEmisorFacturaAnulada={$nifEmisor}",
+                "NumSerieFacturaAnulada={$numeroLimpio}",
+                "FechaExpedicionFacturaAnulada={$fechaExp}",
+                "Huella=" . ($hashAnterior ?? ""),
+                "FechaHoraHusoGenRegistro={$fechaHoraHuso}"
+            ];
+        } else {
+            $tipoFactura = ($model instanceof Documento && $model->tipo === 'factura') ? 'F1' : 'F2';
+            $importeTotal = number_format((float)$model->total, 2, '.', '');
+            
+            // Calcular CuotaTotal (Suma de todas las cuotas del desglose)
+            $cuotaTotal = 0.0;
+            $xmlBuilder = app(VerifactuXmlService::class);
+            $desglose = $xmlBuilder->getDesgloseParaXml($model);
+            foreach ($desglose as $linea) {
+                $cuotaTotal += (float)$linea['cuota_iva'];
+            }
+            $cuotaTotalStr = number_format($cuotaTotal, 2, '.', '');
+
+            // Formato Alta: IDEmisorFactura=VAL&NumSerieFactura=VAL&FechaExpedicionFactura=VAL&TipoFactura=VAL&CuotaTotal=VAL&ImporteTotal=VAL&Huella=VAL&FechaHoraHusoGenRegistro=VAL
+            $partes = [
+                "IDEmisorFactura={$nifEmisor}",
+                "NumSerieFactura={$numeroLimpio}",
+                "FechaExpedicionFactura={$fechaExp}",
+                "TipoFactura={$tipoFactura}",
+                "CuotaTotal={$cuotaTotalStr}",
+                "ImporteTotal={$importeTotal}",
+                "Huella=" . ($hashAnterior ?? ""),
+                "FechaHoraHusoGenRegistro={$fechaHoraHuso}"
+            ];
+        }
         
-        return implode('|', $partes);
+        return implode('&', $partes);
     }
 
     /**
@@ -114,7 +154,6 @@ class VerifactuService
 
     /**
      * Enviar el registro a la AEAT desde el Worker (Síncrono para el Job pero Asíncrono para el usuario).
-     * Devuelve ['success' => bool, 'error' => string|null]
      */
     public function enviarAEAT(Model $model): array
     {
@@ -122,40 +161,30 @@ class VerifactuService
             return ['success' => false, 'error' => 'Servicio Veri*Factu no activo en ajustes.'];
         }
 
-        // --- SEGURIDAD: NO REENVIAR SI YA ESTÁ ACEPTADO ---
         if ($model->verifactu_status === 'Aceptado') {
             return ['success' => true, 'error' => 'Este documento ya ha sido aceptado por la AEAT previamente.'];
         }
 
-        // --- PREVENCIÓN DE DUPLICIDAD (CANJE DE TICKETS) ---
-        if ($model instanceof Documento && $model->tipo === 'factura') {
-            $ticket = Ticket::where('documento_id', $model->id)->first();
-            if ($ticket && $ticket->verifactu_status === 'Aceptado') {
-                $msg = "Factura de canje: Ya reportada como Ticket {$ticket->numero}.";
-                Log::info("Verifactu: " . $msg);
-                
-                $model->update([
-                    'verifactu_status' => 'Aceptado',
-                    'verifactu_aeat_id' => 'REEMPLAZA:' . $ticket->numero,
-                    'verifactu_qr_url' => $ticket->verifactu_qr_url,
-                ]);
-
-                return ['success' => true, 'error' => $msg];
-            }
-        }
-
-        // 2. Generar XML (usando la huella que procesarEncadenamiento ya grabó en BD síncronamente)
         try {
             $xmlBuilder = app(VerifactuXmlService::class);
-            $xml = $xmlBuilder->generateAltaXml($model);
             
-            // 3. Enviar a la AEAT
+            // Detectar si es una anulación (Documento: estado=anulado, Ticket: status=cancelled)
+            $isAnulacion = ($model instanceof Documento && $model->estado === 'anulado') 
+                        || ($model instanceof Ticket && $model->status === 'cancelled');
+
+            if ($isAnulacion) {
+                $xml = $xmlBuilder->generateAnulacionXml($model);
+            } else {
+                $xml = $xmlBuilder->generateAltaXml($model);
+            }
+            
             $aeat = app(AeatService::class);
-            $res = $aeat->submitAlta($xml);
+            $res = $aeat->submitAlta($xml); 
             
             if ($res['success']) {
+                $status = $isAnulacion ? 'Anulacion_Aceptada' : 'Aceptado';
                 $model->update([
-                    'verifactu_status' => 'Aceptado',
+                    'verifactu_status' => $status,
                     'verifactu_aeat_id' => $res['trace_id'] ?? 'OK'
                 ]);
                 return ['success' => true, 'error' => null];
@@ -180,13 +209,25 @@ class VerifactuService
         }
     }
 
+    /**
+     * Encolar anulación de factura.
+     */
+    public function encolarAnulacion(Model $model): void
+    {
+        if (!\App\Models\Setting::get('verifactu_active', false)) return;
+
+        // 1. Calcular huella de anulación (encadenada al último registro)
+        $this->procesarEncadenamiento($model);
+
+        // 2. Dispatch Job
+        \App\Jobs\EnviarVerifactuJob::dispatch($model);
+    }
+
     protected function generarQrUrl(Model $model, string $huella): string
     {
         $mode = \App\Models\Setting::get('verifactu_mode', config('verifactu.mode', 'test'));
         $isProduction = ($mode === 'production');
 
-        // URL Oficial de consulta de Veri*Factu (Tike)
-        // En PRE la v1/f no está habilitada públicamente aún
         $baseUrl = $isProduction 
             ? \App\Models\Setting::get('verifactu_qr_url_production', "https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/v1/f")
             : \App\Models\Setting::get('verifactu_qr_url_test', "https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR");
@@ -194,22 +235,9 @@ class VerifactuService
         $nif = \App\Models\Setting::get('verifactu_nif_emisor', config('verifactu.nif_emisor', 'B00000000'));
         $fecha = $model->fecha ? $model->fecha->format('d-m-Y') : ($model->completed_at ? $model->completed_at->format('d-m-Y') : now()->format('d-m-Y'));
         
-        if ($isProduction) {
-            $params = [
-                'nif' => $nif,
-                'num' => $model->numero,
-                'fec' => $fecha,
-                'imp' => number_format($model->total, 2, '.', ''),
-            ];
-        } else {
-            // Parámetros para ValidarQR en PRE
-            $params = [
-                'nif' => $nif,
-                'numserie' => $model->numero,
-                'fecha' => $fecha,
-                'importe' => number_format($model->total, 2, '.', ''),
-            ];
-        }
+        $params = $isProduction 
+            ? ['nif' => $nif, 'num' => $model->numero, 'fec' => $fecha, 'imp' => number_format($model->total, 2, '.', '')]
+            : ['nif' => $nif, 'numserie' => $model->numero, 'fecha' => $fecha, 'importe' => number_format($model->total, 2, '.', '')];
 
         return $baseUrl . "?" . http_build_query($params);
     }

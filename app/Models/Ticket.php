@@ -171,6 +171,11 @@ class Ticket extends Model
         $this->update([
             'status' => 'cancelled',
         ]);
+
+        // VERIFACTU: Encolar anulación ante la AEAT
+        if (\App\Models\Setting::get('verifactu_active', false)) {
+            app(\App\Services\VerifactuService::class)->encolarAnulacion($this);
+        }
     }
 
     /**

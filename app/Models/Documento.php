@@ -454,6 +454,11 @@ class Documento extends Model
 
             $this->update(['estado' => 'anulado']);
 
+            // VERIFACTU: Encolar anulación ante la AEAT (Solo facturas de emisión)
+            if ($this->tipo === 'factura' && \App\Models\Setting::get('verifactu_active', false)) {
+                app(\App\Services\VerifactuService::class)->encolarAnulacion($this);
+            }
+
             // DESBLOQUEAR EL ORIGEN (si existe)
             if ($this->documento_origen_id) {
                 $origen = $this->documentoOrigen;
