@@ -73,7 +73,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->navigationItems([
                 NavigationItem::make('App Móvil (APK)')
-                    ->url('/descargas/sientia-mobile.apk', shouldOpenInNewTab: true)
+                    ->url('/descargas/erp-mobile-latest.apk', shouldOpenInNewTab: true)
                     ->icon('heroicon-o-device-phone-mobile')
                     ->group('Configuración')
                     ->sort(110),
