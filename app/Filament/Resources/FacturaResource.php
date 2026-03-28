@@ -291,7 +291,20 @@ class FacturaResource extends Resource
                                 ->persistent()
                                 ->send();
                         }
-                    }),
+                Tables\Actions\Action::make('debug_verifactu')
+                    ->label('')
+                    ->tooltip('Depurar Envío Veri*Factu (Tiempo Real)')
+                    ->icon('heroicon-o-bug-ant')
+                    ->color('warning')
+                    ->modalHeading('Depurador de Conexión AEAT')
+                    ->modalWidth(\Filament\Support\Enums\MaxWidth::FourExtraLarge)
+                    ->modalContent(fn ($record) => view('livewire.verifactu-debugger', [
+                        'recordId' => $record->id,
+                        'modelClass' => get_class($record)
+                    ]))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar')
+                    ->visible(fn($record) => auth()->user()->isSuperAdmin() && \App\Models\Setting::get('verifactu_active', false) && $record->estado === 'confirmado'),
 
                 Tables\Actions\Action::make('facturae')
                     ->label('')
