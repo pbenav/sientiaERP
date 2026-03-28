@@ -421,7 +421,6 @@ class SettingsPage extends Page
                                             ->helperText('Asegúrate de permitir la instalación de aplicaciones de fuentes desconocidas en los ajustes de tu teléfono Android.'),
                                     ]),
                             ]),
-                            ]),
                     ])->columnSpanFull()
             ])
             ->statePath('data');
