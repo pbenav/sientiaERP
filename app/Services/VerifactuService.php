@@ -229,12 +229,13 @@ class VerifactuService
         $isProduction = ($mode === 'production');
 
         $baseUrl = $isProduction 
-            ? \App\Models\Setting::get('verifactu_qr_url_production', "https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/v1/f")
-            : \App\Models\Setting::get('verifactu_qr_url_test', "https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR");
+            ? \App\Models\Setting::get('verifactu_qr_url_production', config('verifactu.qr_url.production'))
+            : \App\Models\Setting::get('verifactu_qr_url_test', config('verifactu.qr_url.test'));
 
         $nif = \App\Models\Setting::get('verifactu_nif_emisor', config('verifactu.nif_emisor', 'B00000000'));
         $fecha = $model->fecha ? $model->fecha->format('d-m-Y') : ($model->completed_at ? $model->completed_at->format('d-m-Y') : now()->format('d-m-Y'));
         
+        // Parámetros estándar para Consulta Pública VERI*FACTU
         $params = $isProduction 
             ? ['nif' => $nif, 'num' => $model->numero, 'fec' => $fecha, 'imp' => number_format($model->total, 2, '.', '')]
             : ['nif' => $nif, 'numserie' => $model->numero, 'fecha' => $fecha, 'importe' => number_format($model->total, 2, '.', '')];

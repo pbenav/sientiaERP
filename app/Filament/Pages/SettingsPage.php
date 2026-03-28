@@ -357,12 +357,12 @@ class SettingsPage extends Page
                                     ->description('Direcciones web oficiales de la Agencia Tributaria')
                                     ->collapsed()
                                     ->schema([
-                                        TextInput::make('verifactu_endpoint_test')->label('URL Alta (Pruebas)')->columnSpanFull(),
-                                        TextInput::make('verifactu_endpoint_test_query')->label('URL Consulta (Pruebas)')->columnSpanFull(),
-                                        TextInput::make('verifactu_qr_url_test')->label('URL QR (Pruebas)')->columnSpanFull(),
-                                        TextInput::make('verifactu_endpoint_production')->label('URL Alta (Producción)')->columnSpanFull(),
-                                        TextInput::make('verifactu_endpoint_production_query')->label('URL Consulta (Producción)')->columnSpanFull(),
-                                        TextInput::make('verifactu_qr_url_production')->label('URL QR (Producción)')->columnSpanFull(),
+                                        TextInput::make('verifactu_endpoint_test')->label('URL Alta (Pruebas)')->default('https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP')->columnSpanFull(),
+                                        TextInput::make('verifactu_endpoint_test_query')->label('URL Consulta (Pruebas)')->default('https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/ConsultaLRSOAP')->columnSpanFull(),
+                                        TextInput::make('verifactu_qr_url_test')->label('URL QR (Pruebas)')->default('https://prewww2.aeat.es/wlpl/VERI-FACTU/ConsultaPublica')->columnSpanFull(),
+                                        TextInput::make('verifactu_endpoint_production')->label('URL Alta (Producción)')->default('https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP')->columnSpanFull(),
+                                        TextInput::make('verifactu_endpoint_production_query')->label('URL Consulta (Producción)')->default('https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/ConsultaLRSOAP')->columnSpanFull(),
+                                        TextInput::make('verifactu_qr_url_production')->label('URL QR (Producción)')->default('https://www2.agenciatributaria.gob.es/wlpl/VERI-FACTU/ConsultaPublica')->columnSpanFull(),
                                     ]),
                             ]),
                         

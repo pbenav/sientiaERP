@@ -71,13 +71,7 @@ class AdminPanelProvider extends PanelProvider
                 'Configuración',
                 'Administración',
             ])
-            ->navigationItems([
-                NavigationItem::make('App Móvil (APK)')
-                    ->url('/descargas/erp-mobile-latest.apk', shouldOpenInNewTab: true)
-                    ->icon('heroicon-o-device-phone-mobile')
-                    ->group('Configuración')
-                    ->sort(110),
-            ])
+
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->renderHook(
                 'panels::body.end',

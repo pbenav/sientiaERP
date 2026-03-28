@@ -121,6 +121,12 @@ class TicketResource extends Resource
                                     ->label('Huella Anterior (Chain)')
                                     ->disabled()
                                     ->columnSpan(2),
+                                
+                                Forms\Components\ViewField::make('verifactu_qr_url')
+                                    ->label('Código QR Legal')
+                                    ->view('filament.forms.components.verifactu-qr')
+                                    ->columnSpanFull()
+                                    ->visible(fn($record) => $record && !empty($record->verifactu_qr_url)),
                             ])
                     ])
                     ->visible(fn($record) => $record && !empty($record->verifactu_huella)),
