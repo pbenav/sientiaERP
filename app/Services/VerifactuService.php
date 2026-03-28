@@ -76,7 +76,44 @@ class VerifactuService
     }
 
     /**
-     * Enviar el registro a la AEAT.
+     * Encolar el envío asíncrono a VeriFactu.
+     * Esto calcula la huella de encadenamiento antes de despachar el worker 
+     * para prevenir condiciones de carrera en el orden cronológico.
+     */
+    public function encolar(Model $model): array
+    {
+        if (!\App\Models\Setting::get('verifactu_active', false)) {
+            return ['success' => false, 'error' => 'Servicio inactivo'];
+        }
+
+        if ($model->verifactu_status === 'Aceptado') {
+            return ['success' => true, 'error' => 'Ya fue aceptado previamente.'];
+        }
+
+        // --- VALIDAR REQUISITOS F1 ---
+        if ($model instanceof Documento && $model->tipo === 'factura') {
+            $nifDest = $model->tercero ? trim($model->tercero->nif_cif ?? '') : '';
+            if (empty($nifDest)) {
+                return ['success' => false, 'error' => 'Rechazado (Validación Interna): La AEAT requiere que el cliente tenga un NIF/CIF para emitir una Factura (F1).'];
+            }
+        }
+
+        // 1. Asegurar Huella y Encadenamiento de manera síncrona
+        // Solo calculamos y asignamos si aún no tiene huella
+        if (empty($model->verifactu_huella)) {
+            $this->procesarEncadenamiento($model);
+        }
+
+        $model->update(['verifactu_status' => 'pending']);
+
+        \App\Jobs\EnviarVerifactuJob::dispatch($model);
+
+        return ['success' => true, 'error' => null];
+    }
+
+
+    /**
+     * Enviar el registro a la AEAT desde el Worker (Síncrono para el Job pero Asíncrono para el usuario).
      * Devuelve ['success' => bool, 'error' => string|null]
      */
     public function enviarAEAT(Model $model): array
@@ -107,10 +144,7 @@ class VerifactuService
             }
         }
 
-        // 1. Asegurar Huella y Encadenamiento antes de generar XML
-        $this->procesarEncadenamiento($model);
-
-        // 2. Generar XML
+        // 2. Generar XML (usando la huella que procesarEncadenamiento ya grabó en BD síncronamente)
         try {
             $xmlBuilder = app(VerifactuXmlService::class);
             $xml = $xmlBuilder->generateAltaXml($model);

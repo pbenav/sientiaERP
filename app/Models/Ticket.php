@@ -45,6 +45,7 @@ class Ticket extends Model
         return self::where('status', 'completed')
             ->where('verifactu_status', 'Aceptado')
             ->whereNotNull('verifactu_huella')
+            ->where('id', '!=', $this->id)
             ->orderBy('numero', 'desc')
             ->first();
     }

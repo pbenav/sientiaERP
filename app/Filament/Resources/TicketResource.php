@@ -387,13 +387,17 @@ class TicketResource extends Resource
                 
                 Tables\Actions\Action::make('send_verifactu')
                     ->label('')
-                    ->tooltip('Enviar a Veri*Factu (AEAT)')
+                    ->tooltip('Enviar a Veri*Factu (Manual/AEAT)')
                     ->icon('heroicon-o-cloud-arrow-up')
                     ->color('success')
                     ->requiresConfirmation()
-                    ->visible(fn($record) => \App\Models\Setting::get('verifactu_active', false) && $record->status === 'completed' && $record->verifactu_status !== 'accepted')
+                    ->visible(fn($record) => auth()->user()->isSuperAdmin() && \App\Models\Setting::get('verifactu_active', false) && $record->status === 'completed' && $record->verifactu_status !== 'accepted')
                     ->action(function ($record) {
                         $verifactuService = app(\App\Services\VerifactuService::class);
+                        // El Admin lo encola manual si ha fallado (conserva la huella previa o la genera de ser necesario)
+                        // Para forzar la llamada síncrona y ver el error inmediatamente, puede usar enviarAEAT
+                        // o lo puede encolar de nuevo. Puesto que es una acción de forzado de admin, mantendremos enviarAEAT
+                        // de modo síncrono para que vea el resultado en pantalla en tiempo real.
                         $res = $verifactuService->enviarAEAT($record);
                         if ($res['success']) {
                             \Filament\Notifications\Notification::make()->title('Veri*Factu: Aceptado')->success()->send();
@@ -429,17 +433,19 @@ class TicketResource extends Resource
                         ->icon('heroicon-o-cloud-arrow-up')
                         ->color('success')
                         ->requiresConfirmation()
+                        ->visible(fn() => auth()->user()->isSuperAdmin())
                         ->action(function ($records) {
                             $verifactuService = app(\App\Services\VerifactuService::class);
                             $count = 0;
                             foreach ($records as $record) {
                                 if ($record->status === 'completed' && $record->verifactu_status !== 'accepted') {
-                                    $res = $verifactuService->enviarAEAT($record); if ($res['success']) {
+                                    $res = $verifactuService->encolar($record); 
+                                    if ($res['success']) {
                                         $count++;
                                     }
                                 }
                             }
-                            \Filament\Notifications\Notification::make()->title("$count tickets enviados a Veri*Factu")->success()->send();
+                            \Filament\Notifications\Notification::make()->title("$count tickets encolados en Job asíncrono hacia Veri*Factu")->success()->send();
                         }),
                 ]),
             ])

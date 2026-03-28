@@ -920,30 +920,35 @@ class CreateTicket extends Page
         
         $this->ticket->save();
 
-        // PASO 6.5: Integración Veri*Factu (Encadenamiento y Huella)
+        // PASO 6.5: Integración Veri*Factu ASÍNCRONA
         try {
             $verifactuService = app(\App\Services\VerifactuService::class);
-            $verifactuService->procesarEncadenamiento($this->ticket);
             
             // ENVIAR AUTOMÁTICAMENTE A LA AEAT
             if (\App\Models\Setting::get('verifactu_active', false)) {
                 $sendMode = \App\Models\Setting::get('verifactu_send_mode', 'immediate');
                 
                 if ($sendMode === 'immediate') {
-                    $res = $verifactuService->enviarAEAT($this->ticket);
-                    // Notificación visual rápida (VerifactuStatus ya actualizado en enviarAEAT)
-                    if ($this->ticket->verifactu_status === 'accepted') {
+                    $res = $verifactuService->encolar($this->ticket);
+                    if ($res['success']) {
                          Notification::make()
-                            ->title('Veri*Factu: Registro OK')
+                            ->title('Veri*Factu: Procesando envío')
                             ->success()
+                            ->body('Ticket encolado para su registro en segundo plano.')
+                            ->duration(2500)
                             ->send();
                     } else {
                          Notification::make()
                             ->title('Veri*Factu: Error registro')
                             ->warning()
+                            ->body($res['error'] ?? 'Fallo encolando a AEAT')
                             ->send();
                     }
                 } else {
+                    // Si el modo es manual, generar la huella y guardar preventivamente la cadena
+                    if (empty($this->ticket->verifactu_huella)) {
+                        $verifactuService->procesarEncadenamiento($this->ticket);
+                    }
                     \Illuminate\Support\Facades\Log::info("Verifactu TPV: Envío diferido para ticket {$this->ticket->numero} (Modo manual activo).");
                 }
             }

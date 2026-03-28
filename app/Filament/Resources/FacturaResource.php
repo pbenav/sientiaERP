@@ -253,7 +253,7 @@ class FacturaResource extends Resource
                     ->icon('heroicon-o-cloud-arrow-up')
                     ->color('success')
                     ->requiresConfirmation()
-                    ->visible(fn($record) => \App\Models\Setting::get('verifactu_active', false) && $record->estado === 'confirmado' && $record->verifactu_status !== 'Aceptado')
+                    ->visible(fn($record) => auth()->user()->isSuperAdmin() && \App\Models\Setting::get('verifactu_active', false) && $record->estado === 'confirmado' && $record->verifactu_status !== 'Aceptado')
                     ->action(function ($record) {
                         // VALIDACIÓN DE ORDEN CORRELATIVO (Sugerencia de Pablo)
                         $anterioresPendientes = \App\Models\Documento::where('tipo', 'factura')
@@ -432,7 +432,8 @@ class FacturaResource extends Resource
                                         break; // Detenemos el proceso bulk para no romper la cadena
                                     }
 
-                                    $res = $verifactuService->enviarAEAT($record); 
+                                    // Encolar asíncronamente en lugar de forzar llamadas síncronas masivas
+                                    $res = $verifactuService->encolar($record); 
                                     if ($res['success']) {
                                         $count++;
                                     } else {

@@ -322,7 +322,7 @@ class Documento extends Model
                 throw new \Exception("No se puede confirmar el documento sin asignar un Cliente o Proveedor.");
             }
 
-            if (!$this->forma_pago_id) {
+            if (!$this->forma_pago_id && in_array($this->tipo, ['factura', 'factura_compra', 'ticket'])) {
                 throw new \Exception("Debe seleccionar una Forma de Pago antes de confirmar.");
             }
 
@@ -381,32 +381,36 @@ class Documento extends Model
                 // INTEGRACIÓN VERI*FACTU
                 try {
                    $verifactuService = app(\App\Services\VerifactuService::class);
-                   $verifactuService->procesarEncadenamiento($this);
                    
                    // ENVIAR AUTOMÁTICAMENTE A LA AEAT (Si el modo es inmediato)
                    if (\App\Models\Setting::get('verifactu_active', false)) {
                        $sendMode = \App\Models\Setting::get('verifactu_send_mode', 'immediate');
                        
                        if ($sendMode === 'immediate') {
-                           $res = $verifactuService->enviarAEAT($this);
+                           $res = $verifactuService->encolar($this);
                            if ($res['success']) {
                                \Filament\Notifications\Notification::make()
-                                   ->title('Veri*Factu: Factura aceptada')
+                                   ->title('Veri*Factu: Procesando...')
                                    ->success()
-                                   ->body($res['error'] ?? "La factura {$this->numero} ha sido registrada y aceptada por la AEAT.")
+                                   ->body('La factura ha sido encolada para su envío seguro en segundo plano. (Aceptación Pendiente)')
                                    ->send();
                            } else {
                                \Filament\Notifications\Notification::make()
                                    ->title('Veri*Factu: Error en el envío')
                                    ->danger()
-                                   ->body($res['error'] ?? "No se pudo completar el registro en la AEAT. Revise el rastro técnico.")
+                                   ->body($res['error'] ?? 'No se pudo encolar la factura para Veri*Factu.')
                                    ->persistent()
                                    ->send();
                            }
                        } else {
-                           \Illuminate\Support\Facades\Log::info("Verifactu: Envío diferido para factura {$this->numero} (Modo manual activo).");
+                           // Sigue bloqueando la huella criptográfica síncronamente aunque el envío manual decida posponer el worker
+                           if (empty($this->verifactu_huella)) {
+                               $verifactuService->procesarEncadenamiento($this);
+                           }
+                           \Illuminate\Support\Facades\Log::info("Verifactu: Envío diferido para factura {$this->numero} (Manual).");
                        }
                    }
+
                 } catch (\Exception $e) {
                    \Illuminate\Support\Facades\Log::error('Error Verifactu Documento: ' . $e->getMessage());
                 }

@@ -109,7 +109,7 @@ class EditFactura extends EditRecord
                 ->icon('heroicon-o-cloud-arrow-up')
                 ->color('success')
                 ->requiresConfirmation()
-                ->visible(fn() => \App\Models\Setting::get('verifactu_active', false) && $this->record->estado === 'confirmado' && $this->record->verifactu_status !== 'accepted')
+                ->visible(fn() => auth()->user()->isSuperAdmin() && \App\Models\Setting::get('verifactu_active', false) && $this->record->estado === 'confirmado' && $this->record->verifactu_status !== 'accepted')
                 ->action(function () {
                     $verifactuService = app(\App\Services\VerifactuService::class);
                     $res = $verifactuService->enviarAEAT($this->record);

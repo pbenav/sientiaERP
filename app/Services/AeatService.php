@@ -15,6 +15,10 @@ class AeatService
 
     public function __construct(CertificateService $certService)
     {
+        // Desactivar caché WSDL como medida de precaución garantizada
+        ini_set('soap.wsdl_cache_enabled', 0);
+        ini_set('soap.wsdl_cache_ttl', 0);
+
         $this->certService = $certService;
         $storedPath = \App\Models\Setting::get('verifactu_cert_path');
         
@@ -71,6 +75,7 @@ class AeatService
             
             $response = Http::withOptions($options)
                 ->withoutVerifying()
+                ->timeout(30)
                 ->withHeaders([
                     'SOAPAction' => '""', 
                     'Content-Type' => 'text/xml; charset=utf-8',
@@ -181,8 +186,7 @@ class AeatService
 
     protected function extractTraceId(string $soapResponse): ?string
     {
-        // Lógica para extraer el CSV o TraceID del XML de respuesta de la AEAT
-        if (preg_match('/<CSV>([^<]+)<\/CSV>/i', $soapResponse, $matches)) {
+        if (preg_match('/<(?:[a-zA-Z0-9]+:)?CSV>([^<]+)<\/(?:[a-zA-Z0-9]+:)?CSV>/i', $soapResponse, $matches)) {
             return $matches[1];
         }
         return null;
@@ -190,10 +194,10 @@ class AeatService
 
     protected function extractError(string $soapResponse): string
     {
-        if (preg_match('/<DescripcionErrorRegistro>([^<]+)<\/DescripcionErrorRegistro>/i', $soapResponse, $matches)) {
+        if (preg_match('/<(?:[a-zA-Z0-9]+:)?DescripcionErrorRegistro>([^<]+)<\/(?:[a-zA-Z0-9]+:)?DescripcionErrorRegistro>/i', $soapResponse, $matches)) {
             return $matches[1];
         }
-        if (preg_match('/<faultstring>([^<]+)<\/faultstring>/i', $soapResponse, $matches)) {
+        if (preg_match('/<(?:[a-zA-Z0-9]+:)?faultstring>([^<]+)<\/(?:[a-zA-Z0-9]+:)?faultstring>/i', $soapResponse, $matches)) {
             return $matches[1];
         }
         return "Error no especificado en la respuesta.";
