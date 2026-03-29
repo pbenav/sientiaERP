@@ -12,13 +12,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('documentos', function (Blueprint $table) {
-            $table->string('verifactu_fecha_hora_huso', 40)->nullable()->after('verifactu_huella');
-            $table->string('verifactu_tipo_huella', 10)->default('01')->after('verifactu_fecha_hora_huso');
+            if (!Schema::hasColumn('documentos', 'verifactu_fecha_hora_huso')) {
+                $table->string('verifactu_fecha_hora_huso', 40)->nullable()->after('verifactu_huella');
+            }
+            if (!Schema::hasColumn('documentos', 'verifactu_tipo_huella')) {
+                $table->string('verifactu_tipo_huella', 10)->default('01')->after('verifactu_fecha_hora_huso');
+            }
         });
 
         Schema::table('tickets', function (Blueprint $table) {
-            $table->string('verifactu_fecha_hora_huso', 40)->nullable()->after('verifactu_huella');
-            $table->string('verifactu_tipo_huella', 10)->default('01')->after('verifactu_fecha_hora_huso');
+            if (!Schema::hasColumn('tickets', 'verifactu_fecha_hora_huso')) {
+                $table->string('verifactu_fecha_hora_huso', 40)->nullable()->after('verifactu_huella');
+            }
+            if (!Schema::hasColumn('tickets', 'verifactu_tipo_huella')) {
+                $table->string('verifactu_tipo_huella', 10)->default('01')->after('verifactu_fecha_hora_huso');
+            }
         });
     }
 

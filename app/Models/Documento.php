@@ -29,6 +29,7 @@ class Documento extends Model
         'referencia_proveedor',
         'label_format_id', 'fila_inicio', 'columna_inicio',
         'verifactu_huella', 'verifactu_huella_anterior', 'verifactu_status',
+        'verifactu_fecha_hora_huso', 'verifactu_tipo_huella',
         'verifactu_aeat_id', 'verifactu_qr_url', 'verifactu_signature',
         'facturae_face_id', 'facturae_status', 'facturae_last_error', 'facturae_last_response',
     ];

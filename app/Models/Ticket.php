@@ -34,6 +34,7 @@ class Ticket extends Model
         'completed_at',
         'cash_session_id',
         'verifactu_huella', 'verifactu_huella_anterior', 'verifactu_status',
+        'verifactu_fecha_hora_huso', 'verifactu_tipo_huella',
         'verifactu_aeat_id', 'verifactu_qr_url', 'verifactu_signature',
     ];
 

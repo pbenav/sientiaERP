@@ -34,14 +34,22 @@ class FacturaeXmlService
             throw new \Exception('La factura debe estar confirmada y tener número asignado.');
         }
 
-        // Crear elemento raíz con el namespace por defecto para Facturae
-        $xml = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><Facturae xmlns="http://www.facturae.gob.es/formato/versiones/facturaev3_2_2.xml" xmlns:ds="http://www.w3.org/2000/09/xmldsig#"></Facturae>');
+        // Usar DOMDocument para un control total sobre namespaces y canonización
+        $doc = new DOMDocument('1.0', 'UTF-8');
+        $doc->formatOutput = false;
 
-        $this->addFileHeader($xml, $documento);
-        $this->addParties($xml, $documento);
-        $this->addInvoices($xml, $documento);
+        $nsFacturae = 'http://www.facturae.gob.es/formato/Versiones/Facturaev3_2_2.xml';
+        // El elemento raíz DEBE tener el prefijo facturae para evitar problemas con la firma
+        $root = $doc->createElementNS($nsFacturae, 'facturae:Facturae');
+        $root->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:ds', 'http://www.w3.org/2000/09/xmldsig#');
+        $root->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:facturae', $nsFacturae);
+        $doc->appendChild($root);
 
-        $unsignedXml = $xml->asXML();
+        $this->addFileHeader($doc, $root, $documento);
+        $this->addParties($doc, $root, $documento);
+        $this->addInvoices($doc, $root, $documento);
+
+        $unsignedXml = $doc->saveXML();
         
         // Firma digital si hay certificado configurado
         $certPath = Setting::get('facturae_cert_path') ?: Setting::get('verifactu_cert_path');
@@ -53,37 +61,58 @@ class FacturaeXmlService
     }
 
     /**
+     * Helper para añadir nodos con el namespace de Facturae sin prefijo (unqualified elements).
+     */
+    protected function addNode(DOMDocument $doc, \DOMNode $parent, string $name, ?string $value = null): \DOMElement
+    {
+        // Al crear elementos sin namespace explícito y sin prefijo, 
+        // DOMDocument los deja como "unqualified" respecto al namespace de la raíz (Facturae).
+        $node = $doc->createElement($name);
+        if ($value !== null) {
+            $node->nodeValue = htmlspecialchars($value);
+        }
+        $parent->appendChild($node);
+        return $node;
+    }
+
+    /**
      * Añadir cabecera del fichero.
      */
-    protected function addFileHeader(SimpleXMLElement $xml, Documento $documento): void
+    protected function addFileHeader(DOMDocument $doc, \DOMNode $root, Documento $documento): void
     {
-        $header = $xml->addChild('FileHeader');
-        $header->addChild('SchemaVersion', self::SCHEMA_VERSION);
-        $header->addChild('Modality', 'I'); // I = Individual
-        $header->addChild('InvoiceIssuerType', 'EM'); // EM = Emisor (Proveedor)
+        $header = $this->addNode($doc, $root, 'FileHeader');
+        $this->addNode($doc, $header, 'SchemaVersion', self::SCHEMA_VERSION);
+        $this->addNode($doc, $header, 'Modality', 'I');
+        $this->addNode($doc, $header, 'InvoiceIssuerType', 'EM');
         
-        $batch = $header->addChild('Batch');
+        $batch = $this->addNode($doc, $header, 'Batch');
         $nifEmisor = Setting::get('verifactu_nif_emisor') ?: '00000000X';
-        $batch->addChild('BatchIdentifier', $nifEmisor . $documento->numero);
-        $batch->addChild('InvoicesCount', '1');
+        $this->addNode($doc, $batch, 'BatchIdentifier', $nifEmisor . $documento->numero);
+        $this->addNode($doc, $batch, 'InvoicesCount', '1');
         
-        $batch->addChild('TotalInvoicesAmount')->addChild('TotalAmount', number_format($documento->total, 2, '.', ''));
-        $batch->addChild('TotalOutstandingAmount')->addChild('TotalAmount', number_format($documento->total, 2, '.', ''));
-        $batch->addChild('TotalExecutableAmount')->addChild('TotalAmount', number_format($documento->total, 2, '.', ''));
-        $batch->addChild('InvoiceCurrencyCode', 'EUR');
+        $totalAmt = $this->addNode($doc, $batch, 'TotalInvoicesAmount');
+        $this->addNode($doc, $totalAmt, 'TotalAmount', number_format($documento->total, 2, '.', ''));
+        
+        $outstandingAmt = $this->addNode($doc, $batch, 'TotalOutstandingAmount');
+        $this->addNode($doc, $outstandingAmt, 'TotalAmount', number_format($documento->total, 2, '.', ''));
+        
+        $executableAmt = $this->addNode($doc, $batch, 'TotalExecutableAmount');
+        $this->addNode($doc, $executableAmt, 'TotalAmount', number_format($documento->total, 2, '.', ''));
+        
+        $this->addNode($doc, $batch, 'InvoiceCurrencyCode', 'EUR');
     }
 
     /**
      * Añadir datos del emisor y receptor.
      */
-    protected function addParties(SimpleXMLElement $xml, Documento $documento): void
+    protected function addParties(DOMDocument $doc, \DOMNode $root, Documento $documento): void
     {
-        $parties = $xml->addChild('Parties');
+        $parties = $this->addNode($doc, $root, 'Parties');
         
         // 1. Seller (Nosotros)
-        $seller = $parties->addChild('SellerParty');
-        $this->addTaxIdentification($seller, Setting::get('verifactu_nif_emisor'), 'J');
-        $this->addPartyData($seller, Setting::get('verifactu_nombre_emisor'), [
+        $seller = $this->addNode($doc, $parties, 'SellerParty');
+        $this->addTaxIdentification($doc, $seller, Setting::get('verifactu_nif_emisor'), 'J');
+        $this->addPartyData($doc, $seller, Setting::get('verifactu_nombre_emisor'), [
             'address' => Setting::get('verifactu_direccion_emisor', 'Calle Ejemplo, 1'),
             'post_code' => Setting::get('verifactu_cp_emisor', '28001'),
             'town' => Setting::get('verifactu_poblacion_emisor', 'Madrid'),
@@ -92,15 +121,15 @@ class FacturaeXmlService
         ]);
 
         // 2. Buyer (El cliente)
-        $buyer = $parties->addChild('BuyerParty');
+        $buyer = $this->addNode($doc, $parties, 'BuyerParty');
         $tercero = $documento->tercero;
         
-        $this->addTaxIdentification($buyer, $tercero->nif_cif, $tercero->es_persona_fisica ? 'F' : 'J');
+        $this->addTaxIdentification($doc, $buyer, $tercero->nif_cif, $tercero->es_persona_fisica ? 'F' : 'J');
 
         // Si tiene DIR3, añadirlo (Obligatorio para FACe)
         // DEBE ir antes de LegalEntity/Individual en el esquema de Facturae
-        if ($tercero->dir3_oficina_contable || $tercero->dir3_organo_gestor) {
-            $adminCenters = $buyer->addChild('AdministrativeCentres');
+        if ($tercero->dir3_oficina_contable || $tercero->dir3_organo_gestor || $tercero->dir3_unidad_tramitadora) {
+            $adminCenters = $this->addNode($doc, $buyer, 'AdministrativeCentres');
             
             $addressData = [
                 'address' => $tercero->direccion_fiscal,
@@ -110,17 +139,17 @@ class FacturaeXmlService
             ];
             
             if ($tercero->dir3_oficina_contable) {
-                $this->addAdminCenter($adminCenters, '01', $tercero->dir3_oficina_contable, 'Oficina Contable', $addressData);
+                $this->addAdminCenter($doc, $adminCenters, '01', $tercero->dir3_oficina_contable, 'Oficina Contable', $addressData);
             }
             if ($tercero->dir3_organo_gestor) {
-                $this->addAdminCenter($adminCenters, '02', $tercero->dir3_organo_gestor, 'Órgano Gestor', $addressData);
+                $this->addAdminCenter($doc, $adminCenters, '02', $tercero->dir3_organo_gestor, 'Órgano Gestor', $addressData);
             }
             if ($tercero->dir3_unidad_tramitadora) {
-                $this->addAdminCenter($adminCenters, '03', $tercero->dir3_unidad_tramitadora, 'Unidad Tramitadora', $addressData);
+                $this->addAdminCenter($doc, $adminCenters, '03', $tercero->dir3_unidad_tramitadora, 'Unidad Tramitadora', $addressData);
             }
         }
 
-        $this->addPartyData($buyer, $tercero->razon_social ?: $tercero->nombre_comercial, [
+        $this->addPartyData($doc, $buyer, $tercero->razon_social ?: $tercero->nombre_comercial, [
             'address' => $tercero->direccion_fiscal,
             'post_code' => $tercero->codigo_postal_fiscal,
             'town' => $tercero->poblacion_fiscal,
@@ -132,115 +161,118 @@ class FacturaeXmlService
     /**
      * Añadir el bloque de Invoices.
      */
-    protected function addInvoices(SimpleXMLElement $xml, Documento $documento): void
+    protected function addInvoices(DOMDocument $doc, \DOMNode $root, Documento $documento): void
     {
-        $invoices = $xml->addChild('Invoices');
-        $invoice = $invoices->addChild('Invoice');
+        $invoices = $this->addNode($doc, $root, 'Invoices');
+        $invoice = $this->addNode($doc, $invoices, 'Invoice');
         
-        $header = $invoice->addChild('InvoiceHeader');
-        $header->addChild('InvoiceNumber', $documento->numero);
-        $header->addChild('InvoiceSeriesCode', $documento->serie ?: 'A');
-        $header->addChild('InvoiceDocumentType', 'FC'); // FC = Factura completa
-        $header->addChild('InvoiceClass', 'OO'); // OO = Original
+        $header = $this->addNode($doc, $invoice, 'InvoiceHeader');
+        $this->addNode($doc, $header, 'InvoiceNumber', $documento->numero);
+        $this->addNode($doc, $header, 'InvoiceSeriesCode', $documento->serie ?: 'A');
+        $this->addNode($doc, $header, 'InvoiceDocumentType', 'FC');
+        $this->addNode($doc, $header, 'InvoiceClass', 'OO');
         
-        $issueData = $invoice->addChild('InvoiceIssueData');
-        $issueData->addChild('IssueDate', $documento->fecha->format('Y-m-d'));
-        $issueData->addChild('InvoiceCurrencyCode', 'EUR');
-        $issueData->addChild('TaxCurrencyCode', 'EUR');
-        $issueData->addChild('LanguageName', 'es');
+        $issueData = $this->addNode($doc, $invoice, 'InvoiceIssueData');
+        $this->addNode($doc, $issueData, 'IssueDate', $documento->fecha->format('Y-m-d'));
+        $this->addNode($doc, $issueData, 'InvoiceCurrencyCode', 'EUR');
+        $this->addNode($doc, $issueData, 'TaxCurrencyCode', 'EUR');
+        $this->addNode($doc, $issueData, 'LanguageName', 'es');
         
         // Impuestos
-        $taxesOutputs = $invoice->addChild('TaxesOutputs');
+        $taxesOutputs = $this->addNode($doc, $invoice, 'TaxesOutputs');
         $desgloseResumen = $documento->getDesgloseImpuestos();
         
         foreach ($desgloseResumen as $lineaIva) {
-            $tax = $taxesOutputs->addChild('Tax');
-            $tax->addChild('TaxTypeCode', '01'); // 01 = IVA
-            $tax->addChild('TaxRate', number_format($lineaIva['iva'], 2, '.', ''));
-            $tax->addChild('TaxableBase')->addChild('TotalAmount', number_format($lineaIva['base'], 2, '.', ''));
-            $tax->addChild('TaxAmount')->addChild('TotalAmount', number_format($lineaIva['cuota_iva'], 2, '.', ''));
+            $tax = $this->addNode($doc, $taxesOutputs, 'Tax');
+            $this->addNode($doc, $tax, 'TaxTypeCode', '01');
+            $this->addNode($doc, $tax, 'TaxRate', number_format($lineaIva['iva'], 2, '.', ''));
+            $base = $this->addNode($doc, $tax, 'TaxableBase');
+            $this->addNode($doc, $base, 'TotalAmount', number_format($lineaIva['base'], 2, '.', ''));
+            $amt = $this->addNode($doc, $tax, 'TaxAmount');
+            $this->addNode($doc, $amt, 'TotalAmount', number_format($lineaIva['cuota_iva'], 2, '.', ''));
         }
 
         // Totales
-        $totals = $invoice->addChild('InvoiceTotals');
-        $totals->addChild('TotalGrossAmount', number_format($documento->subtotal, 2, '.', ''));
-        $totals->addChild('TotalGrossAmountBeforeTaxes', number_format($documento->subtotal, 2, '.', ''));
-        $totals->addChild('TotalTaxOutputs', number_format($documento->iva, 2, '.', ''));
-        $totals->addChild('TotalTaxesWithheld', number_format($documento->irpf ?: 0, 2, '.', ''));
-        $totals->addChild('InvoiceTotal', number_format($documento->total, 2, '.', ''));
-        $totals->addChild('TotalOutstandingAmount', number_format($documento->total, 2, '.', ''));
-        $totals->addChild('TotalExecutableAmount', number_format($documento->total, 2, '.', ''));
+        $totals = $this->addNode($doc, $invoice, 'InvoiceTotals');
+        $this->addNode($doc, $totals, 'TotalGrossAmount', number_format($documento->subtotal, 2, '.', ''));
+        $this->addNode($doc, $totals, 'TotalGrossAmountBeforeTaxes', number_format($documento->subtotal, 2, '.', ''));
+        $this->addNode($doc, $totals, 'TotalTaxOutputs', number_format($documento->iva, 2, '.', ''));
+        $this->addNode($doc, $totals, 'TotalTaxesWithheld', number_format($documento->irpf ?: 0, 2, '.', ''));
+        $this->addNode($doc, $totals, 'InvoiceTotal', number_format($documento->total, 2, '.', ''));
+        $this->addNode($doc, $totals, 'TotalOutstandingAmount', number_format($documento->total, 2, '.', ''));
+        $this->addNode($doc, $totals, 'TotalExecutableAmount', number_format($documento->total, 2, '.', ''));
         
-        // Líneas (items) - DEBEN ir antes de PaymentDetails
-        $items = $invoice->addChild('Items');
+        // Líneas (items)
+        $items = $this->addNode($doc, $invoice, 'Items');
         foreach ($documento->lineas as $linea) {
-            $item = $items->addChild('InvoiceLine');
-            $item->addChild('ItemDescription', substr($linea->descripcion, 0, 2500));
-            $item->addChild('Quantity', number_format($linea->cantidad, 2, '.', ''));
-            $item->addChild('UnitOfMeasure', '01'); // 01 = Unidades
-            $item->addChild('UnitPriceWithoutTax', number_format($linea->precio_unitario, 6, '.', ''));
-            $item->addChild('TotalCost', number_format($linea->subtotal, 2, '.', ''));
-            $item->addChild('GrossAmount', number_format($linea->subtotal, 2, '.', ''));
+            $item = $this->addNode($doc, $items, 'InvoiceLine');
+            $this->addNode($doc, $item, 'ItemDescription', substr($linea->descripcion, 0, 2500));
+            $this->addNode($doc, $item, 'Quantity', number_format($linea->cantidad, 2, '.', ''));
+            $this->addNode($doc, $item, 'UnitOfMeasure', '01');
+            $this->addNode($doc, $item, 'UnitPriceWithoutTax', number_format($linea->precio_unitario, 6, '.', ''));
+            $this->addNode($doc, $item, 'TotalCost', number_format($linea->subtotal, 2, '.', ''));
+            $this->addNode($doc, $item, 'GrossAmount', number_format($linea->subtotal, 2, '.', ''));
             
-            $itemTaxes = $item->addChild('TaxesOutputs');
-            $tax = $itemTaxes->addChild('Tax');
-            $tax->addChild('TaxTypeCode', '01');
-            $tax->addChild('TaxRate', number_format($linea->iva, 2, '.', ''));
-            $tax->addChild('TaxableBase')->addChild('TotalAmount', number_format($linea->subtotal, 2, '.', ''));
-            $tax->addChild('TaxAmount')->addChild('TotalAmount', number_format($linea->importe_iva, 2, '.', ''));
+            $itemTaxes = $this->addNode($doc, $item, 'TaxesOutputs');
+            $tax = $this->addNode($doc, $itemTaxes, 'Tax');
+            $this->addNode($doc, $tax, 'TaxTypeCode', '01');
+            $this->addNode($doc, $tax, 'TaxRate', number_format($linea->iva, 2, '.', ''));
+            $base = $this->addNode($doc, $tax, 'TaxableBase');
+            $this->addNode($doc, $base, 'TotalAmount', number_format($linea->subtotal, 2, '.', ''));
+            $amt = $this->addNode($doc, $tax, 'TaxAmount');
+            $this->addNode($doc, $amt, 'TotalAmount', number_format($linea->importe_iva, 2, '.', ''));
         }
 
-        // Formas de pago (PaymentDetails) - DEBEN ir después de Items
+        // Formas de pago
         if ($documento->formaPago && $documento->formaPago->tipo === 'transferencia' && $documento->tercero->iban) {
-            $paymentDetails = $invoice->addChild('PaymentDetails');
-            $installment = $paymentDetails->addChild('Installment');
-            $installment->addChild('InstallmentDueDate', $documento->fecha_vencimiento ? $documento->fecha_vencimiento->format('Y-m-d') : $documento->fecha->format('Y-m-d'));
-            $installment->addChild('InstallmentAmount', number_format($documento->total, 2, '.', ''));
-            $installment->addChild('PaymentMeans', '04'); // 04 = Transferencia
+            $paymentDetails = $this->addNode($doc, $invoice, 'PaymentDetails');
+            $installment = $this->addNode($doc, $paymentDetails, 'Installment');
+            $this->addNode($doc, $installment, 'InstallmentDueDate', $documento->fecha_vencimiento ? $documento->fecha_vencimiento->format('Y-m-d') : $documento->fecha->format('Y-m-d'));
+            $this->addNode($doc, $installment, 'InstallmentAmount', number_format($documento->total, 2, '.', ''));
+            $this->addNode($doc, $installment, 'PaymentMeans', '04');
             
-            $account = $installment->addChild('AccountToBeCredited');
-            $account->addChild('IBAN', str_replace(' ', '', $documento->tercero->iban));
+            $account = $this->addNode($doc, $installment, 'AccountToBeCredited');
+            $this->addNode($doc, $account, 'IBAN', str_replace(' ', '', $documento->tercero->iban));
         }
     }
 
-    protected function addTaxIdentification(SimpleXMLElement $parent, ?string $nif, string $residenceType): void
+    protected function addTaxIdentification(DOMDocument $doc, \DOMNode $parent, ?string $nif, string $residenceType): void
     {
-        $id = $parent->addChild('TaxIdentification');
-        $id->addChild('PersonTypeCode', $residenceType); // J = Jurídica, F = Física
-        $id->addChild('ResidenceTypeCode', 'R'); // R = Residente en España
-        $id->addChild('TaxIdentificationNumber', $nif);
+        $id = $this->addNode($doc, $parent, 'TaxIdentification');
+        $this->addNode($doc, $id, 'PersonTypeCode', $residenceType);
+        $this->addNode($doc, $id, 'ResidenceTypeCode', 'R');
+        $this->addNode($doc, $id, 'TaxIdentificationNumber', $nif);
     }
 
-    protected function addPartyData(SimpleXMLElement $parent, ?string $name, array $addressData = []): void
+    protected function addPartyData(DOMDocument $doc, \DOMNode $parent, ?string $name, array $addressData = []): void
     {
-        $entity = $parent->addChild('LegalEntity');
-        $entity->addChild('CorporateName', $name);
+        $entity = $this->addNode($doc, $parent, 'LegalEntity');
+        $this->addNode($doc, $entity, 'CorporateName', $name);
         
         if (!empty($addressData)) {
-            $address = $entity->addChild('AddressInSpain');
-            $address->addChild('Address', substr($addressData['address'] ?? 'Calle Desconocida', 0, 80));
-            $address->addChild('PostCode', substr($addressData['post_code'] ?? '00000', 0, 5));
-            $address->addChild('Town', substr($addressData['town'] ?? 'Ciudad', 0, 50));
-            $address->addChild('Province', substr($addressData['province'] ?? 'Provincia', 0, 20));
-            $address->addChild('CountryCode', 'ESP');
+            $address = $this->addNode($doc, $entity, 'AddressInSpain');
+            $this->addNode($doc, $address, 'Address', substr($addressData['address'] ?? 'Calle Desconocida', 0, 80));
+            $this->addNode($doc, $address, 'PostCode', substr($addressData['post_code'] ?? '00000', 0, 5));
+            $this->addNode($doc, $address, 'Town', substr($addressData['town'] ?? 'Ciudad', 0, 50));
+            $this->addNode($doc, $address, 'Province', substr($addressData['province'] ?? 'Provincia', 0, 20));
+            $this->addNode($doc, $address, 'CountryCode', 'ESP');
         }
     }
 
-    protected function addAdminCenter(SimpleXMLElement $parent, string $role, string $code, string $description, array $addressData = []): void
+    protected function addAdminCenter(DOMDocument $doc, \DOMNode $parent, string $role, string $code, string $description, array $addressData = []): void
     {
-        $center = $parent->addChild('AdministrativeCentre');
-        $center->addChild('CentreCode', $code);
-        $center->addChild('RoleTypeCode', $role); // 01 Contable, 02 Gestor, 03 Tramitadora
-        $center->addChild('Name', substr($description, 0, 40));
+        $center = $this->addNode($doc, $parent, 'AdministrativeCentre');
+        $this->addNode($doc, $center, 'CentreCode', $code);
+        $this->addNode($doc, $center, 'RoleTypeCode', $role);
+        $this->addNode($doc, $center, 'Name', substr($description, 0, 40));
         
-        // El esquema 3.2.2 requiere dirección obligatoria en el centro administrativo
         if (!empty($addressData)) {
-            $address = $center->addChild('AddressInSpain');
-            $address->addChild('Address', substr($addressData['address'] ?? 'Calle Desconocida', 0, 80));
-            $address->addChild('PostCode', substr($addressData['post_code'] ?? '00000', 0, 5));
-            $address->addChild('Town', substr($addressData['town'] ?? 'Ciudad', 0, 50));
-            $address->addChild('Province', substr($addressData['province'] ?? 'Provincia', 0, 20));
-            $address->addChild('CountryCode', 'ESP');
+            $address = $this->addNode($doc, $center, 'AddressInSpain');
+            $this->addNode($doc, $address, 'Address', substr($addressData['address'] ?? 'Calle Desconocida', 0, 80));
+            $this->addNode($doc, $address, 'PostCode', substr($addressData['post_code'] ?? '00000', 0, 5));
+            $this->addNode($doc, $address, 'Town', substr($addressData['town'] ?? 'Ciudad', 0, 50));
+            $this->addNode($doc, $address, 'Province', substr($addressData['province'] ?? 'Provincia', 0, 20));
+            $this->addNode($doc, $address, 'CountryCode', 'ESP');
         }
     }
 
@@ -286,12 +318,14 @@ class FacturaeXmlService
             $objDSig->setCanonicalMethod(XMLSecurityDSig::EXC_C14N);
             
             $signatureId = 'Signature-' . uniqid();
-            $signedPropsId = 'SignedProperties-' . $signatureId;            // Referencia al propio documento (Enveloped)
+            $signedPropsId = 'SignedProperties-' . $signatureId;
+            
+            // Referencia al propio documento (Enveloped) con URI vacío explícito
             $objDSig->addReference(
                 $doc, 
                 XMLSecurityDSig::SHA256, 
                 ['http://www.w3.org/2000/09/xmldsig#enveloped-signature'],
-                ['force_uri' => true, 'id_name' => 'Id']
+                ['force_uri' => true, 'uri' => '']
             );
 
             // 2. BLOQUE XAdES-BES: Crear y añadir al DOM para que sea "visible"
@@ -304,15 +338,14 @@ class FacturaeXmlService
                 $signedPropsNode->setIdAttribute('Id', true);
             }
 
-            // 3. Añadir Referencia a SignedProperties (XAdES) usando Exclusive C14N
+            // 3. Añadir Referencia a SignedProperties (XAdES) usando C14N
             $objDSig->addReference(
                 $signedPropsNode,
                 XMLSecurityDSig::SHA256,
                 ['http://www.w3.org/2001/10/xml-exc-c14n#'],
                 [
                     'type' => 'http://uri.etsi.org/01903#SignedProperties', 
-                    'force_uri' => true, 
-                    'id_name' => 'Id'
+                    'force_uri' => true,
                 ]
             );
 
@@ -332,7 +365,13 @@ class FacturaeXmlService
             if ($sigNode && $sigNode instanceof \DOMElement) {
                 $sigNode->setAttribute('Id', $signatureId);
                 $sigNode->setIdAttribute('Id', true);
-                $sigNode->appendChild($xadesObject);
+                // Importar para evitar Wrong Document Error aunque sea el mismo documento
+                $sigNode->appendChild($doc->importNode($xadesObject, true));
+                
+                // Limpiar el objeto huérfano de la raíz
+                if ($xadesObject->parentNode === $doc->documentElement) {
+                    $doc->documentElement->removeChild($xadesObject);
+                }
             }
 
             // 7. Añadir Certificado Público a la firma
@@ -373,8 +412,8 @@ class FacturaeXmlService
         // 1. SigningTime
         $signedSigProps->appendChild($doc->createElementNS($nsXades, 'xades:SigningTime', $signingTime));
         
-        // 2. SigningCertificateV2
-        $signingCert = $doc->createElementNS($nsXades, 'xades:SigningCertificateV2');
+        // 2. SigningCertificate (XAdES Standard)
+        $signingCert = $doc->createElementNS($nsXades, 'xades:SigningCertificate');
         $cert = $doc->createElementNS($nsXades, 'xades:Cert');
         $certDigest = $doc->createElementNS($nsXades, 'xades:CertDigest');
         
@@ -386,13 +425,13 @@ class FacturaeXmlService
 
         $issuerSerial = $doc->createElementNS($nsXades, 'xades:IssuerSerial');
         $issuerSerial->appendChild($doc->createElementNS($nsDS, 'ds:X509IssuerName', $this->getIssuerName($certData)));
-        $issuerSerial->appendChild($doc->createElementNS($nsDS, 'ds:X509SerialNumber', $certData['serialNumber']));
+        $issuerSerial->appendChild($doc->createElementNS($nsDS, 'ds:X509SerialNumber', (string)$certData['serialNumber']));
         $cert->appendChild($issuerSerial);
 
         $signingCert->appendChild($cert);
         $signedSigProps->appendChild($signingCert);
         
-        // 3. SignaturePolicyIdentifier (Facturae 3.1)
+        // 3. SignaturePolicyIdentifier (Facturae 3.1 Policy)
         $policyIdentifier = $doc->createElementNS($nsXades, 'xades:SignaturePolicyIdentifier');
         $signaturePolicyId = $doc->createElementNS($nsXades, 'xades:SignaturePolicyId');
         
@@ -403,9 +442,10 @@ class FacturaeXmlService
         
         $sigPolicyHash = $doc->createElementNS($nsXades, 'xades:SigPolicyHash');
         $digestMethodPolicy = $doc->createElementNS($nsDS, 'ds:DigestMethod');
-        $digestMethodPolicy->setAttribute('Algorithm', 'http://www.w3.org/2001/04/xmlenc#sha256');
+        $digestMethodPolicy->setAttribute('Algorithm', 'http://www.w3.org/2000/09/xmldsig#sha1');
         $sigPolicyHash->appendChild($digestMethodPolicy);
-        $sigPolicyHash->appendChild($doc->createElementNS($nsDS, 'ds:DigestValue', '3S6fAtZsh9mSIdPZrntG87o8AlUCD9ApmMeUwbv7p6c='));
+        // SHA-1 Hash para la política 3.1 de Facturae: Ohixl6upD6av8N7pEvDABhEL6hM=
+        $sigPolicyHash->appendChild($doc->createElementNS($nsDS, 'ds:DigestValue', 'Ohixl6upD6av8N7pEvDABhEL6hM='));
         $signaturePolicyId->appendChild($sigPolicyHash);
         
         $policyIdentifier->appendChild($signaturePolicyId);

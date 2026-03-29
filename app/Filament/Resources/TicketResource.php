@@ -423,10 +423,7 @@ class TicketResource extends Resource
                     ->color('warning')
                     ->modalHeading('Depurador de Conexión AEAT')
                     ->modalWidth(\Filament\Support\Enums\MaxWidth::FourExtraLarge)
-                    ->modalContent(fn ($record) => view('livewire.verifactu-debugger', [
-                        'recordId' => $record->id,
-                        'modelClass' => get_class($record)
-                    ]))
+                    ->modalContent(fn ($record) => \Illuminate\Support\Facades\Blade::render("@livewire('verifactu-debugger', ['recordId' => " . $record->id . ", 'modelClass' => '" . get_class($record) . "'])"))
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Cerrar')
                     ->visible(fn($record) => auth()->user()->isSuperAdmin() && \App\Models\Setting::get('verifactu_active', false) && $record->status === 'completed'),

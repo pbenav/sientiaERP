@@ -61,149 +61,151 @@ class VerifactuXmlService
         $desglose  = $this->getDesgloseParaXml($model);
 
         // Calcular CuotaTotal (suma de cuotas de todos los tramos)
-        $cuotaTotal = 0.0;
+        $cuotaTotalVal = 0.0;
         foreach ($desglose as $linea) {
-            $cuotaTotal += (float)$linea['cuota_iva'];
+            $cuotaTotalVal += (float)$linea['cuota_iva'];
         }
-        $cuotaTotal = number_format($cuotaTotal, 2, '.', '');
+        $cuotaTotal = number_format($cuotaTotalVal, 2, '.', '');
 
         $numeroLimpio = str_replace(' ', '', $model->numero);
 
         // ----------------------------------------------------------------
-        // Construcción del XML
+        // Construcción del XML con DOMDocument
         // ----------------------------------------------------------------
-        $NS_LR = 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroLR.xsd';
-        $NS_SF = 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd';
+        $doc = new \DOMDocument('1.0', 'UTF-8');
+        $doc->formatOutput = false;
 
-        $xml  = '<?xml version="1.0" encoding="UTF-8"?>';
-        $xml .= "<sfLR:RegFactuSistemaFacturacion xmlns:sfLR=\"{$NS_LR}\" xmlns:sf=\"{$NS_SF}\">";
+        $nsLR = 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroLR.xsd';
+        $nsSF = 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd';
+
+        $root = $doc->createElementNS($nsLR, 'sfLR:RegFactuSistemaFacturacion');
+        $root->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:sf', $nsSF);
+        $doc->appendChild($root);
 
         // ── CABECERA ────────────────────────────────────────────────────
-        $xml .= '<sfLR:Cabecera>';
-        $xml .= '<sf:ObligadoEmision>';
-        $xml .= "<sf:NombreRazon>{$nombreEmisor}</sf:NombreRazon>";
-        $xml .= "<sf:NIF>{$nifEmisor}</sf:NIF>";
-        $xml .= '</sf:ObligadoEmision>';
-        $xml .= '</sfLR:Cabecera>';
+        $cabecera = $doc->createElementNS($nsLR, 'sfLR:Cabecera');
+        $root->appendChild($cabecera);
+
+        $obligado = $doc->createElementNS($nsSF, 'sf:ObligadoEmision');
+        $cabecera->appendChild($obligado);
+
+        $obligado->appendChild($doc->createElementNS($nsSF, 'sf:NombreRazon', $nombreEmisor));
+        $obligado->appendChild($doc->createElementNS($nsSF, 'sf:NIF', $nifEmisor));
 
         // ── REGISTRO FACTURA (wrapper obligatorio) ──────────────────────
-        $xml .= '<sfLR:RegistroFactura>';
-        $xml .= '<sf:RegistroAlta>';
+        $regFactura = $doc->createElementNS($nsLR, 'sfLR:RegistroFactura');
+        $root->appendChild($regFactura);
+
+        $regAlta = $doc->createElementNS($nsSF, 'sf:RegistroAlta');
+        $regFactura->appendChild($regAlta);
 
         // 1. IDVersion (obligatorio)
-        $xml .= '<sf:IDVersion>1.0</sf:IDVersion>';
+        $regAlta->appendChild($doc->createElementNS($nsSF, 'sf:IDVersion', '1.0'));
 
         // 2. IDFactura
-        $xml .= '<sf:IDFactura>';
-        $xml .= "<sf:IDEmisorFactura>{$nifEmisor}</sf:IDEmisorFactura>";
-        $xml .= "<sf:NumSerieFactura>{$numeroLimpio}</sf:NumSerieFactura>";
-        $xml .= "<sf:FechaExpedicionFactura>{$fecha}</sf:FechaExpedicionFactura>";
-        $xml .= '</sf:IDFactura>';
+        $idFactura = $doc->createElementNS($nsSF, 'sf:IDFactura');
+        $regAlta->appendChild($idFactura);
+        $idFactura->appendChild($doc->createElementNS($nsSF, 'sf:IDEmisorFactura', $nifEmisor));
+        $idFactura->appendChild($doc->createElementNS($nsSF, 'sf:NumSerieFactura', $numeroLimpio));
+        $idFactura->appendChild($doc->createElementNS($nsSF, 'sf:FechaExpedicionFactura', $fecha));
 
         // 3. NombreRazonEmisor
-        $xml .= "<sf:NombreRazonEmisor>{$nombreEmisor}</sf:NombreRazonEmisor>";
+        $regAlta->appendChild($doc->createElementNS($nsSF, 'sf:NombreRazonEmisor', $nombreEmisor));
 
         // 4. TipoFactura
-        $xml .= "<sf:TipoFactura>{$tipoFactura}</sf:TipoFactura>";
+        $regAlta->appendChild($doc->createElementNS($nsSF, 'sf:TipoFactura', $tipoFactura));
 
         // 5. DescripcionOperacion
-        $xml .= '<sf:DescripcionOperacion>Venta y servicios</sf:DescripcionOperacion>';
+        $regAlta->appendChild($doc->createElementNS($nsSF, 'sf:DescripcionOperacion', 'Venta y servicios'));
 
-        // 6. Indicadores opcionales (según XSD: minOccurs=0)
+        // 6. Indicadores opcionales (F2 requiere N en FacturaSimplificadaArt7273 según XSD)
         if ($tipoFactura !== 'F1') {
-            $xml .= '<sf:FacturaSimplificadaArt7273>N</sf:FacturaSimplificadaArt7273>';
+            $regAlta->appendChild($doc->createElementNS($nsSF, 'sf:FacturaSimplificadaArt7273', 'N'));
         }
 
         // 7. Destinatarios (opcional; excluir obligatoriamente en F2 y R5)
         if ($model->tercero && !in_array($tipoFactura, ['F2', 'R5'])) {
             $nifDest = trim($model->tercero->nif_cif ?? '');
             if (!empty($nifDest)) {
-                $nombreDest = htmlspecialchars($model->tercero->razon_social ?? '', ENT_XML1);
-                $xml .= '<sf:Destinatarios>';
-                $xml .= '<sf:IDDestinatario>';
-                $xml .= "<sf:NombreRazon>{$nombreDest}</sf:NombreRazon>";
-                $xml .= "<sf:NIF>{$nifDest}</sf:NIF>";
-                $xml .= '</sf:IDDestinatario>';
-                $xml .= '</sf:Destinatarios>';
+                $nombreDest = $model->tercero->razon_social ?: $model->tercero->nombre_comercial;
+                $destinatarios = $doc->createElementNS($nsSF, 'sf:Destinatarios');
+                $regAlta->appendChild($destinatarios);
+                
+                $idDestinatario = $doc->createElementNS($nsSF, 'sf:IDDestinatario');
+                $destinatarios->appendChild($idDestinatario);
+                $idDestinatario->appendChild($doc->createElementNS($nsSF, 'sf:NombreRazon', $nombreDest));
+                $idDestinatario->appendChild($doc->createElementNS($nsSF, 'sf:NIF', $nifDest));
             }
         }
 
         // 8. Desglose
-        $xml .= '<sf:Desglose>';
+        $desgloseNode = $doc->createElementNS($nsSF, 'sf:Desglose');
+        $regAlta->appendChild($desgloseNode);
         foreach ($desglose as $linea) {
             $base  = number_format((float)$linea['base'], 2, '.', '');
             $iva   = number_format((float)$linea['iva'], 1, '.', '');
             $cuota = number_format((float)$linea['cuota_iva'], 2, '.', '');
             
-            $xml .= '<sf:DetalleDesglose>';
-            $xml .= '<sf:Impuesto>01</sf:Impuesto>';
-            $xml .= '<sf:ClaveRegimen>01</sf:ClaveRegimen>';
-            $xml .= '<sf:CalificacionOperacion>S1</sf:CalificacionOperacion>';
-            $xml .= "<sf:TipoImpositivo>{$iva}</sf:TipoImpositivo>";
-            $xml .= "<sf:BaseImponibleOimporteNoSujeto>{$base}</sf:BaseImponibleOimporteNoSujeto>";
-            $xml .= "<sf:CuotaRepercutida>{$cuota}</sf:CuotaRepercutida>";
-            $xml .= '</sf:DetalleDesglose>';
+            $detalle = $doc->createElementNS($nsSF, 'sf:DetalleDesglose');
+            $desgloseNode->appendChild($detalle);
+            $detalle->appendChild($doc->createElementNS($nsSF, 'sf:Impuesto', '01'));
+            $detalle->appendChild($doc->createElementNS($nsSF, 'sf:ClaveRegimen', '01'));
+            $detalle->appendChild($doc->createElementNS($nsSF, 'sf:CalificacionOperacion', 'S1'));
+            $detalle->appendChild($doc->createElementNS($nsSF, 'sf:TipoImpositivo', $iva));
+            $detalle->appendChild($doc->createElementNS($nsSF, 'sf:BaseImponibleOimporteNoSujeto', $base));
+            $detalle->appendChild($doc->createElementNS($nsSF, 'sf:CuotaRepercutida', $cuota));
         }
-        $xml .= '</sf:Desglose>';
 
         // 9. CuotaTotal
-        $xml .= "<sf:CuotaTotal>{$cuotaTotal}</sf:CuotaTotal>";
+        $regAlta->appendChild($doc->createElementNS($nsSF, 'sf:CuotaTotal', $cuotaTotal));
 
         // 10. ImporteTotal
-        $xml .= "<sf:ImporteTotal>{$total}</sf:ImporteTotal>";
+        $regAlta->appendChild($doc->createElementNS($nsSF, 'sf:ImporteTotal', $total));
 
         // 11. Encadenamiento
-        $xml .= '<sf:Encadenamiento>';
+        $encadenamiento = $doc->createElementNS($nsSF, 'sf:Encadenamiento');
+        $regAlta->appendChild($encadenamiento);
         if ($model->verifactu_huella_anterior) {
-            // Re-obtener datos del anterior para el XML
-            $anterior = $model->getUltimaAceptada(); // Mejor usar una búsqueda por huella si es posible
-            if (!$anterior || $anterior->verifactu_huella !== $model->verifactu_huella_anterior) {
-                // Fallback de emergencia: buscar por huella
-                $class = get_class($model);
-                $anterior = $class::where('verifactu_huella', $model->verifactu_huella_anterior)->first();
-            }
+            $class = get_class($model);
+            $anterior = $class::where('verifactu_huella', $model->verifactu_huella_anterior)->first();
 
             if ($anterior) {
                 $numAnt   = str_replace(' ', '', $anterior->numero);
                 $fechaAnt = $anterior->fecha ? $anterior->fecha->format('d-m-Y') : ($anterior->completed_at ? $anterior->completed_at->format('d-m-Y') : '');
-                $xml .= '<sf:RegistroAnterior>';
-                $xml .= "<sf:IDEmisorFactura>{$nifEmisor}</sf:IDEmisorFactura>";
-                $xml .= "<sf:NumSerieFactura>{$numAnt}</sf:NumSerieFactura>";
-                $xml .= "<sf:FechaExpedicionFactura>{$fechaAnt}</sf:FechaExpedicionFactura>";
-                $xml .= "<sf:Huella>{$model->verifactu_huella_anterior}</sf:Huella>";
-                $xml .= '</sf:RegistroAnterior>';
+                
+                $regAnterior = $doc->createElementNS($nsSF, 'sf:RegistroAnterior');
+                $encadenamiento->appendChild($regAnterior);
+                $regAnterior->appendChild($doc->createElementNS($nsSF, 'sf:IDEmisorFactura', $nifEmisor));
+                $regAnterior->appendChild($doc->createElementNS($nsSF, 'sf:NumSerieFactura', $numAnt));
+                $regAnterior->appendChild($doc->createElementNS($nsSF, 'sf:FechaExpedicionFactura', $fechaAnt));
+                $regAnterior->appendChild($doc->createElementNS($nsSF, 'sf:Huella', $model->verifactu_huella_anterior));
             } else {
-                $xml .= '<sf:PrimerRegistro>S</sf:PrimerRegistro>';
+                $encadenamiento->appendChild($doc->createElementNS($nsSF, 'sf:PrimerRegistro', 'S'));
             }
         } else {
-            $xml .= '<sf:PrimerRegistro>S</sf:PrimerRegistro>';
+            $encadenamiento->appendChild($doc->createElementNS($nsSF, 'sf:PrimerRegistro', 'S'));
         }
-        $xml .= '</sf:Encadenamiento>';
 
         // 12. SistemaInformatico
-        $xml .= '<sf:SistemaInformatico>';
-        $xml .= '<sf:NombreRazon>SIENTIA ERP</sf:NombreRazon>';
+        $sistema = $doc->createElementNS($nsSF, 'sf:SistemaInformatico');
+        $regAlta->appendChild($sistema);
+        $sistema->appendChild($doc->createElementNS($nsSF, 'sf:NombreRazon', 'SIENTIA ERP'));
         $nifDesarrollador = env('VERIFACTU_NIF_DESARROLLADOR', \App\Models\Setting::get('verifactu_nif_desarrollador', $nifEmisor));
-        $xml .= "<sf:NIF>{$nifDesarrollador}</sf:NIF>";
-        $xml .= '<sf:NombreSistemaInformatico>SIENTIA ERP</sf:NombreSistemaInformatico>';
-        $xml .= '<sf:IdSistemaInformatico>01</sf:IdSistemaInformatico>';
-        $xml .= '<sf:Version>1.0</sf:Version>';
-        $xml .= '<sf:NumeroInstalacion>01</sf:NumeroInstalacion>';
-        $xml .= '<sf:TipoUsoPosibleSoloVerifactu>S</sf:TipoUsoPosibleSoloVerifactu>';
-        $xml .= '<sf:TipoUsoPosibleMultiOT>N</sf:TipoUsoPosibleMultiOT>';
-        $xml .= '<sf:IndicadorMultiplesOT>N</sf:IndicadorMultiplesOT>';
-        $xml .= '</sf:SistemaInformatico>';
+        $sistema->appendChild($doc->createElementNS($nsSF, 'sf:NIF', $nifDesarrollador));
+        $sistema->appendChild($doc->createElementNS($nsSF, 'sf:NombreSistemaInformatico', 'SIENTIA ERP'));
+        $sistema->appendChild($doc->createElementNS($nsSF, 'sf:IdSistemaInformatico', '01'));
+        $sistema->appendChild($doc->createElementNS($nsSF, 'sf:Version', '1.0'));
+        $sistema->appendChild($doc->createElementNS($nsSF, 'sf:NumeroInstalacion', '01'));
+        $sistema->appendChild($doc->createElementNS($nsSF, 'sf:TipoUsoPosibleSoloVerifactu', 'S'));
+        $sistema->appendChild($doc->createElementNS($nsSF, 'sf:TipoUsoPosibleMultiOT', 'N'));
+        $sistema->appendChild($doc->createElementNS($nsSF, 'sf:IndicadorMultiplesOT', 'N'));
 
-        $xml .= "<sf:FechaHoraHusoGenRegistro>{$fechaHoraHuso}</sf:FechaHoraHusoGenRegistro>";
-        $xml .= '<sf:TipoHuella>01</sf:TipoHuella>';
-        $xml .= "<sf:Huella>{$model->verifactu_huella}</sf:Huella>";
-
-        $xml .= '</sf:RegistroAlta>';
-        $xml .= '</sfLR:RegistroFactura>';
-        $xml .= '</sfLR:RegFactuSistemaFacturacion>';
+        $regAlta->appendChild($doc->createElementNS($nsSF, 'sf:FechaHoraHusoGenRegistro', $fechaHoraHuso));
+        $regAlta->appendChild($doc->createElementNS($nsSF, 'sf:TipoHuella', '01'));
+        $regAlta->appendChild($doc->createElementNS($nsSF, 'sf:Huella', $model->verifactu_huella));
 
         Log::debug('VerifactuXmlService: XML Alta generado para ' . $model->numero);
-        return $xml;
+        return $doc->saveXML();
     }
 
     /**
@@ -218,78 +220,87 @@ class VerifactuXmlService
         $fechaHoraHuso = $model->verifactu_fecha_hora_huso ?: now()->toIso8601String();
         $numeroLimpio = str_replace(' ', '', $model->numero);
 
-        $NS_LR = 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroLR.xsd';
-        $NS_SF = 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd';
+        $nsLR = 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroLR.xsd';
+        $nsSF = 'https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd';
 
-        $xml  = '<?xml version="1.0" encoding="UTF-8"?>';
-        $xml .= "<sfLR:RegFactuSistemaFacturacion xmlns:sfLR=\"{$NS_LR}\" xmlns:sf=\"{$NS_SF}\">";
+        $doc = new \DOMDocument('1.0', 'UTF-8');
+        $doc->formatOutput = false;
 
-        $xml .= '<sfLR:Cabecera>';
-        $xml .= '<sf:ObligadoEmision>';
-        $xml .= "<sf:NombreRazon>{$nombreEmisor}</sf:NombreRazon>";
-        $xml .= "<sf:NIF>{$nifEmisor}</sf:NIF>";
-        $xml .= '</sf:ObligadoEmision>';
-        $xml .= '</sfLR:Cabecera>';
+        $root = $doc->createElementNS($nsLR, 'sfLR:RegFactuSistemaFacturacion');
+        $root->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:sf', $nsSF);
+        $doc->appendChild($root);
 
-        $xml .= '<sfLR:RegistroFactura>';
-        $xml .= '<sf:RegistroAnulacion>';
-        $xml .= '<sf:IDVersion>1.0</sf:IDVersion>';
-        $xml .= '<sf:IDFactura>';
-        $xml .= "<sf:IDEmisorFacturaAnulada>{$nifEmisor}</sf:IDEmisorFacturaAnulada>";
-        $xml .= "<sf:NumSerieFacturaAnulada>{$numeroLimpio}</sf:NumSerieFacturaAnulada>";
-        $xml .= "<sf:FechaExpedicionFacturaAnulada>{$fecha}</sf:FechaExpedicionFacturaAnulada>";
-        $xml .= '</sf:IDFactura>';
+        // CABECERA
+        $cabecera = $doc->createElementNS($nsLR, 'sfLR:Cabecera');
+        $root->appendChild($cabecera);
 
-        $xml .= '<sf:Encadenamiento>';
+        $obligado = $doc->createElementNS($nsSF, 'sf:ObligadoEmision');
+        $cabecera->appendChild($obligado);
+        $obligado->appendChild($doc->createElementNS($nsSF, 'sf:NombreRazon', $nombreEmisor));
+        $obligado->appendChild($doc->createElementNS($nsSF, 'sf:NIF', $nifEmisor));
+
+        // REGISTRO FACTURA
+        $regFactura = $doc->createElementNS($nsLR, 'sfLR:RegistroFactura');
+        $root->appendChild($regFactura);
+
+        $regAnulacion = $doc->createElementNS($nsSF, 'sf:RegistroAnulacion');
+        $regFactura->appendChild($regAnulacion);
+
+        $regAnulacion->appendChild($doc->createElementNS($nsSF, 'sf:IDVersion', '1.0'));
+
+        $idFactura = $doc->createElementNS($nsSF, 'sf:IDFactura');
+        $regAnulacion->appendChild($idFactura);
+        $idFactura->appendChild($doc->createElementNS($nsSF, 'sf:IDEmisorFacturaAnulada', $nifEmisor));
+        $idFactura->appendChild($doc->createElementNS($nsSF, 'sf:NumSerieFacturaAnulada', $numeroLimpio));
+        $idFactura->appendChild($doc->createElementNS($nsSF, 'sf:FechaExpedicionFacturaAnulada', $fecha));
+
+        $encadenamiento = $doc->createElementNS($nsSF, 'sf:Encadenamiento');
+        $regAnulacion->appendChild($encadenamiento);
         if ($model->verifactu_huella_anterior) {
             $class = get_class($model);
             $anterior = $class::where('verifactu_huella', $model->verifactu_huella_anterior)->first();
             if ($anterior) {
                 $numAnt   = str_replace(' ', '', $anterior->numero);
                 $fechaAnt = $anterior->fecha ? $anterior->fecha->format('d-m-Y') : ($anterior->completed_at ? $anterior->completed_at->format('d-m-Y') : '');
-                $xml .= '<sf:RegistroAnterior>';
-                $xml .= "<sf:IDEmisorFactura>{$nifEmisor}</sf:IDEmisorFactura>";
-                $xml .= "<sf:NumSerieFactura>{$numAnt}</sf:NumSerieFactura>";
-                $xml .= "<sf:FechaExpedicionFactura>{$fechaAnt}</sf:FechaExpedicionFactura>";
-                $xml .= "<sf:Huella>{$model->verifactu_huella_anterior}</sf:Huella>";
-                $xml .= '</sf:RegistroAnterior>';
+                
+                $regAnterior = $doc->createElementNS($nsSF, 'sf:RegistroAnterior');
+                $encadenamiento->appendChild($regAnterior);
+                $regAnterior->appendChild($doc->createElementNS($nsSF, 'sf:IDEmisorFactura', $nifEmisor));
+                $regAnterior->appendChild($doc->createElementNS($nsSF, 'sf:NumSerieFactura', $numAnt));
+                $regAnterior->appendChild($doc->createElementNS($nsSF, 'sf:FechaExpedicionFactura', $fechaAnt));
+                $regAnterior->appendChild($doc->createElementNS($nsSF, 'sf:Huella', $model->verifactu_huella_anterior));
             } else {
-                $xml .= '<sf:PrimerRegistro>S</sf:PrimerRegistro>';
+                $encadenamiento->appendChild($doc->createElementNS($nsSF, 'sf:PrimerRegistro', 'S'));
             }
         } else {
-            $xml .= '<sf:PrimerRegistro>S</sf:PrimerRegistro>';
+            $encadenamiento->appendChild($doc->createElementNS($nsSF, 'sf:PrimerRegistro', 'S'));
         }
-        $xml .= '</sf:Encadenamiento>';
 
-        $xml .= '<sf:SistemaInformatico>';
-        $xml .= '<sf:NombreRazon>SIENTIA ERP</sf:NombreRazon>';
+        $sistema = $doc->createElementNS($nsSF, 'sf:SistemaInformatico');
+        $regAnulacion->appendChild($sistema);
+        $sistema->appendChild($doc->createElementNS($nsSF, 'sf:NombreRazon', 'SIENTIA ERP'));
         $nifDesarrollador = env('VERIFACTU_NIF_DESARROLLADOR', \App\Models\Setting::get('verifactu_nif_desarrollador', $nifEmisor));
-        $xml .= "<sf:NIF>{$nifDesarrollador}</sf:NIF>";
-        $xml .= '<sf:NombreSistemaInformatico>SIENTIA ERP</sf:NombreSistemaInformatico>';
-        $xml .= '<sf:IdSistemaInformatico>01</sf:IdSistemaInformatico>';
-        $xml .= '<sf:Version>1.0</sf:Version>';
-        $xml .= '<sf:NumeroInstalacion>01</sf:NumeroInstalacion>';
-        $xml .= '<sf:TipoUsoPosibleSoloVerifactu>S</sf:TipoUsoPosibleSoloVerifactu>';
-        $xml .= '<sf:TipoUsoPosibleMultiOT>N</sf:TipoUsoPosibleMultiOT>';
-        $xml .= '<sf:IndicadorMultiplesOT>N</sf:IndicadorMultiplesOT>';
-        $xml .= '</sf:SistemaInformatico>';
+        $sistema->appendChild($doc->createElementNS($nsSF, 'sf:NIF', $nifDesarrollador));
+        $sistema->appendChild($doc->createElementNS($nsSF, 'sf:NombreSistemaInformatico', 'SIENTIA ERP'));
+        $sistema->appendChild($doc->createElementNS($nsSF, 'sf:IdSistemaInformatico', '01'));
+        $sistema->appendChild($doc->createElementNS($nsSF, 'sf:Version', '1.0'));
+        $sistema->appendChild($doc->createElementNS($nsSF, 'sf:NumeroInstalacion', '01'));
+        $sistema->appendChild($doc->createElementNS($nsSF, 'sf:TipoUsoPosibleSoloVerifactu', 'S'));
+        $sistema->appendChild($doc->createElementNS($nsSF, 'sf:TipoUsoPosibleMultiOT', 'N'));
+        $sistema->appendChild($doc->createElementNS($nsSF, 'sf:IndicadorMultiplesOT', 'N'));
 
-        $xml .= "<sf:FechaHoraHusoGenRegistro>{$fechaHoraHuso}</sf:FechaHoraHusoGenRegistro>";
-        $xml .= '<sf:TipoHuella>01</sf:TipoHuella>';
-        $xml .= "<sf:Huella>{$model->verifactu_huella}</sf:Huella>";
-
-        $xml .= '</sf:RegistroAnulacion>';
-        $xml .= '</sfLR:RegistroFactura>';
-        $xml .= '</sfLR:RegFactuSistemaFacturacion>';
+        $regAnulacion->appendChild($doc->createElementNS($nsSF, 'sf:FechaHoraHusoGenRegistro', $fechaHoraHuso));
+        $regAnulacion->appendChild($doc->createElementNS($nsSF, 'sf:TipoHuella', '01'));
+        $regAnulacion->appendChild($doc->createElementNS($nsSF, 'sf:Huella', $model->verifactu_huella));
 
         Log::debug('VerifactuXmlService: XML Anulación generado para ' . $model->numero);
-        return $xml;
+        return $doc->saveXML();
     }
 
     /**
      * Obtener desglose de impuestos normalizado para el XML.
      */
-    protected function getDesgloseParaXml(Model $model): array
+    public function getDesgloseParaXml(Model $model): array
     {
         if ($model instanceof Documento) {
             return $model->getDesgloseImpuestos();
