@@ -100,8 +100,8 @@ class SettingsPage extends Page
             'verifactu_endpoint_test_query' => Setting::get('verifactu_endpoint_test_query', config('verifactu.endpoints.test_query')),
             'verifactu_endpoint_production' => Setting::get('verifactu_endpoint_production', config('verifactu.endpoints.production')),
             'verifactu_endpoint_production_query' => Setting::get('verifactu_endpoint_production_query', config('verifactu.endpoints.production_query')),
-            'verifactu_qr_url_test' => Setting::get('verifactu_qr_url_test', "https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR"),
-            'verifactu_qr_url_production' => Setting::get('verifactu_qr_url_production', "https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/v1/f"),
+            'verifactu_qr_url_test' => Setting::get('verifactu_qr_url_test', "https://prewww2.aeat.es/wlpl/VERI-FACTU/ConsultaPublica"),
+            'verifactu_qr_url_production' => Setting::get('verifactu_qr_url_production', "https://www2.agenciatributaria.gob.es/wlpl/VERI-FACTU/ConsultaPublica"),
             'verifactu_send_mode' => Setting::get('verifactu_send_mode', 'immediate'),
             
             // Facturae

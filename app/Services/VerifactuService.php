@@ -193,7 +193,7 @@ class VerifactuService
             $errorMsg = $res['error'] ?? 'Error desconocido en la comunicación con AEAT';
             $model->update([
                 'verifactu_status' => 'error',
-                'verifactu_signature' => substr($errorMsg, 0, 1000)
+                'verifactu_signature' => mb_convert_encoding(substr($errorMsg, 0, 1000), 'UTF-8', 'UTF-8')
             ]);
             
             return ['success' => false, 'error' => $errorMsg];
@@ -203,7 +203,7 @@ class VerifactuService
             Log::error("Verifactu Service: " . $errorMsg);
             $model->update([
                 'verifactu_status' => 'error',
-                'verifactu_signature' => substr($errorMsg, 0, 1000)
+                'verifactu_signature' => mb_convert_encoding(substr($errorMsg, 0, 1000), 'UTF-8', 'UTF-8')
             ]);
             return ['success' => false, 'error' => $errorMsg];
         }

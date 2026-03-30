@@ -107,9 +107,24 @@ class AeatService
                 ];
             }
 
+            $status = $response->status();
+            $body = $response->body();
+
+            // Detect if it's HTML (likely a 404 or AEAT error page)
+            if (stripos($body, '<html') !== false) {
+                // Extract title or just return a snippet, ensuring UTF-8
+                if (preg_match('/<title>(.*?)<\/title>/is', $body, $matches)) {
+                    $errorMsg = "AEAT Error de Red ($status): " . trim($matches[1]);
+                } else {
+                    $errorMsg = "AEAT Error de Red ($status): [Respuesta HTML no válida]";
+                }
+            } else {
+                $errorMsg = "AEAT Error de Red ($status): " . mb_convert_encoding($body, 'UTF-8', 'ISO-8859-1, UTF-8');
+            }
+
             return [
                 'success' => false,
-                'error' => "AEAT Error de Red ({$response->status()}): " . $response->body()
+                'error' => $errorMsg
             ];
 
         } catch (\Exception $e) {
