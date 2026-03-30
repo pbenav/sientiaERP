@@ -115,21 +115,26 @@ XML;
 
                 return [
                     'success' => false,
-                    'error' => "FACe Error ({$result['codigo']}): " . $result['descripcion']
+                    'error' => mb_convert_encoding("FACe Error ({$result['codigo']}): " . $result['descripcion'], 'UTF-8', 'ISO-8859-1, UTF-8')
                 ];
             }
 
+            $body = $response->body();
+            $status = $response->status();
+            $cleanBody = (stripos($body, '<html') !== false) ? "[HTML Response]" : mb_convert_encoding($body, 'UTF-8', 'ISO-8859-1, UTF-8');
+
             return [
                 'success' => false,
-                'error' => "Error de conexión con FACe ({$response->status()}): " . $response->body(),
-                'raw_body' => $response->body()
+                'error' => "Error de conexión con FACe ($status): " . $cleanBody,
+                'raw_body' => $body
             ];
 
         } catch (\Exception $e) {
-            Log::error("Face Submission Error: " . $e->getMessage() . "\n" . $e->getTraceAsString());
+            $msg = mb_convert_encoding($e->getMessage(), 'UTF-8', 'UTF-8');
+            Log::error("Face Submission Error: " . $msg);
             return [
                 'success' => false,
-                'error' => "Error en envío a FACe: " . $e->getMessage(),
+                'error' => "Error en envío a FACe: " . $msg,
                 'raw_body' => $e instanceof \Exception && isset($e->raw_body) ? $e->raw_body : null
             ];
         } finally {

@@ -285,7 +285,7 @@ class FacturaResource extends Resource
                             Notification::make()->title('Veri*Factu: Aceptado')->success()->send();
                         } else {
                             Notification::make()
-                                ->title('Veri*Factu: Error')
+                                ->title('Veri*Factu: Error en Respuesta')
                                 ->body($res['error'] ?? 'Error desconocido')
                                 ->danger()
                                 ->persistent()
@@ -344,14 +344,14 @@ class FacturaResource extends Resource
                                 ->send();
                         } else {
                             $record->update([
-                                'facturae_last_error' => $result['error'],
+                                'facturae_last_error' => mb_convert_encoding(mb_substr($result['error'], 0, 1000), 'UTF-8', 'UTF-8'),
                                 'facturae_last_response' => $result['raw_body'] ?? null
                             ]);
 
                             Notification::make()
-                                ->title('Error en envío a FACe')
+                                ->title('Error en envío a FACe (Detalle Completo)')
                                 ->danger()
-                                ->body("La respuesta de RedSARA no fue válida. Haga clic en el icono de diagnóstico (bicho) en la tabla para ver el rastro completo.")
+                                ->body($result['error'] ?? 'La respuesta de RedSARA no fue válida.')
                                 ->persistent()
                                 ->send();
                         }

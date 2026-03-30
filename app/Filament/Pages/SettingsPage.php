@@ -12,6 +12,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Form;
 use Filament\Pages\Page;
 use Filament\Forms\Components\Placeholder;
@@ -355,6 +356,22 @@ class SettingsPage extends Page
                                     ])->columns(2),
                                 Section::make('Endpoints AEAT')
                                     ->description('Direcciones web oficiales de la Agencia Tributaria')
+                                    ->headerActions([
+                                        Action::make('reset_verifactu_endpoints')
+                                            ->label('Valores por Defecto')
+                                            ->icon('heroicon-m-arrow-path')
+                                            ->color('warning')
+                                            ->action(function ($set) {
+                                                $set('verifactu_endpoint_test', 'https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP');
+                                                $set('verifactu_endpoint_test_query', 'https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/ConsultaLRSOAP');
+                                                $set('verifactu_qr_url_test', 'https://prewww2.aeat.es/wlpl/VERI-FACTU/ConsultaPublica');
+                                                $set('verifactu_endpoint_production', 'https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP');
+                                                $set('verifactu_endpoint_production_query', 'https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/ConsultaLRSOAP');
+                                                $set('verifactu_qr_url_production', 'https://www2.agenciatributaria.gob.es/wlpl/VERI-FACTU/ConsultaPublica');
+                                                
+                                                Notification::make()->title('Endpoints de Veri*Factu restablecidos (Pulsa Guardar para aplicar)')->warning()->send();
+                                            }),
+                                    ])
                                     ->collapsed()
                                     ->schema([
                                         TextInput::make('verifactu_endpoint_test')->label('URL Alta (Pruebas)')->default('https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP')->columnSpanFull(),
@@ -393,6 +410,18 @@ class SettingsPage extends Page
                                     ])->columns(2),
                                 Section::make('Endpoints FACe / Portales')
                                     ->description('Direcciones web para el envío automático si se implementa el WS')
+                                    ->headerActions([
+                                        Action::make('reset_facturae_endpoints')
+                                            ->label('Valores por Defecto')
+                                            ->icon('heroicon-m-arrow-path')
+                                            ->color('warning')
+                                            ->action(function ($set) {
+                                                $set('facturae_endpoint_test', 'https://se-face.redsara.es/facturasspp/services/FacturassppWebServiceProxyPort');
+                                                $set('facturae_endpoint_production', 'https://face.gob.es/facturasspp/services/FacturassppWebServiceProxyPort');
+                                                
+                                                Notification::make()->title('Endpoints de Facturae restablecidos (Pulsa Guardar para aplicar)')->warning()->send();
+                                            }),
+                                    ])
                                     ->collapsed()
                                     ->schema([
                                         TextInput::make('facturae_endpoint_test')->label('URL Pruebas (Staging)')->columnSpanFull(),

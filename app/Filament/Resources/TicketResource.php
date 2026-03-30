@@ -409,7 +409,7 @@ class TicketResource extends Resource
                             \Filament\Notifications\Notification::make()->title('Veri*Factu: Aceptado')->success()->send();
                         } else {
                             \Filament\Notifications\Notification::make()
-                                ->title('Veri*Factu: Error')
+                                ->title('Veri*Factu: Error en Respuesta')
                                 ->body($res['error'] ?? 'Error desconocido')
                                 ->danger()
                                 ->persistent()
