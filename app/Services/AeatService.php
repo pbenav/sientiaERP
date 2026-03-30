@@ -95,15 +95,15 @@ class AeatService
                 if (stripos($body, 'Aceptado') !== false) {
                     return [
                         'success' => true,
-                        'data' => $body,
+                        'data' => mb_convert_encoding($body, 'UTF-8', 'ISO-8859-1, UTF-8'),
                         'trace_id' => $this->extractTraceId($body) ?: 'OK'
                     ];
                 }
 
                 return [
                     'success' => false,
-                    'error' => "AEAT Rechazado (Business Error): " . $this->extractError($body),
-                    'raw_body' => $body
+                    'error' => mb_convert_encoding("AEAT Rechazado (Business Error): " . $this->extractError($body), 'UTF-8', 'ISO-8859-1, UTF-8'),
+                    'raw_body' => mb_convert_encoding($body, 'UTF-8', 'ISO-8859-1, UTF-8')
                 ];
             }
 
@@ -128,10 +128,11 @@ class AeatService
             ];
 
         } catch (\Exception $e) {
-            Log::error("Verifactu Submission Error: " . $e->getMessage());
+            $msg = mb_convert_encoding($e->getMessage(), 'UTF-8', 'UTF-8');
+            Log::error("Verifactu Submission Error: " . $msg);
             return [
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => $msg
             ];
         } finally {
             if ($tempCert && file_exists($tempCert)) @unlink($tempCert);

@@ -733,4 +733,21 @@ class Documento extends Model
             ->orderBy('numero', 'desc')
             ->first();
     }
+    /**
+     * Sanitizar campos que pueden contener basura binaria de respuestas de red (AEAT/FACe)
+     */
+    public function getVerifactuSignatureAttribute($value)
+    {
+        return $value ? mb_convert_encoding($value, 'UTF-8', 'UTF-8') : $value;
+    }
+
+    public function getFacturaeLastErrorAttribute($value)
+    {
+        return $value ? mb_convert_encoding($value, 'UTF-8', 'UTF-8') : $value;
+    }
+
+    public function getVerifactuAeatIdAttribute($value)
+    {
+        return $value ? mb_convert_encoding($value, 'UTF-8', 'UTF-8') : $value;
+    }
 }

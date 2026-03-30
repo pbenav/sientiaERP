@@ -107,15 +107,15 @@ class VerifactuDebugger extends Component
                 // Actualizar registro con el error
                 $record->update([
                     'verifactu_status' => 'error',
-                    'verifactu_signature' => substr($this->errorMessage, 0, 1000)
+                    'verifactu_signature' => mb_convert_encoding(mb_substr($this->errorMessage, 0, 1000), 'UTF-8', 'UTF-8')
                 ]);
             }
 
         } catch (\Exception $e) {
             $this->status = 'error';
-            $this->errorMessage = $e->getMessage();
+            $this->errorMessage = mb_convert_encoding($e->getMessage(), 'UTF-8', 'UTF-8');
             $this->addStep('Fallo crítico interno: ' . $this->errorMessage, 'error');
-            Log::error("Verifactu Debugger Error: " . $e->getMessage());
+            Log::error("Verifactu Debugger Error: " . $this->errorMessage);
         }
     }
 

@@ -194,4 +194,16 @@ class Ticket extends Model
     {
         return $this->documento_id !== null;
     }
+    /**
+     * Sanitizar campos que pueden contener basura binaria de respuestas de red (AEAT)
+     */
+    public function getVerifactuSignatureAttribute($value)
+    {
+        return $value ? mb_convert_encoding($value, 'UTF-8', 'UTF-8') : $value;
+    }
+
+    public function getVerifactuAeatIdAttribute($value)
+    {
+        return $value ? mb_convert_encoding($value, 'UTF-8', 'UTF-8') : $value;
+    }
 }
