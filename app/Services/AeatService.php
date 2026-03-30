@@ -114,7 +114,7 @@ class AeatService
             if (stripos($body, '<html') !== false) {
                 // Extract title or just return a snippet, ensuring UTF-8
                 if (preg_match('/<title>(.*?)<\/title>/is', $body, $matches)) {
-                    $errorMsg = "AEAT Error de Red ($status): " . trim($matches[1]);
+                    $errorMsg = "AEAT Error de Red ($status): " . mb_convert_encoding(trim($matches[1]), 'UTF-8', 'ISO-8859-1, UTF-8');
                 } else {
                     $errorMsg = "AEAT Error de Red ($status): [Respuesta HTML no válida]";
                 }
@@ -175,14 +175,15 @@ class AeatService
 
             return [
                 'success' => false,
-                'error' => "AEAT Query Error ({$response->status()}): " . $response->body()
+                'error' => "AEAT Query Error ({$response->status()}): " . mb_convert_encoding($response->body(), 'UTF-8', 'ISO-8859-1, UTF-8')
             ];
 
         } catch (\Exception $e) {
-            Log::error("Verifactu Query Error: " . $e->getMessage());
+            $msg = mb_convert_encoding($e->getMessage(), 'UTF-8', 'UTF-8');
+            Log::error("Verifactu Query Error: " . $msg);
             return [
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => $msg
             ];
         } finally {
             if ($tempCert && file_exists($tempCert)) @unlink($tempCert);
@@ -203,7 +204,7 @@ class AeatService
     protected function extractTraceId(string $soapResponse): ?string
     {
         if (preg_match('/<(?:[a-zA-Z0-9]+:)?CSV>([^<]+)<\/(?:[a-zA-Z0-9]+:)?CSV>/i', $soapResponse, $matches)) {
-            return $matches[1];
+            return mb_convert_encoding($matches[1], 'UTF-8', 'UTF-8');
         }
         return null;
     }
@@ -211,10 +212,10 @@ class AeatService
     protected function extractError(string $soapResponse): string
     {
         if (preg_match('/<(?:[a-zA-Z0-9]+:)?DescripcionErrorRegistro>([^<]+)<\/(?:[a-zA-Z0-9]+:)?DescripcionErrorRegistro>/i', $soapResponse, $matches)) {
-            return $matches[1];
+            return mb_convert_encoding($matches[1], 'UTF-8', 'ISO-8859-1, UTF-8');
         }
         if (preg_match('/<(?:[a-zA-Z0-9]+:)?faultstring>([^<]+)<\/(?:[a-zA-Z0-9]+:)?faultstring>/i', $soapResponse, $matches)) {
-            return $matches[1];
+            return mb_convert_encoding($matches[1], 'UTF-8', 'ISO-8859-1, UTF-8');
         }
         return "Error no especificado en la respuesta.";
     }
