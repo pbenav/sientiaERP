@@ -8,6 +8,11 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Legal pages
+Route::get('/privacy-policy', [App\Http\Controllers\LegalController::class, 'privacy'])->name('privacy');
+Route::get('/terms-of-service', [App\Http\Controllers\LegalController::class, 'terms'])->name('terms');
+Route::get('/cookie-policy', [App\Http\Controllers\LegalController::class, 'cookies'])->name('cookies');
+
 Route::get('/documentos/{record}/pdf', [PdfController::class, 'downloadDocumento'])
     ->name('documentos.pdf')
     ->middleware(['auth']);

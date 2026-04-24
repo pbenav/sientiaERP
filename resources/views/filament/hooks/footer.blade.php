@@ -19,6 +19,13 @@
                 </a>
             </div>
             
+            <div class="flex items-center gap-4 text-[10px]">
+                <a href="{{ route('privacy') }}" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">{{ __('Privacidad') }}</a>
+                <a href="{{ route('terms') }}" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">{{ __('Términos') }}</a>
+                <a href="{{ route('cookies') }}" class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">{{ __('Cookies') }}</a>
+            </div>
+            <span class="mx-1 text-gray-300 dark:text-gray-700 text-[10px]">|</span>
+            
             <a href="https://www.patreon.com/cw/sientia" target="_blank"
                 class="text-orange-600 hover:text-orange-700 font-bold transition-all flex items-center gap-1.5 group">
                 <i class="fab fa-patreon group-hover:scale-110 transition-transform"></i>
