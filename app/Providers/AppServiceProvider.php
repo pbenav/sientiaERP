@@ -32,5 +32,19 @@ class AppServiceProvider extends ServiceProvider
         if (str_starts_with(config('app.url') ?? '', 'https')) {
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
+
+        // Forzar el host y el puerto en producción basados en la APP_URL
+        // Esto resuelve el error 401 en subidas de Livewire tras proxies como Apache/Proxmox
+        if (app()->environment('production') || env('APP_ENV') === 'production') {
+            $parsedUrl = parse_url(config('app.url'));
+            if (!empty($parsedUrl['host'])) {
+                request()->headers->set('HOST', $parsedUrl['host']);
+                if (!empty($parsedUrl['port'])) {
+                    request()->headers->set('X-FORWARDED-PORT', $parsedUrl['port']);
+                } else {
+                    request()->headers->set('X-FORWARDED-PORT', ($parsedUrl['scheme'] ?? 'https') === 'https' ? 443 : 80);
+                }
+            }
+        }
     }
 }
