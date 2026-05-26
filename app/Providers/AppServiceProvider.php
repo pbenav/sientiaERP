@@ -54,5 +54,22 @@ class AppServiceProvider extends ServiceProvider
                 }
             }
         }
+
+        // DEPURADOR DE FIRMAS EN PRODUCCIÓN
+        if (request()->is('livewire/upload-file') || str_contains(request()->path(), 'upload-file')) {
+            \Illuminate\Support\Facades\Log::info('Livewire Upload Signature Debug:', [
+                'request_url' => request()->url(),
+                'request_full_url' => request()->fullUrl(),
+                'has_valid_signature' => request()->hasValidSignature(),
+                'expires' => request()->query('expires'),
+                'signature' => request()->query('signature'),
+                'server_http_host' => $_SERVER['HTTP_HOST'] ?? null,
+                'server_name' => $_SERVER['SERVER_NAME'] ?? null,
+                'server_port' => $_SERVER['SERVER_PORT'] ?? null,
+                'https_state' => $_SERVER['HTTPS'] ?? null,
+                'app_url' => config('app.url'),
+                'app_key_hash' => substr(config('app.key') ?? '', 0, 15) . '...',
+            ]);
+        }
     }
 }
