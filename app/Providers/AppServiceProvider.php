@@ -45,11 +45,15 @@ class AppServiceProvider extends ServiceProvider
             $_SERVER['SERVER_NAME'] = $parsedUrl['host'];
             $_SERVER['SERVER_PORT'] = $port;
             $_SERVER['HTTPS'] = $isHttps ? 'on' : 'off';
+            $_SERVER['HTTP_X_FORWARDED_PROTO'] = $isHttps ? 'https' : 'http';
+            $_SERVER['HTTP_X_FORWARDED_PORT'] = $port;
             
             // 2. Sobrescribir los datos en el Request actual
             request()->server->set('HTTP_HOST', $parsedUrl['host']);
             request()->server->set('SERVER_NAME', $parsedUrl['host']);
             request()->server->set('SERVER_PORT', $port);
+            request()->server->set('HTTP_X_FORWARDED_PROTO', $isHttps ? 'https' : 'http');
+            request()->server->set('HTTP_X_FORWARDED_PORT', $port);
             request()->headers->set('HOST', $parsedUrl['host']);
             request()->headers->set('X-FORWARDED-PORT', $port);
             request()->headers->set('X-FORWARDED-PROTO', $isHttps ? 'https' : 'http');
