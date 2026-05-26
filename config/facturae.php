@@ -11,7 +11,7 @@ return [
     */
 
     'endpoints' => [
-        'test' => env('FACE_URL_PRUEBAS', 'https://webservice.ssff.face.gob.es/facturasspp?wsdl'),
+        'test' => env('FACE_URL_PRUEBAS', 'https://se-face-webservice.redsara.es/facturasspp?wsdl'),
         'production' => env('FACE_URL_PRODUCCION', 'https://webservice.face.gob.es/facturasspp?wsdl'),
     ],
 
