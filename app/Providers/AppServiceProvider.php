@@ -38,20 +38,32 @@ class AppServiceProvider extends ServiceProvider
         if (app()->environment('production') || env('APP_ENV') === 'production') {
             $parsedUrl = parse_url(config('app.url'));
             if (!empty($parsedUrl['host'])) {
-                // Sobrescribir superglobales de servidor de bajo nivel (leídas por Symfony)
+                $isHttps = ($parsedUrl['scheme'] ?? 'https') === 'https';
+                $port = $isHttps ? 443 : 80;
+                
+                // 1. Sobrescribir superglobales de servidor de bajo nivel (leídas por Symfony)
                 $_SERVER['HTTP_HOST'] = $parsedUrl['host'];
                 $_SERVER['SERVER_NAME'] = $parsedUrl['host'];
-                request()->headers->set('HOST', $parsedUrl['host']);
+                $_SERVER['SERVER_PORT'] = $port;
+                $_SERVER['HTTPS'] = $isHttps ? 'on' : 'off';
                 
-                if (($parsedUrl['scheme'] ?? 'https') === 'https') {
-                    $_SERVER['HTTPS'] = 'on';
-                    $_SERVER['SERVER_PORT'] = 443;
-                    request()->headers->set('X-FORWARDED-PORT', 443);
-                } else {
-                    $_SERVER['HTTPS'] = 'off';
-                    $_SERVER['SERVER_PORT'] = 80;
-                    request()->headers->set('X-FORWARDED-PORT', 80);
-                }
+                // 2. Sobrescribir los datos en el Request actual
+                request()->server->set('HTTP_HOST', $parsedUrl['host']);
+                request()->server->set('SERVER_NAME', $parsedUrl['host']);
+                request()->server->set('SERVER_PORT', $port);
+                request()->headers->set('HOST', $parsedUrl['host']);
+                request()->headers->set('X-FORWARDED-PORT', $port);
+                
+                // 3. Forzar a Symfony a vaciar su caché interna reinicializando el Request con los nuevos datos
+                request()->initialize(
+                    request()->query->all(),
+                    request()->request->all(),
+                    request()->attributes->all(),
+                    request()->cookies->all(),
+                    request()->files->all(),
+                    request()->server->all(),
+                    request()->getContent()
+                );
             }
         }
 
