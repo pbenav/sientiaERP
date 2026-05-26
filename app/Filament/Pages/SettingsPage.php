@@ -364,10 +364,10 @@ class SettingsPage extends Page
                                             ->action(function ($set) {
                                                 $set('verifactu_endpoint_test', 'https://prewww10.aeat.es/wlpl/SSII-FACT/webservice/v1/VeriFactuAltaSOAP');
                                                 $set('verifactu_endpoint_test_query', 'https://prewww10.aeat.es/wlpl/SSII-FACT/webservice/v1/VeriFactuAnulSOAP');
-                                                $set('verifactu_qr_url_test', 'https://prewww2.aeat.es/wlpl/VERI-FACTU/ConsultaPublica');
+                                                $set('verifactu_qr_url_test', 'https://prewww10.aeat.es/wlpl/TIKE-CONT/ValidarQR');
                                                 $set('verifactu_endpoint_production', 'https://www10.agenciatributaria.gob.es/wlpl/SSII-FACT/webservice/v1/VeriFactuAltaSOAP');
                                                 $set('verifactu_endpoint_production_query', 'https://www10.agenciatributaria.gob.es/wlpl/SSII-FACT/webservice/v1/VeriFactuAnulSOAP');
-                                                $set('verifactu_qr_url_production', 'https://www2.agenciatributaria.gob.es/wlpl/VERI-FACTU/ConsultaPublica');
+                                                $set('verifactu_qr_url_production', 'https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/v1/f');
                                                 
                                                 Notification::make()->title('Endpoints de Veri*Factu restablecidos (Pulsa Guardar para aplicar)')->warning()->send();
                                             }),
