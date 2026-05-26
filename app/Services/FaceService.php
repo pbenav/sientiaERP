@@ -41,6 +41,12 @@ class FaceService
         } else {
             $this->endpoint = Setting::get('facturae_endpoint_test', config('facturae.endpoints.test'));
         }
+
+        // Limpiar de forma transparente el sufijo ?wsdl si se ha provisto en la base de datos o config
+        // Esto permite que el cliente HTTP de Laravel (POST SOAP directo) envíe la petición al endpoint de servicio real
+        if (!empty($this->endpoint)) {
+            $this->endpoint = preg_replace('/(\?wsdl)$/i', '', $this->endpoint);
+        }
     }
 
     /**

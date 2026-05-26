@@ -12,10 +12,10 @@ return [
     
     // AEAT Endpoints (Pruebas / Producción)
     'endpoints' => [
-        'test' => 'https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP',
-        'test_query' => 'https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP',
-        'production' => 'https://www1.agenciatributaria.gob.es/wlpl/SSII-FACT/ws/VeriFactuSuministroSOAP',
-        'production_query' => 'https://www1.agenciatributaria.gob.es/wlpl/SSII-FACT/ws/VeriFactuConsultaSOAP',
+        'test' => env('VERIFACTU_ENDPOINT_TEST', 'https://prewww10.aeat.es/wlpl/SSII-FACT/webservice/v1/VeriFactuAltaSOAP'),
+        'test_query' => env('VERIFACTU_ENDPOINT_TEST_ANUL', 'https://prewww10.aeat.es/wlpl/SSII-FACT/webservice/v1/VeriFactuAnulSOAP'),
+        'production' => env('VERIFACTU_ENDPOINT_PRODUCTION', 'https://www10.agenciatributaria.gob.es/wlpl/SSII-FACT/webservice/v1/VeriFactuAltaSOAP'),
+        'production_query' => env('VERIFACTU_ENDPOINT_PRODUCTION_ANUL', 'https://www10.agenciatributaria.gob.es/wlpl/SSII-FACT/webservice/v1/VeriFactuAnulSOAP'),
     ],
 
     // URL para el código QR (Consulta Pública)

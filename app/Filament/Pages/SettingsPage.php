@@ -362,11 +362,11 @@ class SettingsPage extends Page
                                             ->icon('heroicon-m-arrow-path')
                                             ->color('warning')
                                             ->action(function ($set) {
-                                                $set('verifactu_endpoint_test', 'https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP');
-                                                $set('verifactu_endpoint_test_query', 'https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/ConsultaLRSOAP');
+                                                $set('verifactu_endpoint_test', 'https://prewww10.aeat.es/wlpl/SSII-FACT/webservice/v1/VeriFactuAltaSOAP');
+                                                $set('verifactu_endpoint_test_query', 'https://prewww10.aeat.es/wlpl/SSII-FACT/webservice/v1/VeriFactuAnulSOAP');
                                                 $set('verifactu_qr_url_test', 'https://prewww2.aeat.es/wlpl/VERI-FACTU/ConsultaPublica');
-                                                $set('verifactu_endpoint_production', 'https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP');
-                                                $set('verifactu_endpoint_production_query', 'https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/ConsultaLRSOAP');
+                                                $set('verifactu_endpoint_production', 'https://www10.agenciatributaria.gob.es/wlpl/SSII-FACT/webservice/v1/VeriFactuAltaSOAP');
+                                                $set('verifactu_endpoint_production_query', 'https://www10.agenciatributaria.gob.es/wlpl/SSII-FACT/webservice/v1/VeriFactuAnulSOAP');
                                                 $set('verifactu_qr_url_production', 'https://www2.agenciatributaria.gob.es/wlpl/VERI-FACTU/ConsultaPublica');
                                                 
                                                 Notification::make()->title('Endpoints de Veri*Factu restablecidos (Pulsa Guardar para aplicar)')->warning()->send();
@@ -416,8 +416,8 @@ class SettingsPage extends Page
                                             ->icon('heroicon-m-arrow-path')
                                             ->color('warning')
                                             ->action(function ($set) {
-                                                $set('facturae_endpoint_test', 'https://se-face.redsara.es/facturasspp/services/FacturassppWebServiceProxyPort');
-                                                $set('facturae_endpoint_production', 'https://face.gob.es/facturasspp/services/FacturassppWebServiceProxyPort');
+                                                $set('facturae_endpoint_test', 'https://webservice.ssff.face.gob.es/facturasspp?wsdl');
+                                                $set('facturae_endpoint_production', 'https://webservice.face.gob.es/facturasspp?wsdl');
                                                 
                                                 Notification::make()->title('Endpoints de Facturae restablecidos (Pulsa Guardar para aplicar)')->warning()->send();
                                             }),
