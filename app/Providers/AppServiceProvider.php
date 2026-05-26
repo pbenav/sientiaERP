@@ -38,11 +38,19 @@ class AppServiceProvider extends ServiceProvider
         if (app()->environment('production') || env('APP_ENV') === 'production') {
             $parsedUrl = parse_url(config('app.url'));
             if (!empty($parsedUrl['host'])) {
+                // Sobrescribir superglobales de servidor de bajo nivel (leídas por Symfony)
+                $_SERVER['HTTP_HOST'] = $parsedUrl['host'];
+                $_SERVER['SERVER_NAME'] = $parsedUrl['host'];
                 request()->headers->set('HOST', $parsedUrl['host']);
-                if (!empty($parsedUrl['port'])) {
-                    request()->headers->set('X-FORWARDED-PORT', $parsedUrl['port']);
+                
+                if (($parsedUrl['scheme'] ?? 'https') === 'https') {
+                    $_SERVER['HTTPS'] = 'on';
+                    $_SERVER['SERVER_PORT'] = 443;
+                    request()->headers->set('X-FORWARDED-PORT', 443);
                 } else {
-                    request()->headers->set('X-FORWARDED-PORT', ($parsedUrl['scheme'] ?? 'https') === 'https' ? 443 : 80);
+                    $_SERVER['HTTPS'] = 'off';
+                    $_SERVER['SERVER_PORT'] = 80;
+                    request()->headers->set('X-FORWARDED-PORT', 80);
                 }
             }
         }
