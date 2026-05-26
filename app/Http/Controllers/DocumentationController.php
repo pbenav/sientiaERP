@@ -47,6 +47,7 @@ class DocumentationController extends Controller
                 'verifactu'    => 'Veri*Factu',
                 'facturae'     => 'FacturaE (Factura Electrónica)',
                 'architecture' => 'Arquitectura Técnica',
+                'seguridad'    => 'Seguridad, ENS y SPDX',
                 'changelog'    => 'Historial de Cambios',
             ],
             'en' => [
@@ -56,6 +57,7 @@ class DocumentationController extends Controller
                 'verifactu'    => 'Veri*Factu',
                 'facturae'     => 'FacturaE (Electronic Invoice)',
                 'architecture' => 'Technical Architecture',
+                'seguridad'    => 'Security, ENS & SPDX',
                 'changelog'    => 'Changelog',
             ],
         ];
