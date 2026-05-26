@@ -52,6 +52,7 @@ class AppServiceProvider extends ServiceProvider
             request()->server->set('SERVER_PORT', $port);
             request()->headers->set('HOST', $parsedUrl['host']);
             request()->headers->set('X-FORWARDED-PORT', $port);
+            request()->headers->set('X-FORWARDED-PROTO', $isHttps ? 'https' : 'http');
             
             // 3. Forzar a Symfony a vaciar su caché interna reinicializando el Request con los nuevos datos
             request()->initialize(
