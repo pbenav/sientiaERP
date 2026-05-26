@@ -11,8 +11,8 @@ return [
     */
 
     'endpoints' => [
-        'test' => env('FACTURAE_ENDPOINT_TEST', 'https://webservice.ssff.face.gob.es/facturasspp?wsdl'),
-        'production' => env('FACTURAE_ENDPOINT_PRODUCTION', 'https://webservice.face.gob.es/facturasspp?wsdl'),
+        'test' => env('FACE_URL_PRUEBAS', 'https://webservice.ssff.face.gob.es/facturasspp?wsdl'),
+        'production' => env('FACE_URL_PRODUCCION', 'https://webservice.face.gob.es/facturasspp?wsdl'),
     ],
 
     'mode' => env('FACTURAE_MODE', 'test'), // test | production
