@@ -64,13 +64,21 @@ class FaceService
             $filename = 'Facturae_' . str_replace('/', '_', $record->numero ?? $record->id) . '.xml';
             $base64Xml = base64_encode($xmlContent);
 
+            $correo = Setting::get('facturae_email') 
+                ?: $record->tercero->email 
+                ?: Setting::get('empresa_email') 
+                ?: (auth()->check() ? auth()->user()->email : 'facturae@sientia.com');
+
             $soapInnerBody = <<<XML
-<fac:enviarFactura xmlns:fac="https://face.gob.es/facturasspp">
-   <fac:factura>
-      <fac:factura>$base64Xml</fac:factura>
-      <fac:nombre>$filename</fac:nombre>
-      <fac:mime>text/xml</fac:mime>
-   </fac:factura>
+<fac:enviarFactura xmlns:fac="https://webservice.face.gob.es">
+   <request>
+      <correo>$correo</correo>
+      <factura>
+         <factura>$base64Xml</factura>
+         <nombre>$filename</nombre>
+         <mime>text/xml</mime>
+      </factura>
+   </request>
 </fac:enviarFactura>
 XML;
 
@@ -127,7 +135,11 @@ XML;
 
             $body = $response->body();
             $status = $response->status();
-            $cleanBody = (stripos($body, '<html') !== false) ? "[HTML Response]" : mb_convert_encoding($body, 'UTF-8', 'ISO-8859-1, UTF-8');
+            Log::error("FACe Connection Error ($status). Endpoint: {$this->endpoint}. Response Body: " . $body);
+            
+            $cleanBody = (stripos($body, '<html') !== false) 
+                ? "[HTML Response]" 
+                : (!empty($body) ? mb_convert_encoding($body, 'UTF-8', 'ISO-8859-1, UTF-8') : "[Cuerpo Vacío]");
 
             return [
                 'success' => false,
@@ -328,8 +340,8 @@ XML;
 
         try {
             $soapInnerBody = <<<XML
-<fac:consultarFactura xmlns:fac="https://face.gob.es/facturasspp">
-   <fac:numeroRegistro>$numeroRegistro</fac:numeroRegistro>
+<fac:consultarFactura xmlns:fac="https://webservice.face.gob.es">
+   <numeroRegistro>$numeroRegistro</numeroRegistro>
 </fac:consultarFactura>
 XML;
 
