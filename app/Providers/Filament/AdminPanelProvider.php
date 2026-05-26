@@ -71,6 +71,13 @@ class AdminPanelProvider extends PanelProvider
                 'Configuración',
                 'Administración',
             ])
+            ->navigationItems([
+                NavigationItem::make('Documentación')
+                    ->url(fn () => route('docs', 'user-manual'), shouldOpenInNewTab: true)
+                    ->icon('heroicon-o-book-open')
+                    ->group('Administración')
+                    ->sort(100),
+            ])
 
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->renderHook(

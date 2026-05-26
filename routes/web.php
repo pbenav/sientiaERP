@@ -41,3 +41,9 @@ Route::get('/facturae/{record}/download', [\App\Http\Controllers\FacturaeControl
     ->name('facturae.download')
     ->middleware(['auth']);
 
+
+// Rutas de Documentación
+Route::middleware(['auth'])->group(function () {
+    Route::get('/documentacion/{slug?}', [\App\Http\Controllers\DocumentationController::class, 'index'])->name('docs');
+});
+
