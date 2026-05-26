@@ -66,6 +66,33 @@ class Documento extends Model
             if (empty($documento->user_id)) {
                 $documento->user_id = auth()->id() ?? (\class_exists('\Filament\Facades\Filament') ? \Filament\Facades\Filament::auth()->id() : null) ?? 1;
             }
+
+            // Asignar forma de pago por defecto si está vacía
+            if (empty($documento->forma_pago_id) && in_array($documento->tipo, ['factura', 'factura_compra', 'ticket', 'presupuesto', 'pedido', 'albaran'])) {
+                $defaultFormaPagoId = null;
+                
+                if ($documento->tercero_id) {
+                    $tercero = \App\Models\Tercero::find($documento->tercero_id);
+                    if ($tercero && $tercero->forma_pago_id) {
+                        $defaultFormaPagoId = $tercero->forma_pago_id;
+                    }
+                }
+                
+                if (!$defaultFormaPagoId) {
+                    $defaultFormaPagoId = \App\Models\Setting::get('default_forma_pago_id');
+                }
+                
+                if (!$defaultFormaPagoId) {
+                    $fp = \App\Models\FormaPago::where('activo', true)->first();
+                    if ($fp) {
+                        $defaultFormaPagoId = $fp->id;
+                    }
+                }
+                
+                if ($defaultFormaPagoId) {
+                    $documento->forma_pago_id = $defaultFormaPagoId;
+                }
+            }
         });
 
         static::deleting(function ($documento) {
@@ -324,7 +351,36 @@ class Documento extends Model
             }
 
             if (!$this->forma_pago_id && in_array($this->tipo, ['factura', 'factura_compra', 'ticket'])) {
-                throw new \Exception("Debe seleccionar una Forma de Pago antes de confirmar.");
+                // Intentar asignar forma de pago por defecto en caliente
+                $defaultFormaPagoId = null;
+                
+                // 1. Desde el Tercero
+                if ($this->tercero_id) {
+                    $tercero = \App\Models\Tercero::find($this->tercero_id);
+                    if ($tercero && $tercero->forma_pago_id) {
+                        $defaultFormaPagoId = $tercero->forma_pago_id;
+                    }
+                }
+                
+                // 2. Desde el Setting global
+                if (!$defaultFormaPagoId) {
+                    $defaultFormaPagoId = \App\Models\Setting::get('default_forma_pago_id');
+                }
+                
+                // 3. Primera forma de pago activa en la BD
+                if (!$defaultFormaPagoId) {
+                    $fp = \App\Models\FormaPago::where('activo', true)->first();
+                    if ($fp) {
+                        $defaultFormaPagoId = $fp->id;
+                    }
+                }
+                
+                if ($defaultFormaPagoId) {
+                    $this->forma_pago_id = $defaultFormaPagoId;
+                    $this->saveQuietly();
+                } else {
+                    throw new \Exception("Debe seleccionar una Forma de Pago antes de confirmar.");
+                }
             }
 
             if ($this->total == 0) {
